@@ -138,7 +138,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         <ul class="ts-profile-nav">
             <li class="ts-account">
                 <a href="#">
-                    <img src="img/software-engineer.png" class="ts-avatar" alt="">
+                    <!-- <img src="img/software-engineer.png" class="ts-avatar" alt=""> -->
                     <span class="username"><?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Admin'; ?></span>
                     <i class="fa fa-angle-down"></i>
                 </a>

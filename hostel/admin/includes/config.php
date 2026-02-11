@@ -7,11 +7,18 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Database connection
-$dbuser = "chuwa";
-$dbpass = "chuwa123";
-$host = "localhost";
-$db = "Hostel";
-$mysqli = new mysqli($host, $dbuser, $dbpass, $db);
+$dbhost = "localhost";  // Host/IP
+$dbuser = "official_chuwa";      // Username
+$dbpass = "chuwa123";   // Password
+$dbname = "Hostel";     // Database name
+
+// Create connection with correct parameter order
+$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+
+// Check connection
+if ($mysqli->connect_error) {
+    die("Connection failed: " . $mysqli->connect_error);
+}
 
 // Enable/disable admin registration
 define('ALLOW_ADMIN_REGISTRATION', true);

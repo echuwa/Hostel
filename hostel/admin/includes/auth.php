@@ -68,7 +68,7 @@ function verifyCredentials($mysqli, $username, $password) {
     $stmt->fetch();
     $stmt->close();
 
-    if ($id && password_verify($password, $db_password)) {
+    if ($id && $db_password && password_verify($password, $db_password)) {
         return [
             'id' => $id,
             'username' => $db_username,
