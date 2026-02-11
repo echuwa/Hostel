@@ -3,14 +3,28 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
+// ============================================
+// SECURITY HEADERS - HAKUNA NEW LINES!
+// ============================================
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+
+// ============================================
+// CSP HEADER - LINE MOJA TU! HAKUNA NEW LINES!
+// ============================================
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net;");
+
 // Check if already logged in and redirect to appropriate dashboard
 if (isset($_SESSION['id'])) {
     if (isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
         header("Location: superadmin-dashboard.php");
+        exit();
     } else {
         header("Location: dashboard.php");
+        exit();
     }
-    exit();
 }
 
 require_once('includes/config.php');
@@ -81,16 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             session_regenerate_id(true);
             
             // Set session variables
-            $_SESSION = [
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'email' => $user['email'],
-                'is_superadmin' => $user['is_superadmin'],
-                'reg_date' => $user['reg_date'],
-                'last_login' => time(),
-                'ip_address' => $_SERVER['REMOTE_ADDR'],
-                'user_agent' => $_SERVER['HTTP_USER_AGENT']
-            ];
+            $_SESSION['id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['is_superadmin'] = $user['is_superadmin'];
+            $_SESSION['reg_date'] = $user['reg_date'];
+            $_SESSION['last_login'] = time();
+            $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+            $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
             
             // Set secure cookie parameters
             $cookieParams = session_get_cookie_params();
@@ -110,10 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             // Redirect based on user type
             if ($user['is_superadmin'] == 1) {
                 header("Location: superadmin-dashboard.php");
+                exit();
             } else {
                 header("Location: dashboard.php");
+                exit();
             }
-            exit();
         } else {
             $error = "Invalid credentials or account not active";
             logFailedLoginAttempt($mysqli, $username, $_SERVER['REMOTE_ADDR']);
@@ -131,11 +144,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <meta name="author" content="Your Name">
     <title>Admin Portal Login</title>
     
-    <!-- Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net;">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <!-- 
+        ====================================================
+        SECURITY HEADERS ZIKO KWENYE HTTP - HAPA HAKUNA META
+        ====================================================
+    -->
     
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -257,6 +270,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             }
         }
     </style>
+    
+    <!-- Disable source map fetching -->
+    <script>
+        // DISABLE SOURCE MAPS - FIXED VERSION
+        (function() {
+            // Prevent source map requests
+            if (window.fetch) {
+                const originalFetch = window.fetch;
+                window.fetch = function(url, options) {
+                    if (url && typeof url === 'string' && 
+                        (url.includes('.map') || url.includes('sourcemap'))) {
+                        console.log('Blocked source map request:', url);
+                        return Promise.reject(new Error('Source maps disabled'));
+                    }
+                    return originalFetch.call(this, url, options);
+                };
+            }
+            
+            if (window.XMLHttpRequest) {
+                const originalOpen = XMLHttpRequest.prototype.open;
+                XMLHttpRequest.prototype.open = function(method, url) {
+                    if (url && typeof url === 'string' && 
+                        (url.includes('.map') || url.includes('sourcemap'))) {
+                        console.log('Blocked source map XHR:', url);
+                        return;
+                    }
+                    return originalOpen.apply(this, arguments);
+                };
+            }
+        })();
+    </script>
 </head>
 <body>
     <div class="container">
@@ -300,29 +344,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- JavaScript - FIXED EVENT LISTENERS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Toggle password visibility
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const password = document.getElementById('password');
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            this.classList.toggle('bi-eye-fill');
-            this.classList.toggle('bi-eye-slash-fill');
+        // DOM Content Loaded - ALL EVENT LISTENERS HERE
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle password visibility
+            const togglePassword = document.getElementById('togglePassword');
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function() {
+                    const password = document.getElementById('password');
+                    const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                    password.setAttribute('type', type);
+                    this.classList.toggle('bi-eye-fill');
+                    this.classList.toggle('bi-eye-slash-fill');
+                });
+            }
+
+            // Prevent form resubmission on page refresh
+            if (window.history.replaceState) {
+                window.history.replaceState(null, null, window.location.href);
+            }
+
+            // Auto-focus on username field
+            const username = document.getElementById('username');
+            if (username) {
+                setTimeout(function() {
+                    username.focus();
+                }, 100);
+            }
         });
 
-        // Prevent form resubmission on page refresh
-        if (window.history.replaceState) {
-            window.history.replaceState(null, null, window.location.href);
-        }
-
-        // Auto-focus on username field
-        document.getElementById('username').focus();
-
-        // Security warning in console
-        console.log('%cSECURITY WARNING', 'color: red; font-size: 24px; font-weight: bold;');
-        console.log('%cThis is a restricted admin console. Unauthorized access is prohibited.', 'font-size: 16px;');
+        // REMOVE HIVI KWENYE CONSOLE IKIWA HAUHITAJI
+        // console.log('%cSECURITY WARNING', 'color: red; font-size: 24px; font-weight: bold;');
+        // console.log('%cThis is a restricted admin console. Unauthorized access is prohibited.', 'font-size: 16px;');
+        
+        // UKIWA NAHAJA YA CONSOLE WARNING - FANYA HIVI:
+        (function() {
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                console.log('%cSECURITY WARNING', 'color: red; font-size: 24px; font-weight: bold;');
+                console.log('%cThis is a restricted admin console. Unauthorized access is prohibited.', 'font-size: 16px;');
+            }
+        })();
     </script>
 </body>
 </html>

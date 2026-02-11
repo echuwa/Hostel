@@ -33,7 +33,7 @@ if(isset($_POST['login'])) {
         $stmt->close();
         
         // Verify the password
-        if($rs && password_verify($password, $db_password)) {
+        if($rs && password_verify($password, $db_password ?? '')) {
             $_SESSION['id'] = $id;
             $_SESSION['login'] = $email;
             
