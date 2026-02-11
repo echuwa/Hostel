@@ -1,0 +1,7 @@
+{
+    "session_timeout": 300,
+    "password_min_length": 8,
+    "max_login_attempts": 5,
+    "lockout_time": 900,
+    "force_https": true
+}
