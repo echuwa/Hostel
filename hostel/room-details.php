@@ -290,11 +290,7 @@ check_login();
                             <h4 class="alert-heading">
                                 <i class="fas fa-info-circle me-2"></i> No Room Assigned
                             </h4>
-                            <p>You haven't been assigned a room yet. Please complete the registration process.</p>
-                            <hr>
-                            <a href="registration.php" class="btn btn-primary">
-                                <i class="fas fa-edit me-1"></i> Complete Registration
-                            </a>
+                            <p>You haven't been assigned a room yet. Please check back later or contact the administration.</p>
                         </div>
                         
                         <?php endif; ?>
