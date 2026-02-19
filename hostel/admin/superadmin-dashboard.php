@@ -738,16 +738,18 @@ $error = $_GET['error'] ?? '';
                             <i class="fas fa-users-cog"></i> ADMIN MANAGEMENT
                         </div>
                         <ul class="nav flex-column">
-                            <!-- Admin Registration - Icon + Badge -->
-                            <li class="nav-item">
-                                <a href="admin/admin-register.php" class="nav-link w-100 text-start">
-                                    <i class="fas fa-user-plus"></i>
-                                    <span>Admin Registration</span>
-                                    <?php if($pending_count > 0): ?>
-                                    <span class="notification-badge"><?php echo $pending_count; ?></span>
-                                    <?php endif; ?>
-                                </a>
-                            </li>
+
+                            <!-- Admin Registration - Icon + NEW - Button inayofungua modal -->
+<li class="nav-item">
+    <button class="nav-link w-100 text-start" type="button" data-bs-toggle="modal" data-bs-target="#adminRegisterModal">
+        <i class="fas fa-user-plus"></i>
+        <span>Admin Registration</span>
+        <?php if($pending_count > 0): ?>
+        <span class="notification-badge"><?php echo $pending_count; ?></span>
+        <?php endif; ?>
+    </button>
+</li>
+
                             
                             <!-- Manage Admins - Icon + Modal -->
                             <li class="nav-item">
@@ -759,7 +761,7 @@ $error = $_GET['error'] ?? '';
                             
                             <!-- Admin Dashboard - Icon + Arrow -->
                             <li class="nav-item">
-                                <a href="../admin/dashboard.php" class="nav-link w-100 text-start">
+                                <a href="dashboard.php" class="nav-link w-100 text-start">
                                     <i class="fas fa-chart-line"></i>
                                     <span>Admin Dashboard</span>
                                     <i class="fas fa-arrow-right ms-auto"></i>
@@ -1178,14 +1180,15 @@ $error = $_GET['error'] ?? '';
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Close
-                    </button>
-                    <a href="admin/admin-register.php" class="btn btn-primary">
-                        <i class="fas fa-user-plus me-1"></i> Admin Registration Page
-                    </a>
-                </div>
+                <!-- Manage Admins Modal Footer -->
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        <i class="fas fa-times me-1"></i> Close
+    </button>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#adminRegisterModal">
+        <i class="fas fa-user-plus me-1"></i> Admin Registration
+    </button>
+</div>
             </div>
         </div>
     </div>
@@ -1389,6 +1392,107 @@ $error = $_GET['error'] ?? '';
             </div>
         </div>
     </div>
+
+   <!-- Admin Registration Modal -->
+<div class="modal fade" id="adminRegisterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Register New Admin
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Alert Message Container -->
+                <div id="registerMessage"></div>
+                
+                <!-- Admin Registration Form -->
+                <form id="adminRegisterForm">
+                    <!-- Username Field -->
+                    <div class="mb-3">
+                        <label for="regUsername" class="form-label fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-user text-muted"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control border-start-0" 
+                                   id="regUsername" 
+                                   name="username" 
+                                   placeholder="Choose a username"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label for="regEmail" class="form-label fw-semibold">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-envelope text-muted"></i>
+                            </span>
+                            <input type="email" 
+                                   class="form-control border-start-0" 
+                                   id="regEmail" 
+                                   name="email" 
+                                   placeholder="Enter email address"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="mb-3">
+                        <label for="regPassword" class="form-label fw-semibold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-lock text-muted"></i>
+                            </span>
+                            <input type="password" 
+                                   class="form-control border-start-0" 
+                                   id="regPassword" 
+                                   name="password" 
+                                   placeholder="Minimum 8 characters"
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" id="toggleRegPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Password must be at least 8 characters long</div>
+                    </div>
+                    
+                    <!-- Confirm Password Field -->
+                    <div class="mb-3">
+                        <label for="regConfirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-lock text-muted"></i>
+                            </span>
+                            <input type="password" 
+                                   class="form-control border-start-0" 
+                                   id="regConfirmPassword" 
+                                   name="confirm_password" 
+                                   placeholder="Confirm your password"
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" id="toggleRegConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="submitRegisterBtn">
+                    <i class="fas fa-user-plus me-1"></i> Register Admin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" data-sourcemap="disabled"></script>
@@ -1926,7 +2030,7 @@ $error = $_GET['error'] ?? '';
                         timer: 2000,
                         showConfirmButton: false
                     }).then(function() {
-                        window.location.href = 'superadmin-login.php';
+                        window.location.href = '../index.php';
                     });
                 }
             });
@@ -2095,5 +2199,227 @@ $error = $_GET['error'] ?? '';
         window.openEditAdminModal = openEditAdminModal;
         window.openProfileModal = openProfileModal;
     </script>
+
+    <!-- Admin Registration Modal -->
+    <div class="modal fade" id="adminRegisterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Register New Admin
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Admin Registration Form -->
+                    <form action="ajax/register-admin-ajax.php" method="post" autocomplete="off" id="adminRegisterForm">
+                        <!-- Username Field -->
+                        <div class="form-group mb-3">
+                            <label for="regUsername" class="form-label">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" 
+                                       id="regUsername" 
+                                       name="username" 
+                                       class="form-control" 
+                                       placeholder="Choose a username"
+                                       required>
+                            </div>
+                        </div>
+                        
+                        <!-- Email Field -->
+                        <div class="form-group mb-3">
+                            <label for="regEmail" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" 
+                                       id="regEmail" 
+                                       name="email" 
+                                       class="form-control" 
+                                       placeholder="Enter email address"
+                                       required>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Field -->
+                        <div class="form-group mb-3">
+                            <label for="regPassword" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" 
+                                       id="regPassword" 
+                                       name="password" 
+                                       class="form-control" 
+                                       placeholder="Minimum 8 characters"
+                                       required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleRegPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">Password must be at least 8 characters long</small>
+                        </div>
+                        
+                        <!-- Confirm Password Field -->
+                        <div class="form-group mb-3">
+                            <label for="regConfirmPassword" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" 
+                                       id="regConfirmPassword" 
+                                       name="confirm_password" 
+                                       class="form-control" 
+                                       placeholder="Confirm your password"
+                                       required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleRegConfirmPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="regFormMessage"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </button>
+                    <button type="submit" form="adminRegisterForm" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-1"></i> Create Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password toggle for registration modal
+        document.getElementById('toggleRegPassword')?.addEventListener('click', function() {
+            const input = document.getElementById('regPassword');
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+
+        document.getElementById('toggleRegConfirmPassword')?.addEventListener('click', function() {
+            const input = document.getElementById('regConfirmPassword');
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+
+        // Handle admin registration form submission
+        document.getElementById('adminRegisterForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const messageDiv = document.getElementById('regFormMessage');
+            
+            fetch('ajax/register-admin-ajax.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + data.message + '</div>';
+                    document.getElementById('adminRegisterForm').reset();
+                    setTimeout(() => {
+                        bootstrap.Modal.getInstance(document.getElementById('adminRegisterModal')).hide();
+                        location.reload();
+                    }, 2000);
+                } else {
+                    messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>An error occurred</div>';
+                console.error('Error:', error);
+            });
+        });
+
+  // ============================================
+// ADMIN REGISTRATION MODAL - AJAX SUBMISSION
+// ============================================
+
+// Toggle password visibility
+document.getElementById('toggleRegPassword')?.addEventListener('click', function() {
+    const input = document.getElementById('regPassword');
+    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+    input.setAttribute('type', type);
+    this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+});
+
+document.getElementById('toggleRegConfirmPassword')?.addEventListener('click', function() {
+    const input = document.getElementById('regConfirmPassword');
+    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+    input.setAttribute('type', type);
+    this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+});
+
+// Handle registration form submission
+document.getElementById('submitRegisterBtn')?.addEventListener('click', function() {
+    const form = document.getElementById('adminRegisterForm');
+    const formData = new FormData(form);
+    const messageDiv = document.getElementById('registerMessage');
+    
+    // Client-side validation
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Passwords do not match!</div>';
+        return;
+    }
+    
+    if (password.length < 8) {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Password must be at least 8 characters!</div>';
+        return;
+    }
+    
+    // Show loading state
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
+    this.disabled = true;
+    
+    // Send AJAX request
+    fetch('ajax/register-admin-ajax.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            messageDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + data.message + '</div>';
+            form.reset();
+            
+            // Close modal after 2 seconds and refresh
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('adminRegisterModal'));
+                if (modal) modal.hide();
+                location.reload(); // Refresh to show new pending admin
+            }, 2000);
+        } else {
+            messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>' + data.message + '</div>';
+        }
+    })
+    .catch(error => {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>An error occurred. Please try again.</div>';
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Restore button state
+        this.innerHTML = originalText;
+        this.disabled = false;
+    });
+});
+
+// Clear message when modal is closed
+document.getElementById('adminRegisterModal')?.addEventListener('hidden.bs.modal', function() {
+    document.getElementById('registerMessage').innerHTML = '';
+    document.getElementById('adminRegisterForm').reset();
+});
+    </script>
+
 </body>
 </html>

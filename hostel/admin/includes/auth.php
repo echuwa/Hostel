@@ -218,6 +218,7 @@ function checkUserExists($mysqli, $username, $email) {
 
     $stmt->close();
     return $result;
+}
 
 
 /**
@@ -325,5 +326,3 @@ function log_activity($action_type, $description, $additional_data = null, $affe
 
 
 
-
-}

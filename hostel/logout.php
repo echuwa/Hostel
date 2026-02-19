@@ -1,87 +1,204 @@
 <?php
 session_start();
-$username = isset($_SESSION['username']) ? $_SESSION['username'] : 'User';
 
-// Store logout message in session to display on index page
-$_SESSION['logout_message'] = "Goodbye, $username! You have been successfully logged out.";
+// Enable error reporting for debugging (remove in production)
+// error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+
+// Load configuration
+require_once('includes/config.php');
+
+// ============================================
+// DETECT USER TYPE AND LOG ACTIVITY
+// ============================================
+
+$user_type = 'unknown';
+$user_id = null;
+$username = 'Unknown User';
+
+// Check for Super Admin / Admin (from admins table)
+if (isset($_SESSION['id'])) {
+    $user_id = $_SESSION['id'];
+    $username = $_SESSION['username'] ?? 'Admin User';
+    $user_type = isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1 ? 'superadmin' : 'admin';
+}
+
+// Check for Student (from userregistration table)
+elseif (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+    $username = $_SESSION['name'] ?? $_SESSION['login'] ?? 'Student User';
+    $user_type = 'student';
+}
+
+// ============================================
+// LOG LOGOUT ACTIVITY (IF DATABASE EXISTS)
+// ============================================
+
+if (isset($mysqli) && $user_id) {
+    try {
+        // Check which table structure exists
+        $tableCheck = $mysqli->query("SHOW TABLES LIKE 'audit_logs'");
+        
+        if ($tableCheck && $tableCheck->num_rows > 0) {
+            // Using audit_logs table (for admins/superadmins)
+            if ($user_type == 'superadmin' || $user_type == 'admin') {
+                $logStmt = $mysqli->prepare("INSERT INTO audit_logs (user_id, action_type, description, ip_address, status) VALUES (?, 'logout', ?, ?, 'success')");
+                $details = "User logged out from " . ucfirst($user_type) . " panel - Username: $username";
+                $ip_address = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+                
+                if ($logStmt) {
+                    $logStmt->bind_param("iss", $user_id, $details, $ip_address);
+                    $logStmt->execute();
+                    $logStmt->close();
+                }
+            }
+            
+            // For students, you might have a different log table
+            elseif ($user_type == 'student') {
+                // If you have student_logs table, log there
+                $logStmt = $mysqli->prepare("INSERT INTO student_logs (student_id, action, ip_address) VALUES (?, 'logout', ?)");
+                $ip_address = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+                
+                if ($logStmt) {
+                    $logStmt->bind_param("is", $user_id, $ip_address);
+                    $logStmt->execute();
+                    $logStmt->close();
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // Silently fail - don't stop logout process
+        error_log("Logout logging failed: " . $e->getMessage());
+    }
+}
+
+// ============================================
+// CLEAR ALL SESSION DATA
+// ============================================
+
+// Clear all session variables
+$_SESSION = array();
+
+// Destroy the session cookie
+if (isset($_COOKIE[session_name()])) {
+    setcookie(session_name(), '', time() - 3600, '/');
+}
 
 // Destroy the session
-unset($_SESSION['id']);
 session_destroy();
-?>
 
+// ============================================
+// REDIRECT TO LOGIN PAGE
+// ============================================
+
+// Check if it's an AJAX request
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+    
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Logged out successfully',
+        'redirect' => 'index.php'
+    ]);
+    exit();
+}
+
+// Regular request - redirect with SweetAlert message
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logging Out | Hostel Management System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Logging out...</title>
+    
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    
     <style>
-        .logout-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             height: 100vh;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
             text-align: center;
         }
-        .logout-card {
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            background: white;
-            max-width: 500px;
+        
+        .logout-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
             width: 90%;
         }
+        
         .spinner {
-            width: 3rem;
-            height: 3rem;
-            margin: 2rem auto;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
         }
-        .logout-message {
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-        .logout-icon {
-            font-size: 4rem;
-            color: #4a6baf;
-            margin-bottom: 1rem;
+        
+        h2 {
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        p {
+            opacity: 0.9;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="logout-container">
-        <div class="logout-card">
-            <div class="logout-icon">
-                <i class="fas fa-sign-out-alt"></i>
-            </div>
-            <h2>Logging Out</h2>
-            <div class="logout-message">
-                Goodbye, <?php echo htmlspecialchars($username); ?>! You're being securely logged out...
-            </div>
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="text-muted">Redirecting to homepage in <span id="countdown">5</span> seconds</p>
-        </div>
+        <div class="spinner"></div>
+        <h2>Logging out...</h2>
+        <p>Please wait while we securely log you out.</p>
     </div>
 
-    <!-- Font Awesome -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
-    
     <script>
-        // Countdown timer
-        let seconds = 5;
-        const countdown = setInterval(() => {
-            seconds--;
-            document.getElementById('countdown').textContent = seconds;
-            if (seconds <= 0) {
-                clearInterval(countdown);
-                window.location.href = 'index.php';
-            }
-        }, 1000);
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                title: 'Logged Out!',
+                text: 'You have been successfully logged out.',
+                icon: 'success',
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdrop: `
+                    rgba(0,0,0,0.4)
+                    left top
+                    no-repeat
+                `,
+                willClose: () => {
+                    window.location.href = 'index.php';
+                }
+            });
+        });
     </script>
 </body>
 </html>
+<?php
+exit();
+?>

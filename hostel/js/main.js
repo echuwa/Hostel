@@ -19,14 +19,35 @@
  	});
 	 
 	 
-	 $('#zctb').DataTable();
+	 // Initialize DataTable only if element exists and DataTables is loaded
+	 if ($('#zctb').length > 0) {
+	 	if (typeof $.fn.DataTable !== 'undefined') {
+	 		try {
+	 			$('#zctb').DataTable();
+	 		} catch(e) {
+	 			console.error('DataTable initialization error:', e);
+	 		}
+	 	} else {
+	 		console.warn('DataTable library not loaded');
+	 	}
+	 }
 	 
 	 
-	 $("#input-43").fileinput({
-		showPreview: false,
-		allowedFileExtensions: ["zip", "rar", "gz", "tgz"],
-		elErrorContainer: "#errorBlock43"
-			// you can configure `msgErrorClass` and `msgInvalidFileExtension` as well
-	});
+	 // Initialize file input only if element exists and plugin is loaded
+	 if ($("#input-43").length > 0) {
+	 	if (typeof $.fn.fileinput !== 'undefined') {
+	 		try {
+	 			$("#input-43").fileinput({
+	 				showPreview: false,
+	 				allowedFileExtensions: ["zip", "rar", "gz", "tgz"],
+	 				elErrorContainer: "#errorBlock43"
+	 			});
+	 		} catch(e) {
+	 			console.error('FileInput initialization error:', e);
+	 		}
+	 	} else {
+	 		console.warn('FileInput library not loaded');
+	 	}
+	 }
 
  });

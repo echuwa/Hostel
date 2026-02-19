@@ -5,7 +5,9 @@ function check_login() {
         session_start();
     }
     
-    // Check if user ID is set and not empty
+    // ============================================
+    // CHECK IF USER ID EXISTS
+    // ============================================
     if (empty($_SESSION['id'])) {
         $host = $_SERVER['HTTP_HOST'];
         $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
@@ -26,18 +28,36 @@ function check_login() {
         exit();
     }
     
-    // Check account status in database
+    // ============================================
+    // CHECK ACCOUNT STATUS IN DATABASE
+    // ============================================
     require_once('config.php');
     global $mysqli;
     
-    $stmt = $mysqli->prepare("SELECT status, is_superadmin, permissions FROM admins WHERE id = ?");
+    // Get ALL user data including username and email
+    $stmt = $mysqli->prepare("SELECT username, email, status, is_superadmin, permissions FROM admins WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['id']);
     $stmt->execute();
-    $stmt->bind_result($status, $is_superadmin, $permissions);
+    $stmt->bind_result($username, $email, $status, $is_superadmin, $permissions);
     $stmt->fetch();
     $stmt->close();
     
-    // Check if account is active
+    // ============================================
+    // CHECK IF ACCOUNT EXISTS
+    // ============================================
+    if (empty($username)) {
+        $host = $_SERVER['HTTP_HOST'];
+        $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
+        $extra = "login.php?error=account_not_found";
+        session_unset();
+        session_destroy();
+        header("Location: http://$host$uri/$extra");
+        exit();
+    }
+    
+    // ============================================
+    // CHECK IF ACCOUNT IS ACTIVE
+    // ============================================
     if ($status !== 'active') {
         $host = $_SERVER['HTTP_HOST'];
         $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
@@ -48,11 +68,22 @@ function check_login() {
         exit();
     }
     
-    // Update session with current permissions and superadmin status
+    // ============================================
+    // UPDATE SESSION WITH COMPLETE USER DATA
+    // ============================================
+    $_SESSION['username'] = $username;
+    $_SESSION['email'] = $email;
     $_SESSION['is_superadmin'] = $is_superadmin;
     $_SESSION['permissions'] = $permissions;
     
-    // Check for inactivity timeout (30 minutes)
+    // ============================================
+    // BACKWARD COMPATIBILITY - Set 'login' for old code
+    // ============================================
+    $_SESSION['login'] = $username;  // ← HII NDIO SULUHISHO LA ERROR YAKO!
+    
+    // ============================================
+    // CHECK FOR INACTIVITY TIMEOUT (30 minutes)
+    // ============================================
     $inactive = 1800; // 30 minutes in seconds
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $inactive)) {
         $host = $_SERVER['HTTP_HOST'];
@@ -67,7 +98,9 @@ function check_login() {
     // Update last activity time
     $_SESSION['last_activity'] = time();
     
-    // Check page permissions for non-superadmins
+    // ============================================
+    // CHECK PAGE PERMISSIONS FOR NON-SUPERADMINS
+    // ============================================
     if (empty($_SESSION['is_superadmin'])) {
         $current_page = basename($_SERVER['PHP_SELF']);
         $allowed_pages = ['dashboard.php', 'logout.php', 'profile.php', 'change-password.php'];
@@ -81,7 +114,6 @@ function check_login() {
                 'manage-rooms.php' => 'manage_rooms',
                 'manage-complaints.php' => 'manage_complaints',
                 'view-reports.php' => 'view_reports',
-                // Add more mappings as needed
             ];
             
             if (isset($page_permissions[$current_page])) {
@@ -98,7 +130,9 @@ function check_login() {
     }
 }
 
-// Helper function to check specific permissions
+// ============================================
+// HELPER FUNCTION TO CHECK SPECIFIC PERMISSIONS
+// ============================================
 function has_permission($permission) {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
@@ -110,5 +144,28 @@ function has_permission($permission) {
     
     $permissions = json_decode($_SESSION['permissions'] ?? '{}', true);
     return !empty($permissions[$permission]);
+}
+
+// ============================================
+// NEW HELPER FUNCTION TO GET CURRENT USERNAME SAFELY
+// ============================================
+function get_current_username() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Return username from session with fallback
+    return $_SESSION['username'] ?? $_SESSION['login'] ?? 'Admin';
+}
+
+// ============================================
+// NEW HELPER FUNCTION TO CHECK IF USER IS LOGGED IN
+// ============================================
+function is_logged_in() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    return !empty($_SESSION['id']);
 }
 ?>

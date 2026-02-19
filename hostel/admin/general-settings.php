@@ -177,7 +177,7 @@ $timezones = [
                     </div>
                     
                     <div class="d-flex justify-content-between">
-                        <a href="../superadmin-dashboard.php" class="btn-back">
+                        <a href="superadmin-dashboard.php" class="btn-back">
                             <i class="bi bi-arrow-left"></i> Back
                         </a>
                         <button type="submit" name="save_settings" class="btn-save">

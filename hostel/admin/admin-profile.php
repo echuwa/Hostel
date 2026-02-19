@@ -20,7 +20,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: superadmin/dashboard.php?error=Admin not found");
+    header("Location: superadmin-dashboard.php?error=Admin not found");
     exit();
 }
 
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
                         <button type="submit" name="update_admin" class="btn btn-update">
                             <i class="fas fa-save"></i> Update Profile
                         </button>
-                        <a href="superadmin/dashboard.php" class="btn btn-secondary">
+                        <a href="superadmin-dashboard.php" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back to Dashboard
                         </a>
                     </div>

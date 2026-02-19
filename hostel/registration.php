@@ -9,9 +9,13 @@ if(isset($_POST['submit'])) {
     $prefix = "T{$year}-0{$quarter}-";
     
     // Get the highest existing registration number for this quarter
-    $result = $mysqli->query("SELECT MAX(regNo) FROM userregistration WHERE regNo LIKE '$prefix%'");
-    $row = $result->fetch_array();
-    $lastRegNo = $row[0] ?? null;
+    $stmt = $mysqli->prepare("SELECT MAX(regNo) FROM userregistration WHERE regNo LIKE ?");
+    $param = $prefix . '%';
+    $stmt->bind_param('s', $param);
+    $stmt->execute();
+    $stmt->bind_result($lastRegNo);
+    $stmt->fetch();
+    $stmt->close();
     
     if ($lastRegNo) {
         $lastNumber = intval(substr($lastRegNo, strlen($prefix)));
@@ -22,14 +26,15 @@ if(isset($_POST['submit'])) {
     
     $regno = $prefix . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
     
-    // Sanitize inputs with proper null checks
-    $fname = isset($_POST['fname']) ? htmlspecialchars(trim($_POST['fname'])) : '';
-    $mname = isset($_POST['mname']) ? htmlspecialchars(trim($_POST['mname'])) : '';
-    $lname = isset($_POST['lname']) ? htmlspecialchars(trim($_POST['lname'])) : '';
-    $gender = $_POST['gender'] ?? '';
-    $contactno = isset($_POST['contact']) ? preg_replace('/[^0-9]/', '', $_POST['contact']) : '';
-    $emailid = isset($_POST['email']) ? filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL) : '';
-    $password = isset($_POST['password']) ? password_hash($_POST['password'], PASSWORD_DEFAULT) : '';
+    // Sanitize inputs
+    $fname = htmlspecialchars(trim($_POST['fname']));
+    $mname = htmlspecialchars(trim($_POST['mname']));
+    $lname = htmlspecialchars(trim($_POST['lname']));
+    $gender = $_POST['gender'];
+    $contactno = preg_replace('/[^0-9]/', '', $_POST['contact']);
+    $emailid = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
+    $password = $_POST['password'];
+    $cpassword = $_POST['cpassword'];
     
     // Validate inputs
     $errors = [];
@@ -38,8 +43,8 @@ if(isset($_POST['submit'])) {
     if(empty($gender)) $errors[] = "Gender is required";
     if(!preg_match('/^255\d{9}$/', $contactno)) $errors[] = "Contact number must be 12 digits starting with 255 (255XXXXXXXXX)";
     if(!filter_var($emailid, FILTER_VALIDATE_EMAIL)) $errors[] = "Invalid email format";
-    if(strlen($_POST['password'] ?? '') < 6) $errors[] = "Password must be at least 6 characters";
-    if(($_POST['password'] ?? '') !== ($_POST['cpassword'] ?? '')) $errors[] = "Passwords do not match";
+    if(strlen($password) < 6) $errors[] = "Password must be at least 6 characters";
+    if($password !== $cpassword) $errors[] = "Passwords do not match";
 
     if(empty($errors)) {
         // Check if email already exists
@@ -53,18 +58,18 @@ if(isset($_POST['submit'])) {
         if($count > 0) {
             $_SESSION['error'] = "Email already registered. Please use a different email.";
         } else {
-            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password) VALUES(?,?,?,?,?,?,?,?)";
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            // Insert with Pending status
+            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,status) VALUES(?,?,?,?,?,?,?,?,'Pending')";
             $stmt = $mysqli->prepare($query);
-            $stmt->bind_param('sssssiss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password);
+            $stmt->bind_param('ssssssss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $hashed_password);
             
             if($stmt->execute()) {
-                $_SESSION['email_for_login'] = $emailid;
-                $_SESSION['registration_number'] = $regno;
-                $_SESSION['success'] = "Registration successful! Please login with your email below.";
+                $_SESSION['success'] = "Registration successful! Your account is pending admin approval. You will be able to login once approved.";
                 header("Location: index.php");
                 exit();
             } else {
-                $_SESSION['error'] = "Registration failed. Please try again.";
+                $_SESSION['error'] = "Registration failed: " . $stmt->error;
             }
             $stmt->close();
         }

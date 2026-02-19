@@ -143,7 +143,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
                     <i class="fa fa-angle-down"></i>
                 </a>
                 <ul>
-                    <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    <li><a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 </ul>
             </li>
         </ul>

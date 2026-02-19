@@ -60,7 +60,7 @@ popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status
 						 <span style="float:left" ><i class="fa fa-print fa-2x" aria-hidden="true" OnClick="CallPrint(this.value)" style="cursor:pointer" title="Print the Report"></i></span>			
 									<tbody>
 <?php	
-$aid=intval($_GET['regno']);
+$aid=$_GET['regno'];
 	$ret="select * from registration where (regno	=?)";
 $stmt= $mysqli->prepare($ret) ;
 $stmt->bind_param('s',$aid);
