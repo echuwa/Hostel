@@ -58,10 +58,14 @@ if(isset($_POST['submit'])) {
             $stmt->bind_param('sssssiss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password);
             
             if($stmt->execute()) {
-                $_SESSION['email_for_login'] = $emailid;
+                $_SESSION['email_for_login']    = $emailid;
                 $_SESSION['registration_number'] = $regno;
-                $_SESSION['success'] = "Registration successful! Please login with your email below.";
-                header("Location: ../index.php");
+                $_SESSION['reg_success'] = [
+                    'name'  => "$fname $lname",
+                    'regno' => $regno,
+                    'email' => $emailid,
+                ];
+                header("Location: registration.php?registered=1");
                 exit();
             } else {
                 $_SESSION['error'] = "Registration failed. Please try again.";
@@ -162,11 +166,127 @@ if(isset($_POST['submit'])) {
             color: #6c757d;
             margin-top: 5px;
         }
+
+        /* Success overlay */
+        .success-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        .success-overlay.show { display: flex; }
+        .success-modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            animation: popIn 0.4s cubic-bezier(.175,.885,.32,1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+        .success-check {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #06d6a0, #0ab575);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2.2rem; color: #fff;
+            box-shadow: 0 10px 30px rgba(6,214,160,.35);
+        }
+        .success-modal h3 { font-size: 1.4rem; font-weight: 800; color: #1a202c; margin-bottom: 8px; }
+        .success-modal p  { color: #718096; font-size: 0.9rem; margin-bottom: 20px; }
+        .success-details {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .success-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 0.85rem;
+        }
+        .success-detail-row:not(:last-child) { border-bottom: 1px solid #edf2f7; }
+        .success-detail-row .key { color: #718096; }
+        .success-detail-row .val { font-weight: 700; color: #2d3748; }
+        .btn-modal-primary {
+            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+            color: #fff; border: none;
+            padding: 11px 24px; border-radius: 10px;
+            font-weight: 700; font-size: 0.88rem;
+            margin: 4px; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-modal-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(58,123,213,.3); }
+        .btn-modal-secondary {
+            background: #f0f2f5; color: #4a5568; border: none;
+            padding: 11px 24px; border-radius: 10px;
+            font-weight: 600; font-size: 0.88rem;
+            margin: 4px; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-modal-secondary:hover { background: #e2e8f0; }
     </style>
+
 </head>
 <body>
+    <!-- Success Popup Modal -->
+    <div class="success-overlay" id="regSuccessOverlay">
+        <div class="success-modal">
+            <div class="success-check"><i class="fas fa-check"></i></div>
+            <h3>Registration Successful!</h3>
+            <p>The student account has been created and is ready to use.</p>
+            <?php if(isset($_SESSION['reg_success']) && isset($_GET['registered'])):
+                $rs = $_SESSION['reg_success'];
+                unset($_SESSION['reg_success']);
+            ?>
+            <div class="success-details">
+                <div class="success-detail-row">
+                    <span class="key">Student Name</span>
+                    <span class="val"><?php echo htmlspecialchars($rs['name']); ?></span>
+                </div>
+                <div class="success-detail-row">
+                    <span class="key">Registration #</span>
+                    <span class="val" style="color:#4361ee;"><?php echo htmlspecialchars($rs['regno']); ?></span>
+                </div>
+                <div class="success-detail-row">
+                    <span class="key">Email (login)</span>
+                    <span class="val"><?php echo htmlspecialchars($rs['email']); ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
+            <div>
+                <button class="btn-modal-primary" onclick="registerAnother()">
+                    <i class="fas fa-user-plus me-1"></i> Register Another
+                </button>
+                <button class="btn-modal-secondary" onclick="goToDashboard()">
+                    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="container py-5">
+        <!-- Back to Dashboard bar -->
+        <div style="max-width:800px; margin:0 auto 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <a href="dashboard.php" class="btn btn-outline-secondary btn-sm" style="border-radius:8px; font-size:0.85rem;">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            <a href="manage-students.php" class="btn btn-outline-primary btn-sm" style="border-radius:8px; font-size:0.85rem;">
+                <i class="fas fa-users me-1"></i> Manage Students
+            </a>
+        </div>
         <div class="registration-container">
+
             <div class="registration-header">
                 <h2><i class="fas fa-user-graduate me-2"></i> Student Registration</h2>
                 <p class="text-muted">Fill in your details to create an account</p>
@@ -499,6 +619,25 @@ if(isset($_POST['submit'])) {
         });
     }
 
+    </script>
+
+    <script>
+    <?php if(isset($_GET['registered'])): ?>
+    // Show success popup
+    window.addEventListener('DOMContentLoaded', function() {
+        var overlay = document.getElementById('regSuccessOverlay');
+        if (overlay) overlay.classList.add('show');
+    });
+    <?php endif; ?>
+
+    function registerAnother() {
+        document.getElementById('regSuccessOverlay').classList.remove('show');
+        window.location.href = 'registration.php';
+    }
+
+    function goToDashboard() {
+        window.location.href = 'dashboard.php';
+    }
     </script>
 </body>
 </html>

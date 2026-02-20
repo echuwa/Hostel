@@ -185,18 +185,21 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                     </a>
 
                     <!-- Total Students -->
-                    <div class="stat-card card-students" data-aos="fade-up" data-aos-delay="100">
-                        <div class="stat-info">
-                            <h3>Total Students</h3>
-                            <div class="stat-number"><?php echo $counts['students']; ?></div>
-                            <div class="stat-trend" style="color: var(--success);">
-                                <i class="fas fa-arrow-up"></i> Registered
+                    <a href="manage-students.php" style="text-decoration:none;">
+                        <div class="stat-card card-students" data-aos="fade-up" data-aos-delay="100">
+                            <div class="stat-info">
+                                <h3>Total Students</h3>
+                                <div class="stat-number"><?php echo $counts['students']; ?></div>
+                                <div class="stat-trend" style="color: var(--success);">
+                                    <i class="fas fa-arrow-up"></i> Registered
+                                </div>
+                            </div>
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-users"></i>
                             </div>
                         </div>
-                        <div class="stat-icon-wrapper">
-                            <i class="fas fa-users"></i>
-                        </div>
-                    </div>
+                    </a>
+
 
                     <!-- Total Rooms -->
                     <div class="stat-card card-rooms" data-aos="fade-up" data-aos-delay="200">
@@ -213,24 +216,32 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                     </div>
 
                     <!-- Complaints -->
-                    <div class="stat-card card-complaints" data-aos="fade-up" data-aos-delay="300">
-                        <div class="stat-info">
-                            <h3>Total Complaints</h3>
-                            <div class="stat-number"><?php echo $counts['all_complaints']; ?></div>
-                            <?php if($counts['new_complaints'] > 0): ?>
-                            <div class="stat-trend" style="color: var(--danger);">
-                                <i class="fas fa-plus"></i> <?php echo $counts['new_complaints']; ?> New
+                    <a href="all-complaints.php" style="text-decoration:none;">
+                        <div class="stat-card card-complaints" data-aos="fade-up" data-aos-delay="300">
+                            <div class="stat-info">
+                                <h3>Total Complaints</h3>
+                                <div class="stat-number"><?php echo $counts['all_complaints']; ?></div>
+                                <div class="stat-trend" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                                    <a href="new-complaints.php" onclick="event.stopPropagation();" title="View New Complaints"
+                                       style="background:rgba(239,35,60,.15); color:#ef233c; border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:700; text-decoration:none;">
+                                        <i class="fas fa-exclamation-circle me-1"></i><?php echo $counts['new_complaints']; ?> New
+                                    </a>
+                                    <a href="inprocess-complaints.php" onclick="event.stopPropagation();" title="View In Process Complaints"
+                                       style="background:rgba(255,183,3,.15); color:#ca8b00; border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:700; text-decoration:none;">
+                                        <i class="fas fa-clock me-1"></i><?php echo $counts['inprocess_complaints']; ?> In Process
+                                    </a>
+                                    <a href="closed-complaints.php" onclick="event.stopPropagation();" title="View Closed Complaints"
+                                       style="background:rgba(6,214,160,.15); color:#06a077; border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:700; text-decoration:none;">
+                                        <i class="fas fa-check-circle me-1"></i><?php echo $counts['closed_complaints']; ?> Closed
+                                    </a>
+                                </div>
                             </div>
-                            <?php else: ?>
-                            <div class="stat-trend" style="color: var(--success);">
-                                <i class="fas fa-check"></i> All Caught Up
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-file-alt"></i>
                             </div>
-                            <?php endif; ?>
                         </div>
-                        <div class="stat-icon-wrapper">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                    </div>
+                    </a>
+
                 </div>
 
                 <!-- Charts and Activity Row -->
