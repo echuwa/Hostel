@@ -172,6 +172,7 @@
         margin-left: var(--sidebar-width);
         transition: var(--transition);
         background-color: #f1f5f9;
+        padding-top: 60px;
     }
     
     body.sidebar-collapsed {
@@ -181,14 +182,14 @@
     /* Sidebar */
     .ts-sidebar {
         width: var(--sidebar-width);
-        height: 100vh;
+        height: calc(100vh - 60px);
         background: var(--sidebar-bg);
         color: white;
         position: fixed;
         left: 0;
-        top: 0;
+        top: 60px;
         transition: var(--transition);
-        z-index: 1000;
+        z-index: 1040;
         box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
         display: flex;
         flex-direction: column;
@@ -521,62 +522,78 @@
     /* Mobile Responsive */
     @media (max-width: 768px) {
         body {
-            margin-left: 0;
+            margin-left: 0 !important;
+        }
+        
+        body.sidebar-collapsed {
+            margin-left: 0 !important;
         }
         
         .ts-sidebar {
             transform: translateX(-100%);
+            z-index: 1045;
         }
         
         .ts-sidebar.mobile-open {
             transform: translateX(0);
         }
-        
-        body.sidebar-collapsed {
-            margin-left: 0;
+
+        .ts-main-content .content-wrapper,
+        .content-wrapper {
+            margin-left: 0 !important;
         }
     }
+
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('sidebarToggle');
+        const mobileToggleBtn = document.getElementById('mobileSidebarToggle');
         const body = document.body;
         
-        // Toggle sidebar collapse/expand
+        // Desktop collapse toggle (internal sidebar button)
         if (toggleBtn) {
             toggleBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                sidebar.classList.toggle('collapsed');
-                
-                // Update body margin
-                if (sidebar.classList.contains('collapsed')) {
-                    body.classList.add('sidebar-collapsed');
+                if (window.innerWidth > 768) {
+                    sidebar.classList.toggle('collapsed');
+                    if (sidebar.classList.contains('collapsed')) {
+                        body.classList.add('sidebar-collapsed');
+                        this.querySelector('i').className = 'fas fa-chevron-right';
+                    } else {
+                        body.classList.remove('sidebar-collapsed');
+                        this.querySelector('i').className = 'fas fa-chevron-left';
+                    }
                 } else {
-                    body.classList.remove('sidebar-collapsed');
-                }
-                
-                // Change icon direction
-                const icon = this.querySelector('i');
-                if (sidebar.classList.contains('collapsed')) {
-                    icon.className = 'fas fa-chevron-right';
-                } else {
-                    icon.className = 'fas fa-chevron-left';
+                    // On mobile, toggle slide-in
+                    sidebar.classList.toggle('mobile-open');
                 }
             });
         }
         
-        // Mobile menu toggle
-        if (window.innerWidth <= 768) {
-            // Add mobile toggle button (you can add this to header)
+        // Mobile hamburger toggle (from header)
+        if (mobileToggleBtn) {
+            mobileToggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('mobile-open');
+                const icon = this.querySelector('i');
+                if (icon) icon.className = sidebar.classList.contains('mobile-open') ? 'fas fa-times' : 'fas fa-bars';
+            });
         }
         
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
-            const isMobile = window.innerWidth <= 768;
-            if (isMobile && !sidebar.contains(event.target) && !event.target.closest('.sidebar-toggle')) {
-                sidebar.classList.remove('mobile-open');
+            if (window.innerWidth <= 768) {
+                if (sidebar && !sidebar.contains(event.target) 
+                    && !event.target.closest('#mobileSidebarToggle')
+                    && !event.target.closest('.sidebar-mobile-toggle')) {
+                    sidebar.classList.remove('mobile-open');
+                    if (mobileToggleBtn) {
+                        const icon = mobileToggleBtn.querySelector('i');
+                        if (icon) icon.className = 'fas fa-bars';
+                    }
+                }
             }
         });
         
@@ -601,9 +618,20 @@
         // Auto-open submenu if child is active
         document.querySelectorAll('.submenu-items a.active').forEach(activeLink => {
             const submenu = activeLink.closest('.submenu');
-            if (submenu) {
-                submenu.classList.add('active');
+            if (submenu) submenu.classList.add('active');
+        });
+
+        // Wrap tables in responsive scroll containers
+        document.querySelectorAll('table').forEach(function(table) {
+            if (!table.closest('.table-responsive') && !table.closest('.table-responsive-wrapper')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-responsive-wrapper';
+                wrapper.style.cssText = 'overflow-x:auto; -webkit-overflow-scrolling:touch;';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
             }
         });
     });
 </script>
+
+

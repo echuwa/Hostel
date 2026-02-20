@@ -12,34 +12,65 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 20px;
-            background: #3a7bd5;
+            padding: 0 20px;
+            background: linear-gradient(135deg, #2c3136, #3a4149);
             color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             height: 60px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+        }
+
+        .brand-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
         .logo {
             font-size: 1rem;
-            font-weight: 500;
+            font-weight: 600;
             color: #fff;
             text-decoration: none;
             display: flex;
             align-items: center;
+            gap: 8px;
         }
         
         .logo i {
-            margin-right: 8px;
-            font-size: 1.2rem;
-        }
-        
-        .menu-btn {
-            display: none;
             font-size: 1.3rem;
-            cursor: pointer;
-            padding: 5px;
+            color: #37a6c4;
         }
         
+        .logo:hover {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+        }
+
+        /* Mobile sidebar toggle */
+        .sidebar-mobile-toggle {
+            display: none;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            width: 38px;
+            height: 38px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+        
+        .sidebar-mobile-toggle:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Profile nav */
         .ts-profile-nav {
             list-style: none;
             margin: 0;
@@ -53,93 +84,141 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         .ts-account > a {
             display: flex;
             align-items: center;
+            gap: 8px;
             color: #fff;
             text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 8px 14px;
+            border-radius: 8px;
             font-size: 0.9rem;
+            font-weight: 500;
+            background: rgba(255,255,255,0.1);
+            transition: background 0.2s;
         }
         
-        .ts-avatar {
-            width: 28px;
-            height: 28px;
+        .ts-account > a:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        .ts-account > a .avatar-circle {
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            margin-right: 8px;
-            object-fit: cover;
+            background: #37a6c4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #fff;
         }
         
         .ts-account ul {
             position: absolute;
             right: 0;
-            top: 100%;
+            top: calc(100% + 8px);
             background: #fff;
-            min-width: 160px;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-width: 190px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             list-style: none;
-            padding: 5px 0;
-            margin-top: 5px;
+            padding: 8px 0;
+            margin: 0;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.2s ease;
+            transform: translateY(-8px);
+            transition: all 0.25s ease;
             z-index: 1000;
         }
         
-        .ts-account:hover ul {
+        .ts-account:hover ul,
+        .ts-account.dropdown-open ul {
             opacity: 1;
             visibility: visible;
+            transform: translateY(0);
+        }
+
+        .ts-account ul::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 16px;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 6px solid #fff;
         }
         
         .ts-account ul li a {
             display: flex;
             align-items: center;
-            padding: 8px 15px;
-            color: #333;
+            gap: 10px;
+            padding: 10px 18px;
+            color: #444;
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
+            transition: all 0.15s;
         }
         
         .ts-account ul li a:hover {
-            background-color: #f5f5f5;
+            background: #f0f5ff;
             color: #3a7bd5;
+            padding-left: 22px;
         }
         
         .ts-account ul li a i {
             width: 18px;
-            margin-right: 8px;
+            text-align: center;
             font-size: 0.9rem;
+            color: #37a6c4;
+        }
+
+        .ts-account ul li:last-child a {
+            color: #e74a3b;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 4px;
+        }
+
+        .ts-account ul li:last-child a i {
+            color: #e74a3b;
         }
         
         @media (max-width: 768px) {
-            .menu-btn {
-                display: block;
+            .sidebar-mobile-toggle {
+                display: flex;
             }
             
             .logo span {
                 display: none;
             }
-            
-            .logo i {
-                margin-right: 0;
-                font-size: 1.3rem;
+
+            .ts-account > a .username {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
     <div class="brand">
-        <a href="dashboard.php" class="logo">
-            <i class="fas fa-home"></i>
-            <span>HostelMS</span>
-        </a>
-        
-        <span class="menu-btn"><i class="fa fa-bars"></i></span>
+        <div class="brand-left">
+            <button class="sidebar-mobile-toggle" id="adminMobileSidebarToggle" aria-label="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="dashboard.php" class="logo">
+                <i class="fas fa-building"></i>
+                <span>HostelMS Admin</span>
+            </a>
+        </div>
         
         <ul class="ts-profile-nav">
             <li class="ts-account">
-                <a href="#">
-                    <!-- <img src="img/software-engineer.png" class="ts-avatar" alt=""> -->
-                    <span class="username"><?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Admin'; ?></span>
+                <a href="#" id="adminProfileToggle">
+                    <div class="avatar-circle">
+                        <?php
+                        $aname = $_SESSION['username'] ?? $_SESSION['login'] ?? 'A';
+                        echo strtoupper(substr($aname, 0, 1));
+                        ?>
+                    </div>
+                    <span class="username"><?php echo htmlspecialchars($aname); ?></span>
                     <i class="fa fa-angle-down"></i>
                 </a>
                 <ul>
@@ -150,5 +229,39 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             </li>
         </ul>
     </div>
-</body>
-</html>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile sidebar toggle for admin
+        const mobileToggle = document.getElementById('adminMobileSidebarToggle');
+        const sidebar = document.querySelector('.ts-sidebar');
+
+        if (mobileToggle && sidebar) {
+            mobileToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('mobile-open');
+                const icon = this.querySelector('i');
+                if (sidebar.classList.contains('mobile-open')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            });
+        }
+
+        // Dropdown touch support
+        const profileToggle = document.getElementById('adminProfileToggle');
+        if (profileToggle) {
+            profileToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const account = this.closest('.ts-account');
+                account.classList.toggle('dropdown-open');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.ts-account')) {
+                    document.querySelectorAll('.ts-account').forEach(a => a.classList.remove('dropdown-open'));
+                }
+            });
+        }
+    });
+    </script>

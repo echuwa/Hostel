@@ -895,3 +895,184 @@ li {
   height: 100%;
   width: 100%;
 }
+
+/* =====================================================
+   GLOBAL RESPONSIVE ENHANCEMENTS (Student Portal)
+   ===================================================== */
+
+/* Body offset for fixed header */
+body {
+  padding-top: 60px;
+}
+
+/* Tables always scrollable on mobile */
+.table-responsive,
+.table-responsive-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  min-width: 500px;
+}
+
+/* Panel updates */
+.panel {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  border: none;
+}
+
+.panel-heading {
+  background: linear-gradient(135deg, #3a7bd5, #00d2ff) !important;
+  color: #fff !important;
+  border-radius: 8px 8px 0 0 !important;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.panel-body {
+  padding: 20px;
+}
+
+/* Quick action buttons */
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f8f9fc;
+  border: 1px solid #e3e6f0;
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: #444;
+  transition: all 0.2s;
+}
+
+.quick-action-btn:hover {
+  background: #edf2ff;
+  color: #3a7bd5;
+  text-decoration: none;
+  transform: translateX(4px);
+}
+
+.quick-action-btn i {
+  font-size: 1.4rem;
+  width: 30px;
+  text-align: center;
+}
+
+/* Cards */
+.card {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  border-radius: 10px 10px 0 0;
+}
+
+/* Page title */
+.page-title {
+  padding-bottom: 12px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid #e3e6f0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Mobile: ≤ 768px */
+@media (max-width: 768px) {
+  body {
+    padding-top: 60px !important;
+  }
+
+  .ts-main-content .content-wrapper {
+    margin-left: 0 !important;
+    padding: 15px 12px;
+  }
+
+  .table td,
+  .table th {
+    font-size: 13px;
+    white-space: nowrap;
+    padding: 8px 10px;
+  }
+
+  .card {
+    margin-bottom: 16px;
+  }
+
+  .quick-action-btn {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+    margin-top: 8px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 14px;
+  }
+
+  .btn {
+    font-size: 14px;
+  }
+
+  .ts-sidebar {
+    transform: translateX(-100%);
+    z-index: 1045;
+  }
+
+  .ts-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .room-details-card .detail-label,
+  .room-details-card .detail-value {
+    display: block;
+    width: 100%;
+  }
+}
+
+/* Mobile: ≤ 576px */
+@media (max-width: 576px) {
+  .ts-main-content .content-wrapper {
+    padding: 10px 8px;
+  }
+
+  h2.page-title {
+    font-size: 1rem;
+  }
+
+  .panel-heading {
+    font-size: 0.9rem;
+    padding: 12px 15px;
+  }
+
+  .form-section {
+    padding: 15px;
+  }
+
+  .d-flex.gap-3 {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .d-flex.gap-3 .btn {
+    flex: 1;
+  }
+
+  .icon-circle {
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 1.5rem !important;
+  }
+}

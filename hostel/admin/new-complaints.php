@@ -121,11 +121,15 @@ while($row=$res->fetch_object())
 <td><?php echo $row->ComplainNumber;?></td>
 <td><?php echo $row->complaintType;?></td>
 <td><?php $cstatus=$row->complaintStatus;
-if($cstatus==''):
-    echo '<span class="label label-danger">New</span>';
+if($cstatus=='' || is_null($cstatus)):
+    echo '<span class="badge" style="background-color:#e74a3b; font-size:0.85em; padding:5px 10px;"><i class="fa fa-exclamation-circle"></i> New</span>';
+elseif(strtolower($cstatus)=='in process' || strtolower($cstatus)=='in progress'):
+    echo '<span class="badge" style="background-color:#f6c23e; color:#333; font-size:0.85em; padding:5px 10px;"><i class="fa fa-clock"></i> In Process</span>';
+elseif(strtolower($cstatus)=='closed' || strtolower($cstatus)=='resolved'):
+    echo '<span class="badge" style="background-color:#1cc88a; font-size:0.85em; padding:5px 10px;"><i class="fa fa-check-circle"></i> Closed</span>';
 else:
-echo $cstatus;
-endif;    
+    echo '<span class="badge bg-secondary" style="font-size:0.85em; padding:5px 10px;">'.htmlspecialchars($cstatus).'</span>';
+endif;
 
 ?></td>
 <td><?php echo $row->registrationDate;?></td>
