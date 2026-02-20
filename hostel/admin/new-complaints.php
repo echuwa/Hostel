@@ -83,6 +83,8 @@ popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status
                                     <thead>
                                         <tr>
                                             <th>Sno.</th>
+                                            <th>Student Name</th>
+                                            <th>Room No</th>
                                             <th>Complaint Number</th>
                                             <th>Complaint Type</th>
                                             <th>Complaint Status</th>
@@ -93,6 +95,8 @@ popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status
                                     <tfoot>
                                         <tr>
                                             <th>Sno.</th>
+                                            <th>Student Name</th>
+                                            <th>Room No</th>
                                             <th>Complaint Number</th>
                                             <th>Complaint Type</th>
                                             <th>Complaint Status</th>
@@ -103,7 +107,7 @@ popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status
                                     <tbody>
 <?php  
 $aid=$_SESSION['id'];
-$ret="select * from complaints where complaintStatus is null";
+$ret="SELECT c.*, u.firstName, u.lastName, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus is null";
 $stmt= $mysqli->prepare($ret) ;
 $stmt->execute() ;//ok
 $res=$stmt->get_result();
@@ -112,11 +116,13 @@ while($row=$res->fetch_object())
       {
         ?>
 <tr><td><?php echo $cnt;;?></td>
+<td><?php echo $row->firstName . ' ' . $row->lastName;?></td>
+<td><?php echo $row->roomno;?></td>
 <td><?php echo $row->ComplainNumber;?></td>
 <td><?php echo $row->complaintType;?></td>
 <td><?php $cstatus=$row->complaintStatus;
 if($cstatus==''):
-    echo "New";
+    echo '<span class="label label-danger">New</span>';
 else:
 echo $cstatus;
 endif;    
