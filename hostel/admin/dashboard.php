@@ -195,9 +195,9 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                                     <span class="d-block text-muted small"><?php echo htmlspecialchars($_SESSION['email'] ?? 'admin@hostel.com'); ?></span>
                                 </li>
                                 <li><a class="dropdown-item py-2" href="admin-profile.php"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile</a></li>
-                                <li><a class="dropdown-item py-2" href="settings.php"><i class="fas fa-key me-2 text-warning"></i>Change Password</a></li>
+                                <li><a class="dropdown-item py-2" href="change-password.php"><i class="fas fa-key me-2 text-warning"></i>Change Password</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item py-2 text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                                <li><a class="dropdown-item py-2 text-danger" href="../logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                             </ul>
                         </div>
                     </div>
@@ -306,7 +306,7 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                     <div class="activities-card" data-aos="fade-up" data-aos-delay="500">
                         <div class="chart-header">
                             <h3 class="chart-title">Recent Activity</h3>
-                            <a href="all-complaints.php" style="font-size: 13px; text-decoration: none; color: var(--primary); font-weight: 600;">
+                            <a href="all-complaints.php" class="btn btn-sm btn-outline-primary" style="font-weight: 600; padding: 4px 12px; border-radius: 6px;">
                                 View All
                             </a>
                         </div>

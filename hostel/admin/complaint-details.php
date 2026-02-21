@@ -161,7 +161,7 @@ $cid = intval($_GET['cid']);
                 <?php endif; ?>
 
                 <?php	
-                $ret="SELECT c.*, u.firstName, u.lastName, u.email, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.id=?";
+                $ret="SELECT c.*, u.firstName, u.lastName, u.email, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno FROM complaints c LEFT JOIN userregistration u ON c.userId = u.id WHERE c.id=?";
                 $stmt= $mysqli->prepare($ret);
                 $stmt->bind_param('i',$cid);
                 $stmt->execute();

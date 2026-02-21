@@ -148,12 +148,12 @@ check_login();
                 </div>
 
                 <?php    
-                $aid = $_SESSION['id'];
+                $aid = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
                 $cid = intval($_GET['cid']);
                 
                 $ret = "SELECT * FROM complaints WHERE id=? AND userId=?";
                 $stmt = $mysqli->prepare($ret);
-                $stmt->bind_param('is', $cid, $aid);
+                $stmt->bind_param('ii', $cid, $aid);
                 $stmt->execute();
                 $res = $stmt->get_result();
                 

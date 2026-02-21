@@ -224,7 +224,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
                 <ul>
                     <li><a href="admin-profile.php"><i class="fas fa-user"></i> My Profile</a></li>
                     <li><a href="change-password.php"><i class="fas fa-key"></i> Change Password</a></li>
-                    <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    <li><a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 </ul>
             </li>
         </ul>

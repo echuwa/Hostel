@@ -1,26 +1,28 @@
 <?php
 session_start();
 require_once('includes/config.php');
+require_once('includes/checklogin.php');
+check_login();
 require_once('includes/auth.php');
 
-// Only super admin can access this page
-if (!isSuperAdmin()) {
-    header("Location: admin-profile.php");
+// Get admin ID from URL parameter or current user
+$admin_id = isset($_GET['id']) && !empty($_GET['id']) ? intval($_GET['id']) : $_SESSION['id'];
+
+// Prevent non-superadmins from viewing other profiles
+if (!isSuperAdmin() && $admin_id != $_SESSION['id']) {
+    header("Location: dashboard.php?error=access_denied");
     exit();
 }
 
-// Get admin ID from URL parameter
-$admin_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
 // Fetch admin details
-$query = "SELECT * FROM users WHERE id = ?";
+$query = "SELECT id, username, email, is_superadmin, status, reg_date as reg_date FROM admins WHERE id = ?";
 $stmt = $mysqli->prepare($query);
 $stmt->bind_param("i", $admin_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: superadmin-dashboard.php?error=Admin not found");
+    header("Location: dashboard.php?error=Admin not found");
     exit();
 }
 
@@ -43,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
         $error = "Invalid email format";
     } else {
         // Check if username or email already exists (excluding current admin)
-        $query = "SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?";
+        $query = "SELECT id FROM admins WHERE (username = ? OR email = ?) AND id != ?";
         $stmt = $mysqli->prepare($query);
         $stmt->bind_param("ssi", $username, $email, $admin_id);
         $stmt->execute();
@@ -53,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
             $error = "Username or email already exists";
         } else {
             // Update admin details
-            $query = "UPDATE users SET username = ?, email = ?, status = ? WHERE id = ?";
+            $query = "UPDATE admins SET username = ?, email = ?, status = ? WHERE id = ?";
             $stmt = $mysqli->prepare($query);
             $stmt->bind_param("sssi", $username, $email, $status, $admin_id);
             
