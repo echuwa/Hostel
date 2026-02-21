@@ -148,8 +148,8 @@ check_login();
                                             <span class="detail-value"><?php echo $row->seater; ?></span>
                                         </div>
                                         <div class="col-md-4">
-                                            <span class="detail-label">Fees Per Month:</span>
-                                            <span class="detail-value">₹<?php echo $fpm; ?></span>
+                                            <span class="detail-label">Fee Per Student:</span>
+                                            <span class="detail-value">Tsh. <?php echo number_format($fpm); ?>/=</span>
                                         </div>
                                     </div>
                                     
@@ -157,7 +157,7 @@ check_login();
                                         <div class="col-md-4">
                                             <span class="detail-label">Food Status:</span>
                                             <span class="detail-value">
-                                                <?php echo ($row->foodstatus == 0) ? 'Without Food' : 'With Food (+₹2000/month)'; ?>
+                                                <?php echo ($row->foodstatus == 0) ? 'Without Food' : 'With Food (+Tsh. 2,000/month)'; ?>
                                             </span>
                                         </div>
                                         <div class="col-md-4">
@@ -174,12 +174,12 @@ check_login();
                                         <div class="row">
                                             <div class="col-md-4">
                                                 <span class="detail-label">Hostel Fee:</span>
-                                                <span class="detail-value">₹<?php echo $hf; ?></span>
+                                                <span class="detail-value">Tsh. <?php echo number_format($hf); ?>/=</span>
                                             </div>
                                             <div class="col-md-4">
                                                 <span class="detail-label">Food Fee:</span>
                                                 <span class="detail-value">
-                                                    ₹<?php echo $ff; ?>
+                                                    Tsh. <?php echo number_format($ff); ?>/=
                                                     <?php if($row->foodstatus == 0): ?>
                                                         <span class="text-muted small">(Without Food)</span>
                                                     <?php endif; ?>
@@ -187,7 +187,7 @@ check_login();
                                             </div>
                                             <div class="col-md-4">
                                                 <span class="detail-label">Total Fee:</span>
-                                                <span class="detail-value fw-bold">₹<?php echo $totalFee; ?></span>
+                                                <span class="detail-value fw-bold">Tsh. <?php echo number_format($totalFee); ?>/=</span>
                                             </div>
                                         </div>
                                     </div>
@@ -332,5 +332,3 @@ check_login();
     </script>
 </body>
 </html>
-Total Fee: ₹2800
-Personal Information

@@ -33,6 +33,12 @@
                     ?>
                 </span>
             </div>
+            
+            <div class="sidebar-user-dropdown">
+                <a href="my-profile.php"><i class="fas fa-user"></i> My Profile</a>
+                <a href="change-password.php"><i class="fas fa-key"></i> Change Password</a>
+                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
         <?php else: ?>
             <div class="user-avatar">
                 <i class="fas fa-user"></i>
@@ -283,7 +289,61 @@
         align-items: center;
         gap: 12px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+    }
+    
+    .sidebar-user-dropdown {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        top: 100%;
+        left: 10px;
+        right: 10px;
+        background: linear-gradient(135deg, #1a1e2c 0%, #2d3a4a 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        flex-direction: column;
+        transition: all 0.3s ease;
+        transform: translateY(10px);
+    }
+    
+    .sidebar-user:hover .sidebar-user-dropdown {
+        visibility: visible;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .ts-sidebar.collapsed .sidebar-user-dropdown {
+        display: none !important;
+    }
+    
+    .sidebar-user-dropdown a {
+        padding: 12px 16px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .sidebar-user-dropdown a:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    
+    .sidebar-user-dropdown a i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .sidebar-user-dropdown a:last-child {
+        border-bottom: none;
     }
     
     .user-avatar {
@@ -306,6 +366,7 @@
         flex-direction: column;
         transition: var(--transition);
         white-space: nowrap;
+        overflow: hidden;
     }
     
     .ts-sidebar.collapsed .user-info {

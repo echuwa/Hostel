@@ -105,13 +105,16 @@ if(isset($_GET['del'])) {
                 <div class="content-header">
                     <div class="header-left">
                         <h1 class="page-title">
-                            <i class="fas fa-door-open"></i>
+                            <i class="fas fa-layer-group"></i>
                             Manage Rooms
                         </h1>
                     </div>
-                    <div class="header-right">
-                        <div class="date-filter">
-                            <i class="fas fa-calendar-alt"></i>
+                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <a href="create-room.php" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #7b2ff7); border: none; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 4px 15px rgba(67,97,238,0.2); color: white;">
+                            <i class="fas fa-layer-group"></i> Generate Block Rooms
+                        </a>
+                        <div class="date-filter" style="background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px; color: #4a5568; font-weight: 500;">
+                            <i class="fas fa-calendar-alt" style="color: #4361ee;"></i>
                             <span><?php echo date('F d, Y'); ?></span>
                         </div>
                     </div>
@@ -119,11 +122,8 @@ if(isset($_GET['del'])) {
 
                 <!-- Table Panel -->
                 <div class="card-panel">
-                    <div class="card-header">
-                        <div class="card-title">All Rooms Details</div>
-                        <a href="create-room.php" class="btn btn-primary btn-sm" style="background:var(--primary); border:none; display:flex; align-items:center; gap:8px;">
-                            <i class="fas fa-plus"></i> Add New Room
-                        </a>
+                    <div class="card-header" style="border-bottom: 2px solid #f0f2f5; padding-bottom: 15px;">
+                        <div class="card-title" style="font-size: 1.1rem; font-weight: 700; color: #2d3748;">All Rooms Details</div>
                     </div>
                     
                     <div class="card-body">
@@ -141,7 +141,7 @@ if(isset($_GET['del'])) {
                                         <th>#</th>
                                         <th>Seater</th>
                                         <th>Room No.</th>
-                                        <th>Fees (PM)</th>
+                                        <th>Fee (Per Student)</th>
                                         <th>Created On</th>
                                         <th>Actions</th>
                                     </tr>
@@ -165,7 +165,7 @@ if(isset($_GET['del'])) {
                                             </span>
                                         </td>
                                         <td><?php echo $row->room_no; ?></td>
-                                        <td><?php echo $row->fees; ?></td>
+                                        <td>Tsh. <?php echo number_format($row->fees); ?>/=</td>
                                         <td><?php echo date('d-m-Y', strtotime($row->posting_date)); ?></td>
                                         <td>
                                             <div style="display:flex; gap:10px;">

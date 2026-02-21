@@ -3,157 +3,234 @@ session_start();
 include('includes/config.php');
 include('includes/checklogin.php');
 check_login();
-//code for add courses
-if(isset($_POST['submit']))
-{
-$seater=$_POST['seater'];
-$fees=$_POST['fees'];
-$id=$_GET['id'];
-$query="update rooms set seater=?,fees=? where id=?";
-$stmt = $mysqli->prepare($query);
-$rc=$stmt->bind_param('iii',$seater,$fees,$id);
-$stmt->execute();
-echo"<script>alert('Room Details has been Updated successfully');</script>";
-}
 
+// Code for updating rooms
+if(isset($_POST['submit'])) {
+    $seater = intval($_POST['seater']);
+    $fees = intval($_POST['fees']);
+    $id = intval($_GET['id']);
+    
+    $query="UPDATE rooms SET seater=?, fees=? WHERE id=?";
+    $stmt = $mysqli->prepare($query);
+    $stmt->bind_param('iii', $seater, $fees, $id);
+    
+    if($stmt->execute()) {
+        $_SESSION['success'] = "Room Details has been Updated successfully";
+        header("Location: manage-rooms.php");
+        exit();
+    } else {
+        $error = "Failed to update room.";
+    }
+}
 ?>
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-	<meta name="description" content="">
-	<meta name="author" content="">
-	<meta name="theme-color" content="#3e454c">
-	<title>Edit Room Details</title>
-	<link rel="stylesheet" href="css/font-awesome.min.css">
-	<link rel="stylesheet" href="css/bootstrap.min.css">
-	<link rel="stylesheet" href="css/dataTables.bootstrap.min.css">>
-	<link rel="stylesheet" href="css/bootstrap-social.css">
-	<link rel="stylesheet" href="css/bootstrap-select.css">
-	<link rel="stylesheet" href="css/fileinput.min.css">
-	<link rel="stylesheet" href="css/awesome-bootstrap-checkbox.css">
-	<link rel="stylesheet" href="css/style.css">
-<script type="text/javascript" src="js/jquery-1.11.3-jquery.min.js"></script>
-<script type="text/javascript" src="js/validation.min.js"></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4361ee">
+    <title>Edit Room | HostelMS Admin</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="css/modern.css">
+    
+    <style>
+        .room-form-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(67,97,238,.08);
+            overflow: hidden;
+            max-width: 780px;
+            margin: 30px auto;
+        }
+
+        .room-card-header {
+            background: linear-gradient(135deg, #4361ee 0%, #7b2ff7 100%);
+            padding: 32px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .room-card-header h2 {
+            color: #fff;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .room-card-header p {
+            color: rgba(255,255,255,.75);
+            margin: 6px 0 0;
+            font-size: 0.9rem;
+        }
+
+        .header-icon-big {
+            width: 60px; height: 60px;
+            background: rgba(255,255,255,.2);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; color: #fff;
+            margin-bottom: 14px;
+        }
+
+        .room-card-body {
+            padding: 36px;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            color: #2d3748;
+            transition: all 0.2s;
+            background: #fafbff;
+        }
+
+        .form-control:focus {
+            border-color: #4361ee;
+            box-shadow: 0 0 0 3px rgba(67,97,238,.12);
+            background: #fff;
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #4361ee, #7b2ff7);
+            border: none;
+            color: #fff;
+            padding: 13px 32px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            transition: all 0.25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(67,97,238,.2);
+        }
+
+        .btn-update:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(67,97,238,.4);
+            color: #fff;
+        }
+    </style>
 </head>
+
 <body>
-	<?php include('includes/header.php');?>
-	<div class="ts-main-content">
-		<?php include('includes/sidebar.php');?>
-		<div class="content-wrapper">
-			<div class="container-fluid">
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <?php include('includes/sidebar_modern.php'); ?>
 
-				<div class="row">
-					<div class="col-md-12">
-					
-						<h2 class="page-title">Edit Room Details </h2>
-	
-						<div class="row">
-							<div class="col-md-12">
-								<div class="panel panel-default">
-									<div class="panel-heading">Edit Room Details</div>
-									<div class="panel-body">
-										<form method="post" class="form-horizontal">
-												<?php	
-												$id=$_GET['id'];
-	$ret="select * from rooms where id=?";
-		$stmt= $mysqli->prepare($ret) ;
-	 $stmt->bind_param('i',$id);
-	 $stmt->execute() ;//ok
-	 $res=$stmt->get_result();
-	 //$cnt=1;
-	   while($row=$res->fetch_object())
-	  {
-	  	?>
-						<div class="hr-dashed"></div>
-						<div class="form-group">
-						<label class="col-sm-2 control-label">Seater  </label>
-					<div class="col-sm-8">
-					<input type="text"  name="seater" value="<?php echo $row->seater;?>"  class="form-control"> </div>
-					</div>
-				 <div class="form-group">
-				<label class="col-sm-2 control-label">Room no </label>
-		<div class="col-sm-8">
-	<input type="text" class="form-control" name="rmno" id="rmno" value="<?php echo $row->room_no;?>" disabled>
-	<span class="help-block m-b-none">
-													Room no can't be changed.</span>
-						 </div>
-						</div>
-<div class="form-group">
-									<label class="col-sm-2 control-label">Fees (PM) </label>
-									<div class="col-sm-8">
-									<input type="text" class="form-control" name="fees" value="<?php echo $row->fees;?>" >
-												</div>
-											</div>
+        <!-- MAIN CONTENT -->
+        <div class="main-content" id="mainContent">
+            <div class="content-wrapper">
+                
+                <!-- Header -->
+                <div class="content-header">
+                    <div class="header-left">
+                        <h1 class="page-title">
+                            <i class="fas fa-edit"></i> Edit Room
+                        </h1>
+                    </div>
+                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <a href="manage-rooms.php" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #7b2ff7); border: none; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 4px 15px rgba(67,97,238,0.2); color: white;">
+                            <i class="fas fa-arrow-left"></i> Back to Rooms
+                        </a>
+                    </div>
+                </div>
 
+                <div class="room-form-card">
+                    <div class="room-card-header">
+                        <div class="header-icon-big">
+                            <i class="fas fa-door-open"></i>
+                        </div>
+                        <h2>Update Room Details</h2>
+                        <p>Modify the details below to update the room.</p>
+                    </div>
 
-<?php } ?>
-												<div class="col-sm-8 col-sm-offset-2">
-													
-													<input class="btn btn-primary" type="submit" name="submit" value="Update Room Details ">
-												</div>
-											</div>
+                    <div class="room-card-body">
+                        <?php if(isset($error)): ?>
+                            <div class="alert alert-danger" style="border-radius:10px;">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <?php echo $error; ?>
+                            </div>
+                        <?php endif; ?>
 
-										</form>
+                        <form method="post" id="roomForm">
+                            <?php	
+                            $id = intval($_GET['id']);
+                            $ret = "SELECT * FROM rooms WHERE id=?";
+                            $stmt = $mysqli->prepare($ret);
+                            $stmt->bind_param('i', $id);
+                            $stmt->execute();
+                            $res = $stmt->get_result();
+                            
+                            if($row = $res->fetch_object()):
+                            ?>
+                            
+                            <div class="mb-4">
+                                <label for="rmno" class="form-label">Room Number</label>
+                                <input type="text" class="form-control" name="rmno" id="rmno" value="<?php echo htmlspecialchars($row->room_no); ?>" disabled>
+                                <small class="text-muted"><i class="fas fa-info-circle"></i> Room number cannot be changed.</small>
+                            </div>
 
-									</div>
-								</div>
-							</div>
-							</div>
-						</div>
-					</div>
-				</div> 
-			</div>
-		</div>
-	</div>
-	<script src="js/jquery.min.js"></script>
-	<script src="js/bootstrap-select.min.js"></script>
-	<script src="js/bootstrap.min.js"></script>
-	<script src="js/jquery.dataTables.min.js"></script>
-	<script src="js/dataTables.bootstrap.min.js"></script>
-	<script src="js/Chart.min.js"></script>
-	<script src="js/fileinput.js"></script>
-	<script src="js/chartData.js"></script>
-	<script src="js/main.js"></script>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label for="seater" class="form-label">Seater (Beds) *</label>
+                                    <input type="number" class="form-control" name="seater" id="seater" value="<?php echo intval($row->seater); ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="fees" class="form-label">Fee (Per Student) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text" style="background: #fafbff; border: 1.5px solid #e2e8f0; border-right: none;">Tsh.</span>
+                                        <input type="number" class="form-control" name="fees" id="fees" value="<?php echo intval($row->fees); ?>" required style="border-left: none; border-right: none;">
+                                        <span class="input-group-text" style="background: #fafbff; border: 1.5px solid #e2e8f0; border-left: none;">/=</span>
+                                    </div>
+                                </div>
+                            </div>
 
-</script>
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" name="submit" class="btn-update" id="updateBtn">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
 
-<?php          
+                            <?php else: ?>
+                            <div class="alert alert-warning">Room not found.</div>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                </div>
 
-// When updating a room
-function updateRoom($Id, $newData) {
-    global $mysqli;
-    
-    // Get old room data first
-	$oldData = $mysqli->query("SELECT * FROM rooms WHERE id = $Id")->fetch_assoc();
-    
-    // Perform the update
-    $query = "UPDATE rooms SET id = ?, seater=?, room_no= ?, fees= ?, posting_date = ? WHERE id = ?";
-    $stmt = $mysqli->prepare($query);
-    $stmt->bind_param("iii", $newData['id'], $newData['room_seater'], $newData['fees'], $newData['posting_date'], $roomId);
-    $success = $stmt->execute();
-    
-    if ($success) {
-        // Log the activity
-        log_activity(
-            'room_update', 
-			"Updated room #$Id ({$oldData['room_no']})",
-            [
-                'old_values' => $oldData,
-                'new_values' => $newData
-            ],
-            'rooms',
-			$Id
-        );
-    }
-    
-    return $success;
-}
+            </div>
+        </div>
+    </div>
 
-?>
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script>
+        // Form loading state
+        document.getElementById('roomForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('updateBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+        });
+    </script>
 </body>
-
 </html>

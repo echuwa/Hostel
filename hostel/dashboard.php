@@ -199,6 +199,11 @@ $stmt->close();
             margin-left: 70px;
         }
         
+        .dashboard-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
         @media (max-width: 768px) {
             body {
                 margin-left: 0;
@@ -214,7 +219,7 @@ $stmt->close();
         <?php include("includes/sidebar.php");?>
         
         <div class="content-wrapper">
-            <div class="container-fluid py-4">
+            <div class="container-fluid py-4 dashboard-container">
                 
                 <!-- Page Heading -->
                 <div class="dashboard-header d-sm-flex align-items-center justify-content-between mb-4">

@@ -384,9 +384,9 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                             
                                             <!-- Fees -->
                                             <div class="col-md-6">
-                                                <label for="fpm" class="form-label">Fees Per Month (TSH)</label>
+                                                <label for="fpm" class="form-label">Fee Per Student (TSH)</label>
                                                 <div class="icon-input">
-                                                    <i class="fas fa-rupee-sign"></i>
+                                                    <i class="fas fa-money-bill-wave"></i>
                                                     <input type="text" name="fpm" id="fpm" class="form-control" 
                                                         value="<?php echo isset($_SESSION['form_data']['feespm']) ? htmlspecialchars($_SESSION['form_data']['feespm']) : ''; ?>" readonly>
                                                 </div>

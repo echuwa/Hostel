@@ -5,188 +5,300 @@ include('includes/checklogin.php');
 check_login();
 ?>
 <!doctype html>
-<html lang="en" class="no-js">
-
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-	<meta name="description" content="">
-	<meta name="author" content="">
-	<meta name="theme-color" content="#3e454c">
-	<title>Complaint Details</title>
-	<link rel="stylesheet" href="css/font-awesome.min.css">
-	<link rel="stylesheet" href="css/bootstrap.min.css">
-	<link rel="stylesheet" href="css/dataTables.bootstrap.min.css">
-	<link rel="stylesheet" href="css/bootstrap-social.css">
-	<link rel="stylesheet" href="css/bootstrap-select.css">
-	<link rel="stylesheet" href="css/fileinput.min.css">
-	<link rel="stylesheet" href="css/awesome-bootstrap-checkbox.css">
-	<link rel="stylesheet" href="css/style.css">
-	<link rel="stylesheet" href="css/font-awesome.min.css">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint Details | HostelMS</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --primary-dark: #2e59d9;
+            --success-color: #1cc88a;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --sidebar-width: 250px;
+        }
 
-<script language="javascript" type="text/javascript">
-var popUpWin=0;
-function popUpWindow(URLStr, left, top, width, height)
-{
- if(popUpWin)
-{
-if(!popUpWin.closed) popUpWin.close();
-}
-popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,copyhistory=yes,width='+510+',height='+430+',left='+left+', top='+top+',screenX='+left+',screenY='+top+'');
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fc;
+            margin: 0;
+            overflow-x: hidden;
+            color: #5a5c69;
+        }
 
-</script>
+        /* Sidebar & Header Setup */
+        .ts-main-content {
+            display: flex;
+            min-height: calc(100vh - 60px);
+            margin-top: 60px;
+        }
 
+        .content-wrapper {
+            flex: 1;
+            padding: 1.5rem;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        /* Card Styles */
+        .detail-card { 
+            border-radius: 0.5rem; 
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); 
+            border: none; 
+            margin-bottom: 25px; 
+            background: #fff;
+            overflow: hidden;
+        }
+        .detail-card .card-header { 
+            background-color: var(--primary-color);
+            color: #fff; 
+            font-weight: 700; 
+            font-size: 1.05rem; 
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .detail-card .card-body { padding: 1.5rem; }
+        
+        .detail-table { margin-bottom: 0; }
+        .detail-table th { 
+            background: #f8f9fc; 
+            font-weight: 600; 
+            color: #4e73df; 
+            width: 35%; 
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e3e6f0;
+        }
+        .detail-table td { 
+            color: #5a5c69; 
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e3e6f0;
+        }
+
+        .history-table th { 
+            background: #eaecf4; 
+            color: #858796;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+        .history-table td { vertical-align: middle; }
+        
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #858796;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e3e6f0;
+            padding-bottom: 8px;
+        }
+
+        .chat-bubble {
+            background-color: #f8f9fc;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px 20px;
+            border-radius: 0.5rem;
+            margin-bottom: 20px;
+        }
+
+        .action-btns .btn {
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
+            border-radius: 0.35rem;
+        }
+    </style>
 </head>
 
 <body>
-	<?php include('includes/header.php');?>
+    <?php include("includes/header.php");?>
 
-	<div class="ts-main-content">
-			<?php include('includes/sidebar.php');?>
-		<div class="content-wrapper">
-			<div class="container-fluid">
-				<div class="row" id="print">
+    <div class="ts-main-content">
+        <?php include("includes/sidebar.php");?>
+        
+        <div class="content-wrapper">
+            <div class="container-fluid" id="print-area">
+                
+                <div class="d-sm-flex align-items-center justify-content-between mb-4 d-print-none">
+                    <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-file-alt text-primary me-2"></i>Complaint Details</h1>
+                    <div class="action-btns mt-3 mt-sm-0">
+                        <button onclick="window.history.back()" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i> Go Back
+                        </button>
+                        <button onclick="window.print()" class="btn btn-primary shadow-sm">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
+                    </div>
+                </div>
 
-<?php	
-$aid=$_SESSION['id'];
-$cid=$_GET['cid'];
-$ret="select * from complaints where (id=? and userId=?)";
-$stmt= $mysqli->prepare($ret) ;
-$stmt->bind_param('is',$cid,$aid);
-$stmt->execute() ;
-$res=$stmt->get_result();
-$cnt=1;
-while($row=$res->fetch_object())
-	  {
-	  	?>
-					<div class="col-md-12">
-						<h2 class="page-title" style="margin-top:3%">#<?php echo $row->ComplainNumber;?> Details</h2>
-						<div class="panel panel-default">
-							<div class="panel-heading">#<?php echo $row->ComplainNumber;?> Details</div>
-							<div class="panel-body">
-			<table id="zctb" class="table table-bordered " cellspacing="0" width="100%" border="1">
-									
-						 <span style="float:left" ><i class="fa fa-print fa-2x" aria-hidden="true" OnClick="CallPrint(this.value)" style="cursor:pointer" title="Print the Report"></i></span>			
-									<tbody>
+                <?php    
+                $aid = $_SESSION['id'];
+                $cid = intval($_GET['cid']);
+                
+                $ret = "SELECT * FROM complaints WHERE id=? AND userId=?";
+                $stmt = $mysqli->prepare($ret);
+                $stmt->bind_param('is', $cid, $aid);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                
+                if($row = $res->fetch_object()): 
+                    $cstatus = $row->complaintStatus;
+                ?>
+                <!-- Main Detail Card -->
+                <div class="detail-card">
+                    <div class="card-header">
+                        <div>
+                            <i class="fas fa-hashtag me-2"></i> <?php echo htmlspecialchars($row->ComplainNumber); ?>
+                        </div>
+                        <div style="font-size: 0.9rem;">
+                            Filed on: <?php echo date('F d, Y', strtotime($row->registrationDate)); ?>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="row mb-4">
+                            <!-- Basic Information -->
+                            <div class="col-md-6 mb-4 mb-md-0">
+                                <div class="section-title"><i class="fas fa-info-circle me-2"></i> Basic Information</div>
+                                <table class="table detail-table">
+                                    <tr>
+                                        <th>Complaint Type</th>
+                                        <td class="fw-bold"><?php echo htmlspecialchars($row->complaintType); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Current Status</th>
+                                        <td>
+                                            <?php
+                                            if(empty($cstatus)):
+                                                echo '<span class="badge bg-danger px-3 py-2 rounded-pill"><i class="fas fa-info-circle me-1"></i> New</span>';
+                                            elseif(strtolower($cstatus) == 'in process' || strtolower($cstatus) == 'in progress'):
+                                                echo '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill"><i class="fas fa-spinner fa-spin me-1"></i> In Process</span>';
+                                            elseif(strtolower($cstatus) == 'closed'):
+                                                echo '<span class="badge bg-success px-3 py-2 rounded-pill"><i class="fas fa-check-circle me-1"></i> Closed</span>';
+                                            else:
+                                                echo '<span class="badge bg-secondary px-3 py-2 rounded-pill">'.htmlspecialchars($cstatus).'</span>';
+                                            endif;
+                                            ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Attachment / File</th>
+                                        <td>
+                                            <?php if(!empty($row->complaintDoc)): ?>
+                                                <a href="comnplaintdoc/<?php echo htmlspecialchars($row->complaintDoc); ?>" target="_blank" class="btn btn-sm btn-outline-primary shadow-sm" style="border-radius: 8px;">
+                                                    <i class="fas fa-download me-1"></i> View Attached File
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted fst-italic"><i class="fas fa-times-circle me-1"></i> No attachment provided</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <!-- Detailed Description -->
+                            <div class="col-md-6">
+                                <div class="section-title"><i class="fas fa-align-left me-2"></i> Your Message</div>
+                                <div class="chat-bubble">
+                                    <?php echo nl2br(htmlspecialchars($row->complaintDetails ?? 'No details provided.')); ?>
+                                </div>
+                            </div>
+                        </div>
 
+                        <!-- Admin Replies & Action History -->
+                        <div class="section-title mt-4"><i class="fas fa-comments me-2"></i> Admin Replies & Action History</div>
+                        <?php
+                        $query = "SELECT * FROM complainthistory WHERE complaintid=? ORDER BY postingDate DESC";
+                        $stmt1 = $mysqli->prepare($query);
+                        $stmt1->bind_param('i', $cid);
+                        $stmt1->execute();
+                        $res1 = $stmt1->get_result();
+                        
+                        if($res1->num_rows > 0): 
+                        ?>
+                        <div class="table-responsive">
+                            <table class="table history-table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th width="15%">Date & Time</th>
+                                        <th width="15%">Status Updated To</th>
+                                        <th width="70%">Admin's Reply / Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while($row1 = $res1->fetch_object()): ?>
+                                    <tr>
+                                        <td><i class="far fa-clock me-1 text-muted"></i> <?php echo date('M d, Y h:i A', strtotime($row1->postingDate)); ?></td>
+                                        <td>
+                                            <span class="badge bg-secondary px-2 py-1 rounded-pill shadow-sm">
+                                                <?php echo htmlspecialchars($row1->compalintStatus); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if(!empty($row1->complaintRemark)): ?>
+                                                <div class="p-3 bg-white border rounded shadow-sm">
+                                                    <strong class="text-primary d-block mb-1"><i class="fas fa-user-shield me-1"></i> Admin says:</strong>
+                                                    <?php echo nl2br(htmlspecialchars($row1->complaintRemark)); ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-muted fst-italic">Status updated without a message.</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php else: ?>
+                            <div class="alert text-center py-4" style="background-color: #f8f9fc; border: 1px dashed #d1d3e2; color: #858796;">
+                                <i class="fas fa-inbox fa-3x mb-3 text-gray-300 d-block"></i>
+                                <strong>No replies yet.</strong><br>
+                                The admin has not taken any action on this complaint yet. You will see their replies here once they do.
+                            </div>
+                        <?php endif; ?>
+                        
+                    </div>
+                </div>
+                <?php else: ?>
+                    <div class="alert alert-danger shadow-sm border-left-danger" style="border-radius: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle me-2"></i> We couldn't find this complaint. It might have been deleted or doesn't belong to you.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
 
-<tr>
-<td colspan="6" style="text-align:center; color:blue"><h4>Complaint Realted Info</h4></td>
-</tr>
-<tr>
-	<th>Complaint Number </th>
-<td><?php echo $row->ComplainNumber;?></td>
-<th>RegistrationDate</th>
-<td><?php echo $row->registrationDate;?></td>
-</tr>
-
-
-
-<tr>
-<th>Complaint Type </th>
-<td><?php echo $row->complaintType;?></td>
-<th>File (if any)</th>
-<td><?php $cdoc=$row->complaintDoc;
-if($cdoc==''):
-	echo "NA";
-else: ?>
-<a href="comnplaintdoc/<?php echo $cdoc;?>" target="blank">File</a>
-
-<?php	endif;
-?></td>
-
-</tr>
-
-<tr>
-<th>Complaint Details</th>
-<td colspan="3"><?php echo $row->complaintDetails;?></td>
-
-</tr>
-
-
-
-<tr>
-<th>Complaint Status </th>
-<td  colspan="3"><?php $cstatus=$row->complaintStatus;
-if($cstatus==''):
-	echo "New";
-else:
-echo $cstatus;
-endif;	
-
-?></td>
-</tr>
-
-
-
-<?php
-$cnt=$cnt+1;
-} ?>
-</tbody>
-</table>
-<?php $query="select * from complainthistory where (complaintid=?)";
-$stmt1= $mysqli->prepare($query) ;
-$stmt1->bind_param('i',$cid);
-$stmt1->execute() ;
- $res1=$stmt1->get_result();
-
-
-	  	?>
-			<table id="zctb" class="table table-bordered " cellspacing="0" width="100%" border="1">
-
-<tr>
-	<th colspan="3" style="color:blue; font-size:18px; text-align:center">Complaint History</th>
-</tr>
-<tr>
-	<th>Complaint Remark</th>
-	<th>Complaint Status</th>
-	<th>Posting Date</th>
-</tr>
-<?php 
-while($row1=$res1->fetch_object())
-	  { ?>
-<tr>
-
-<td><?php echo $row1->complaintRemark;?></td>
-<td><?php echo $row1->compalintStatus;?></td>
-<td><?php echo $row1->postingDate;?></td>
-</tr>
-<?php } ?>
-</table>
-
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-
-	<!-- Loading Scripts -->
-	<script src="js/jquery.min.js"></script>
-	<script src="js/bootstrap-select.min.js"></script>
-	<script src="js/bootstrap.min.js"></script>
-	<script src="js/jquery.dataTables.min.js"></script>
-	<script src="js/dataTables.bootstrap.min.js"></script>
-	<script src="js/Chart.min.js"></script>
-	<script src="js/fileinput.js"></script>
-	<script src="js/chartData.js"></script>
-	<script src="js/main.js"></script>
- <script>
-$(function () {
-$("[data-toggle=tooltip]").tooltip();
-    });
-function CallPrint(strid) {
-var prtContent = document.getElementById("print");
-var WinPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
-WinPrint.document.write(prtContent.innerHTML);
-WinPrint.document.close();
-WinPrint.focus();
-WinPrint.print();
-}
-</script>
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <style>
+        /* Print Styles */
+        @media print {
+            body { background: white !important; margin: 0; padding: 0; }
+            .ts-main-content { margin-top: 0 !important; }
+            .sidebar, .brand, .d-print-none { display: none !important; }
+            .content-wrapper { flex: 0 0 100%; max-width: 100%; padding: 0; margin-left: 0 !important; }
+            .detail-card { box-shadow: none !important; border: 1px solid #ddd; }
+            .card-header { background-color: #f8f9fc !important; color: #333 !important; }
+            .chat-bubble { border: 1px solid #ddd; }
+        }
+    </style>
 </body>
-
 </html>

@@ -11,7 +11,7 @@ function check_login() {
     if (empty($_SESSION['id'])) {
         $host = $_SERVER['HTTP_HOST'];
         $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-        $extra = "login.php";
+        $extra = "../index.php";
         $_SESSION = array(); // Clear all session data
         
         // Destroy the session
@@ -48,7 +48,7 @@ function check_login() {
     if (empty($username)) {
         $host = $_SERVER['HTTP_HOST'];
         $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-        $extra = "login.php?error=account_not_found";
+        $extra = "../index.php?error=account_not_found";
         session_unset();
         session_destroy();
         header("Location: http://$host$uri/$extra");
@@ -61,7 +61,7 @@ function check_login() {
     if ($status !== 'active') {
         $host = $_SERVER['HTTP_HOST'];
         $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-        $extra = "login.php?error=account_inactive";
+        $extra = "../index.php?error=account_inactive";
         session_unset();
         session_destroy();
         header("Location: http://$host$uri/$extra");
@@ -88,7 +88,7 @@ function check_login() {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $inactive)) {
         $host = $_SERVER['HTTP_HOST'];
         $uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-        $extra = "login.php?timeout=1";
+        $extra = "../index.php?timeout=1";
         session_unset();
         session_destroy();
         header("Location: http://$host$uri/$extra");

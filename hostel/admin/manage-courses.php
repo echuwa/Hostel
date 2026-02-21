@@ -6,122 +6,205 @@ check_login();
 
 if(isset($_GET['del']))
 {
-	$id=intval($_GET['del']);
-	$adn="delete from courses where id=?";
-		$stmt= $mysqli->prepare($adn);
-		$stmt->bind_param('i',$id);
-        $stmt->execute();
-        $stmt->close();	   
-        echo "<script>alert('Data Deleted');</script>" ;
+    $id=intval($_GET['del']);
+    $adn="delete from courses where id=?";
+    $stmt= $mysqli->prepare($adn);
+    $stmt->bind_param('i',$id);
+    $stmt->execute();
+    $stmt->close();	   
+    $_SESSION['success'] = "Course deleted successfully";
+    header("Location: manage-courses.php");
+    exit();
 }
 ?>
 <!doctype html>
-<html lang="en" class="no-js">
-
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-	<meta name="description" content="">
-	<meta name="author" content="">
-	<meta name="theme-color" content="#3e454c">
-	<title>Manage Courses</title>
-	<link rel="stylesheet" href="css/font-awesome.min.css">
-	<link rel="stylesheet" href="css/bootstrap.min.css">
-	<link rel="stylesheet" href="css/dataTables.bootstrap.min.css">
-	<link rel="stylesheet" href="css/bootstrap-social.css">
-	<link rel="stylesheet" href="css/bootstrap-select.css">
-	<link rel="stylesheet" href="css/fileinput.min.css">
-	<link rel="stylesheet" href="css/awesome-bootstrap-checkbox.css">
-	<link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <meta name="theme-color" content="#f5f6fa">
+    <title>Manage Courses | HostelMS</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="css/modern.css">
+    
+    <style>
+        /* Table overrides for light theme */
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter, 
+        .dataTables_wrapper .dataTables_info, 
+        .dataTables_wrapper .dataTables_processing, 
+        .dataTables_wrapper .dataTables_paginate {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 5px 10px;
+        }
+        
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .page-link {
+            background-color: #fff;
+            border-color: #e0e0e0;
+            color: var(--text-muted);
+        }
+        
+        .page-link:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .badge-course {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
 </head>
 
 <body>
-	<?php include('includes/header.php');?>
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <?php include('includes/sidebar_modern.php'); ?>
 
-	<div class="ts-main-content">
-			<?php include('includes/sidebar.php');?>
-		<div class="content-wrapper">
-			<div class="container-fluid">
-				<div class="row">
-					<div class="col-md-12">
-						<h2 class="page-title" style="margin-top:4%">Manage Course</h2>
-						<div class="panel panel-default">
-							<div class="panel-heading">All Courses Details</div>
-							<div class="panel-body">
-								<table id="zctb" class="display table table-striped table-bordered table-hover" cellspacing="0" width="100%">
-									<thead>
-										<tr>
-											<th>Sno.</th>
-											<th>Course Code</th>
-											<th>Course Name(Short)</th>
-											<th>Course Name(Full)</th>
-											<th>Reg Date </th>
-											<th>Action</th>
-										</tr>
-									</thead>
-									<tfoot>
-										<tr>
-											<th>Sl No</th>
-											<th>Course Code</th>
-											<th>Course Name(Short)</th>
-											<th>Course Name(Full)</th>
-											<th>Regd Date</th>
-											<th>Action</th>										</tr>
-									</tfoot>
-									<tbody>
-<?php	
-$aid=$_SESSION['id'];
-$ret="select * from courses";
-$stmt= $mysqli->prepare($ret) ;
-//$stmt->bind_param('i',$aid);
-$stmt->execute() ;//ok
-$res=$stmt->get_result();
-$cnt=1;
-while($row=$res->fetch_object())
-	  {
-	  	?>
-<tr><td><?php echo $cnt;;?></td>
-<td><?php echo $row->course_code;?></td>
-<td><?php echo $row->course_sn;?></td>
-<td><?php echo $row->course_fn;?></td>
-<td><?php echo $row->posting_date;?></td>
-<td><a href="edit-course.php?id=<?php echo $row->id;?>"><i class="fa fa-edit"></i></a>&nbsp;&nbsp;
-<a href="manage-courses.php?del=<?php echo $row->id;?>" onclick="return confirm("Do you want to delete");"><i class="fa fa-close"></i></a></td>
-										</tr>
-									<?php
-$cnt=$cnt+1;
-									 } ?>
-											
-										
-									</tbody>
-								</table>
+        <!-- MAIN CONTENT -->
+        <div class="main-content" id="mainContent">
+            <div class="content-wrapper">
+                
+                <!-- Header -->
+                <div class="content-header">
+                    <div class="header-left">
+                        <h1 class="page-title">
+                            <i class="fas fa-book"></i>
+                            Manage Courses
+                        </h1>
+                    </div>
+                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <a href="add-courses.php" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #7b2ff7); border: none; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 4px 15px rgba(67,97,238,0.2); color: white;">
+                            <i class="fas fa-plus-circle"></i> Add New Course
+                        </a>
+                        <div class="date-filter" style="background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px; color: #4a5568; font-weight: 500;">
+                            <i class="fas fa-calendar-alt" style="color: #4361ee;"></i>
+                            <span><?php echo date('F d, Y'); ?></span>
+                        </div>
+                    </div>
+                </div>
 
-								
-							</div>
-						</div>
+                <!-- Table Panel -->
+                <div class="card-panel">
+                    <div class="card-header" style="border-bottom: 2px solid #f0f2f5; padding-bottom: 15px;">
+                        <div class="card-title" style="font-size: 1.1rem; font-weight: 700; color: #2d3748;">All Courses Details</div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <?php if(isset($_SESSION['success'])): ?>
+                            <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius:10px;">
+                                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="table-responsive">
+                            <table id="courses-table" class="table table-modern" cellspacing="0" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Course Code</th>
+                                        <th>Course Name</th>
+                                        <th>Reg Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $ret = "SELECT * FROM courses";
+                                    $stmt = $mysqli->prepare($ret);
+                                    $stmt->execute();
+                                    $res = $stmt->get_result();
+                                    $cnt = 1;
+                                    
+                                    while($row = $res->fetch_object()):
+                                    ?>
+                                    <tr>
+                                        <td><?php echo $cnt++; ?></td>
+                                        <td>
+                                            <span class="badge-course">
+                                                <i class="fas fa-barcode"></i>
+                                                <?php echo $row->course_code; ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo $row->course_fn; ?></td>
+                                        <td><?php echo date('d-m-Y', strtotime($row->posting_date)); ?></td>
+                                        <td>
+                                            <div style="display:flex; gap:10px;">
+                                                <a href="edit-course.php?id=<?php echo $row->id; ?>" class="action-btn" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="manage-courses.php?del=<?php echo $row->id; ?>" 
+                                                   class="action-btn delete" 
+                                                   title="Delete"
+                                                   onclick="return confirm('Are you sure you want to delete this course?');">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-					
-					</div>
-				</div>
+            </div>
+        </div>
+    </div>
 
-			
-
-			</div>
-		</div>
-	</div>
-
-	<!-- Loading Scripts -->
-	<script src="js/jquery.min.js"></script>
-	<script src="js/bootstrap-select.min.js"></script>
-	<script src="js/bootstrap.min.js"></script>
-	<script src="js/jquery.dataTables.min.js"></script>
-	<script src="js/dataTables.bootstrap.min.js"></script>
-	<script src="js/Chart.min.js"></script>
-	<script src="js/fileinput.js"></script>
-	<script src="js/chartData.js"></script>
-	<script src="js/main.js"></script>
-
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            $('#courses-table').DataTable({
+                "language": {
+                    "search": "",
+                    "searchPlaceholder": "Search courses..."
+                },
+                "dom": '<"d-flex justify-content-between align-items-center mb-3"lf>rt<"d-flex justify-content-between align-items-center mt-3"ip>'
+            });
+        });
+    </script>
 </body>
-
 </html>

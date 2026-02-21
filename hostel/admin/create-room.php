@@ -5,42 +5,57 @@ include('includes/config.php');
 include('includes/checklogin.php');
 check_login();
 
-// Code for add room
+// Code for batch adding rooms
 if(isset($_POST['submit'])) {
     $seater = intval($_POST['seater']);
-    $roomno = intval($_POST['rmno']);
     $fees   = intval($_POST['fee']);
-    $floor  = isset($_POST['floor']) ? intval($_POST['floor']) : 1;
+    
+    $block = intval($_POST['block']); // 1 to 6
+    $side = htmlspecialchars(trim($_POST['side'])); // A or B
+    $floor = htmlspecialchars(trim($_POST['floor'])); // G, 1, 2, 3
+    $roomCount = intval($_POST['room_count']); // Number of rooms to generate
+
     $type   = isset($_POST['room_type']) ? htmlspecialchars(trim($_POST['room_type'])) : 'Standard';
     
-    // Check if room already exists
-    $sql = "SELECT room_no FROM rooms WHERE room_no=?";
-    $stmt1 = $mysqli->prepare($sql);
-    $stmt1->bind_param('i', $roomno);
-    $stmt1->execute();
-    $stmt1->store_result(); 
-    $row_cnt = $stmt1->num_rows;
-    
-    if($row_cnt > 0) {
-        $_SESSION['error'] = "Room #$roomno already exists. Please use a different room number.";
-    } else {
-        $query = "INSERT INTO rooms (seater, room_no, fees) VALUES (?, ?, ?)";
-        $stmt = $mysqli->prepare($query);
-        $stmt->bind_param('iii', $seater, $roomno, $fees);
+    $addedRooms = [];
+    $skippedRooms = [];
+
+    for ($i = 1; $i <= $roomCount; $i++) {
+        // Format room number, e.g., 1A-G01
+        $roomNumberStr = sprintf("%d%s-%s%02d", $block, $side, $floor, $i);
         
-        if($stmt->execute()) {
-            $_SESSION['room_success'] = [
-                'roomno' => $roomno,
-                'seater' => $seater,
-                'fees'   => $fees,
-                'type'   => $type,
-                'floor'  => $floor,
-            ];
-            header("Location: create-room.php?created=1");
-            exit();
+        // Check if room already exists
+        $sql = "SELECT room_no FROM rooms WHERE room_no=?";
+        $stmt1 = $mysqli->prepare($sql);
+        $stmt1->bind_param('s', $roomNumberStr);
+        $stmt1->execute();
+        $stmt1->store_result(); 
+        $row_cnt = $stmt1->num_rows;
+        
+        if($row_cnt > 0) {
+            $skippedRooms[] = $roomNumberStr;
         } else {
-            $_SESSION['error'] = "Database error. Please try again.";
+            $query = "INSERT INTO rooms (seater, room_no, fees) VALUES (?, ?, ?)";
+            $stmt = $mysqli->prepare($query);
+            $stmt->bind_param('isi', $seater, $roomNumberStr, $fees);
+            if($stmt->execute()) {
+                $addedRooms[] = $roomNumberStr;
+            }
         }
+    }
+    
+    if(count($addedRooms) > 0) {
+        $_SESSION['room_success'] = [
+            'added' => count($addedRooms),
+            'skipped' => count($skippedRooms),
+            'block' => $block,
+            'side' => $side,
+            'floor' => $floor
+        ];
+        header("Location: create-room.php?created=1");
+        exit();
+    } else {
+        $_SESSION['error'] = "All selected rooms already exist or an error occurred.";
     }
 }
 ?>
@@ -51,7 +66,7 @@ if(isset($_POST['submit'])) {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#4361ee">
-    <title>Create Room | HostelMS Admin</title>
+    <title>Create Rooms (Blocks) | HostelMS Admin</title>
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -61,6 +76,9 @@ if(isset($_POST['submit'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Modern CSS -->
     <link rel="stylesheet" href="css/modern.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         * { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -82,7 +100,7 @@ if(isset($_POST['submit'])) {
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(67,97,238,.12);
             overflow: hidden;
-            max-width: 780px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
@@ -211,31 +229,31 @@ if(isset($_POST['submit'])) {
             outline: none;
         }
 
-        /* ── Seater cards ── */
-        .seater-grid {
+        /* ── Grid selections (Blocks/Sides) ── */
+        .selection-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
         }
 
-        .seater-card {
+        .selector-card {
             cursor: pointer;
             position: relative;
         }
 
-        .seater-card input[type="radio"] {
+        .selector-card input[type="radio"] {
             position: absolute;
             opacity: 0;
             width: 0; height: 0;
         }
 
-        .seater-label {
+        .selector-label {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            padding: 14px 8px;
+            gap: 8px;
+            padding: 16px 10px;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             background: #fafbff;
@@ -244,32 +262,29 @@ if(isset($_POST['submit'])) {
             text-align: center;
         }
 
-        .seater-label i {
-            font-size: 1.2rem;
+        .selector-label i {
+            font-size: 1.6rem;
             color: #a0aec0;
         }
 
-        .seater-label .seater-count {
-            font-size: 0.75rem;
+        .selector-label .selector-title {
+            font-size: 0.85rem;
             font-weight: 700;
-            color: #718096;
+            color: #4a5568;
         }
 
-        .seater-card input[type="radio"]:checked + .seater-label {
+        .selector-card input[type="radio"]:checked + .selector-label {
             border-color: #4361ee;
             background: rgba(67,97,238,.07);
-            box-shadow: 0 0 0 3px rgba(67,97,238,.1);
+            box-shadow: 0 0 0 4px rgba(67,97,238,.15);
         }
 
-        .seater-card input[type="radio"]:checked + .seater-label i {
+        .selector-card input[type="radio"]:checked + .selector-label i,
+        .selector-card input[type="radio"]:checked + .selector-label .selector-title {
             color: #4361ee;
         }
 
-        .seater-card input[type="radio"]:checked + .seater-label .seater-count {
-            color: #4361ee;
-        }
-
-        .seater-label:hover {
+        .selector-label:hover {
             border-color: #4361ee;
             background: rgba(67,97,238,.04);
         }
@@ -297,7 +312,7 @@ if(isset($_POST['submit'])) {
         .form-divider {
             height: 1px;
             background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-            margin: 24px 0;
+            margin: 28px 0;
         }
 
         /* ── Preview card ── */
@@ -305,37 +320,44 @@ if(isset($_POST['submit'])) {
             background: linear-gradient(135deg, #f7f9ff, #eef2ff);
             border: 1.5px dashed #c3d0f5;
             border-radius: 16px;
-            padding: 20px;
-            margin-top: 4px;
+            padding: 24px;
         }
 
         .preview-title {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #4361ee;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
         }
 
-        .preview-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(67,97,238,.1);
-            font-size: 0.85rem;
+        .preview-box {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            text-align: center;
         }
 
-        .preview-row:last-child { border-bottom: none; }
-
-        .preview-key {
+        .preview-box .p-label {
+            font-size: 0.75rem;
             color: #718096;
-            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            font-weight: 600;
         }
 
-        .preview-val {
-            font-weight: 700;
+        .preview-box .p-val {
+            font-size: 1.1rem;
+            font-weight: 800;
             color: #2d3748;
         }
 
@@ -344,7 +366,7 @@ if(isset($_POST['submit'])) {
             background: linear-gradient(135deg, #4361ee, #7b2ff7);
             border: none;
             color: #fff;
-            padding: 13px 32px;
+            padding: 14px 36px;
             border-radius: 12px;
             font-size: 0.95rem;
             font-weight: 700;
@@ -353,21 +375,20 @@ if(isset($_POST['submit'])) {
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            box-shadow: 0 4px 15px rgba(67,97,238,.3);
         }
 
         .btn-create:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(67,97,238,.4);
+            box-shadow: 0 8px 25px rgba(67,97,238,.5);
             color: #fff;
         }
-
-        .btn-create:active { transform: translateY(0); }
 
         .btn-back {
             background: #f0f2f5;
             border: none;
             color: #4a5568;
-            padding: 13px 24px;
+            padding: 14px 28px;
             border-radius: 12px;
             font-size: 0.9rem;
             font-weight: 600;
@@ -382,7 +403,6 @@ if(isset($_POST['submit'])) {
             color: #2d3748;
         }
 
-        /* ── Alert ── */
         .custom-alert {
             border-radius: 12px;
             border: none;
@@ -399,162 +419,25 @@ if(isset($_POST['submit'])) {
             color: #e53e3e;
             border-left: 4px solid #e53e3e;
         }
-
-        /* ── Success modal overlay ── */
-        .success-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.5);
-            z-index: 9999;
-            backdrop-filter: blur(4px);
-            align-items: center;
-            justify-content: center;
+        
+        .room-range-display {
+            font-size: 1.1rem;
+            font-family: monospace;
+            background: #1a202c;
+            color: #00ff88;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 10px;
         }
 
-        .success-overlay.show {
-            display: flex;
-        }
-
-        .success-modal {
-            background: #fff;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 420px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,.25);
-            animation: popIn 0.4s cubic-bezier(.175,.885,.32,1.275);
-        }
-
-        @keyframes popIn {
-            from { transform: scale(0.7); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .success-check {
-            width: 80px; height: 80px;
-            background: linear-gradient(135deg, #06d6a0, #0ab575);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.2rem;
-            color: #fff;
-            box-shadow: 0 10px 30px rgba(6,214,160,.35);
-        }
-
-        .success-modal h3 {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #1a202c;
-            margin-bottom: 8px;
-        }
-
-        .success-modal p {
-            color: #718096;
-            font-size: 0.9rem;
-            margin-bottom: 24px;
-        }
-
-        .success-details {
-            background: #f7fafc;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
-            text-align: left;
-        }
-
-        .success-detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            font-size: 0.85rem;
-        }
-
-        .success-detail-row:not(:last-child) {
-            border-bottom: 1px solid #edf2f7;
-        }
-
-        .success-detail-row .key { color: #718096; }
-        .success-detail-row .val { font-weight: 700; color: #2d3748; }
-
-        .btn-modal-primary {
-            background: linear-gradient(135deg, #4361ee, #7b2ff7);
-            color: #fff;
-            border: none;
-            padding: 12px 28px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            margin: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-modal-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(67,97,238,.3); }
-
-        .btn-modal-secondary {
-            background: #f0f2f5;
-            color: #4a5568;
-            border: none;
-            padding: 12px 28px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-modal-secondary:hover { background: #e2e8f0; }
-
-        /* ── Responsive ── */
         @media (max-width: 576px) {
-            .room-card-header { padding: 24px 20px; }
-            .room-card-body { padding: 24px 20px; }
-            .seater-grid { grid-template-columns: repeat(3, 1fr); }
+            .preview-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
-    <!-- Success Overlay Modal -->
-    <div class="success-overlay" id="successOverlay">
-        <div class="success-modal">
-            <div class="success-check">
-                <i class="fas fa-check"></i>
-            </div>
-            <h3>Room Created!</h3>
-            <p>The room has been successfully added to the hostel.</p>
-            <?php if(isset($_SESSION['room_success']) && isset($_GET['created'])): 
-                $rs = $_SESSION['room_success'];
-                unset($_SESSION['room_success']);
-            ?>
-            <div class="success-details">
-                <div class="success-detail-row">
-                    <span class="key">Room Number</span>
-                    <span class="val">#<?php echo htmlspecialchars($rs['roomno']); ?></span>
-                </div>
-                <div class="success-detail-row">
-                    <span class="key">Seater Type</span>
-                    <span class="val"><?php echo htmlspecialchars($rs['seater']); ?>-Person</span>
-                </div>
-                <div class="success-detail-row">
-                    <span class="key">Fee per Student</span>
-                    <span class="val">TJS <?php echo number_format($rs['fees'] ?? 0); ?></span>
-                </div>
-            </div>
-            <?php endif; ?>
-            <div>
-                <button class="btn-modal-primary" onclick="addAnother()">
-                    <i class="fas fa-plus-circle me-1"></i> Add Another Room
-                </button>
-                <button class="btn-modal-secondary" onclick="goToManage()">
-                    <i class="fas fa-list me-1"></i> View All Rooms
-                </button>
-            </div>
-        </div>
-    </div>
 
     <div class="app-container">
         <!-- SIDEBAR -->
@@ -566,19 +449,14 @@ if(isset($_POST['submit'])) {
                 
                 <!-- Header -->
                 <div class="content-header">
-                    <div class="header-left" style="display:flex; align-items:center; gap:12px;">
-                        <a href="dashboard.php" class="btn-back" style="padding:8px 16px; font-size:0.85rem;">
-                            <i class="fas fa-arrow-left"></i> Dashboard
-                        </a>
-                        <div>
-                            <h1 class="page-title" style="margin:0;">
-                                <i class="fas fa-door-open"></i> Create Room
-                            </h1>
-                        </div>
+                    <div class="header-left">
+                        <h1 class="page-title">
+                            <i class="fas fa-building"></i> Block Management
+                        </h1>
                     </div>
-                    <div class="header-right">
-                        <a href="manage-rooms.php" class="btn btn-outline-primary btn-sm" style="border-radius:8px;">
-                            <i class="fas fa-list me-1"></i> Manage Rooms
+                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <a href="manage-rooms.php" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #7b2ff7); border: none; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 4px 15px rgba(67,97,238,0.2); color: white;">
+                            <i class="fas fa-list"></i> Manage Rooms
                         </a>
                     </div>
                 </div>
@@ -589,10 +467,10 @@ if(isset($_POST['submit'])) {
                         <!-- Card Header -->
                         <div class="room-card-header">
                             <div class="header-icon-big">
-                                <i class="fas fa-door-open"></i>
+                                <i class="fas fa-layer-group"></i>
                             </div>
-                            <h2>Add New Room</h2>
-                            <p>Configure room details. All fields marked with * are required.</p>
+                            <h2>Generate Block Rooms</h2>
+                            <p>Select the block, side, and floor to auto-generate multiple rooms (e.g., 1A-G01 to 1A-G15).</p>
                         </div>
 
                         <!-- Card Body -->
@@ -605,95 +483,123 @@ if(isset($_POST['submit'])) {
                             </div>
                             <?php endif; ?>
 
-                            <form method="post" id="roomForm" novalidate>
+                            <form method="post" id="roomForm">
+                                <input type="hidden" name="submit" value="1">
                                 
-                                <!-- Seater Selection -->
+                                <!-- Block Selection -->
                                 <div class="section-title">
-                                    <i class="fas fa-users"></i> Seater Type *
+                                    <i class="fas fa-city"></i> Select Block *
                                 </div>
-                                
-                                <div class="seater-grid mb-4">
-                                    <?php
-                                    $seater_types = [
-                                        1 => ['label'=>'Single','icon'=>'fa-user'],
-                                        2 => ['label'=>'Double','icon'=>'fa-user-friends'],
-                                        3 => ['label'=>'Triple','icon'=>'fa-users'],
-                                        4 => ['label'=>'Quad','icon'=>'fa-users'],
-                                        5 => ['label'=>'5-Bed','icon'=>'fa-users'],
-                                    ];
-                                    foreach($seater_types as $val => $info): ?>
-                                    <div class="seater-card">
-                                        <input type="radio" name="seater" id="seater<?php echo $val; ?>" value="<?php echo $val; ?>" required>
-                                        <label class="seater-label" for="seater<?php echo $val; ?>">
-                                            <i class="fas <?php echo $info['icon']; ?>"></i>
-                                            <span class="seater-count"><?php echo $info['label']; ?></span>
+                                <div class="selection-grid mb-4">
+                                    <?php for($b=1; $b<=6; $b++): ?>
+                                    <div class="selector-card">
+                                        <input type="radio" name="block" id="block<?php echo $b; ?>" value="<?php echo $b; ?>" required onchange="updatePreview()">
+                                        <label class="selector-label" for="block<?php echo $b; ?>">
+                                            <i class="fas fa-building"></i>
+                                            <span class="selector-title">Block <?php echo $b; ?></span>
                                         </label>
                                     </div>
-                                    <?php endforeach; ?>
+                                    <?php endfor; ?>
+                                </div>
+
+                                <div class="row g-4 mb-4">
+                                    <!-- Side Selection -->
+                                    <div class="col-md-6">
+                                        <div class="section-title">
+                                            <i class="fas fa-arrows-alt-h"></i> Block Wing/Side *
+                                        </div>
+                                        <div class="selection-grid">
+                                            <div class="selector-card">
+                                                <input type="radio" name="side" id="sideA" value="A" required onchange="updatePreview()">
+                                                <label class="selector-label" for="sideA" style="padding: 10px;">
+                                                    <span class="selector-title">Side A</span>
+                                                </label>
+                                            </div>
+                                            <div class="selector-card">
+                                                <input type="radio" name="side" id="sideB" value="B" required onchange="updatePreview()">
+                                                <label class="selector-label" for="sideB" style="padding: 10px;">
+                                                    <span class="selector-title">Side B</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Floor Selection -->
+                                    <div class="col-md-6">
+                                        <div class="section-title">
+                                            <i class="fas fa-align-justify"></i> Floor Level *
+                                        </div>
+                                        <div class="selection-grid">
+                                            <div class="selector-card">
+                                                <input type="radio" name="floor" id="floorG" value="G" required onchange="updatePreview()">
+                                                <label class="selector-label" for="floorG" style="padding: 10px;">
+                                                    <span class="selector-title">Ground (G)</span>
+                                                </label>
+                                            </div>
+                                            <div class="selector-card">
+                                                <input type="radio" name="floor" id="floor1" value="1" required onchange="updatePreview()">
+                                                <label class="selector-label" for="floor1" style="padding: 10px;">
+                                                    <span class="selector-title">Floor 1</span>
+                                                </label>
+                                            </div>
+                                            <div class="selector-card">
+                                                <input type="radio" name="floor" id="floor2" value="2" required onchange="updatePreview()">
+                                                <label class="selector-label" for="floor2" style="padding: 10px;">
+                                                    <span class="selector-title">Floor 2</span>
+                                                </label>
+                                            </div>
+                                            <div class="selector-card">
+                                                <input type="radio" name="floor" id="floor3" value="3" required onchange="updatePreview()">
+                                                <label class="selector-label" for="floor3" style="padding: 10px;">
+                                                    <span class="selector-title">Floor 3</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="form-divider"></div>
 
-                                <!-- Room Details -->
+                                <!-- Room Setup -->
                                 <div class="section-title">
-                                    <i class="fas fa-door-open"></i> Room Details
+                                    <i class="fas fa-cog"></i> Room Setup Details
                                 </div>
 
                                 <div class="row g-3 mb-4">
-                                    <!-- Room Number -->
-                                    <div class="col-md-6">
-                                        <label for="rmno" class="form-label">Room Number *</label>
+                                    <!-- Number of Rooms -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">Rooms to Generate *</label>
                                         <div class="input-with-icon">
-                                            <i class="fas fa-hashtag field-icon"></i>
-                                            <input type="number" class="form-control" name="rmno" id="rmno" 
-                                                   required min="1" max="9999"
-                                                   placeholder="e.g. 101, 202, 305"
-                                                   oninput="updatePreview()">
-                                        </div>
-                                        <div class="invalid-feedback">Please enter a valid room number.</div>
-                                    </div>
-
-                                    <!-- Floor -->
-                                    <div class="col-md-6">
-                                        <label for="floor" class="form-label">Floor</label>
-                                        <div class="input-with-icon">
-                                            <i class="fas fa-layer-group field-icon"></i>
-                                            <select name="floor" id="floor" class="form-select">
-                                                <option value="0">Ground Floor</option>
-                                                <option value="1" selected>1st Floor</option>
-                                                <option value="2">2nd Floor</option>
-                                                <option value="3">3rd Floor</option>
-                                                <option value="4">4th Floor</option>
-                                                <option value="5">5th Floor</option>
-                                            </select>
+                                            <i class="fas fa-list-ol field-icon"></i>
+                                            <input type="number" class="form-control" name="room_count" id="room_count" 
+                                                   value="15" required min="1" max="50" oninput="updatePreview()">
                                         </div>
                                     </div>
 
-                                    <!-- Room Type -->
-                                    <div class="col-md-6">
-                                        <label for="room_type" class="form-label">Room Type</label>
+                                    <!-- Seater Type -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">Seater (Beds per Room) *</label>
                                         <div class="input-with-icon">
-                                            <i class="fas fa-tag field-icon"></i>
-                                            <select name="room_type" id="room_type" class="form-select">
-                                                <option value="Standard">Standard</option>
-                                                <option value="Deluxe">Deluxe</option>
-                                                <option value="Premium">Premium</option>
-                                                <option value="Economy">Economy</option>
+                                            <i class="fas fa-bed field-icon"></i>
+                                            <select name="seater" id="seater" class="form-select" onchange="updatePreview()">
+                                                <option value="1">1 Person</option>
+                                                <option value="2">2 Persons</option>
+                                                <option value="3">3 Persons</option>
+                                                <option value="4" selected>4 Persons</option>
+                                                <option value="5">5 Persons</option>
                                             </select>
                                         </div>
                                     </div>
 
                                     <!-- Fee -->
-                                    <div class="col-md-6">
-                                        <label for="fee" class="form-label">Fee per Student / Month *</label>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Fee (Per Student) *</label>
                                         <div class="position-relative">
-                                            <span class="currency-prefix">TJS</span>
+                                            <span class="currency-prefix">Tsh.</span>
                                             <input type="number" class="form-control currency-field" 
                                                    name="fee" id="fee" required min="1"
-                                                   placeholder="e.g. 2000"
-                                                   oninput="updatePreview()">
+                                                   placeholder="e.g. 178500" value="178500" oninput="updatePreview()">
                                         </div>
-                                        <div class="invalid-feedback">Please enter the monthly fee.</div>
                                     </div>
                                 </div>
 
@@ -701,42 +607,37 @@ if(isset($_POST['submit'])) {
 
                                 <!-- Live Preview -->
                                 <div class="section-title">
-                                    <i class="fas fa-eye"></i> Room Preview
+                                    <i class="fas fa-magic"></i> Output Preview
                                 </div>
 
-                                <div class="room-preview mb-4" id="previewCard">
-                                    <div class="preview-title"><i class="fas fa-door-open me-1"></i> Room Summary</div>
-                                    <div class="preview-row">
-                                        <span class="preview-key">Room Number</span>
-                                        <span class="preview-val" id="pv-room">—</span>
-                                    </div>
-                                    <div class="preview-row">
-                                        <span class="preview-key">Seater Type</span>
-                                        <span class="preview-val" id="pv-seater">—</span>
-                                    </div>
-                                    <div class="preview-row">
-                                        <span class="preview-key">Room Type</span>
-                                        <span class="preview-val" id="pv-type">Standard</span>
-                                    </div>
-                                    <div class="preview-row">
-                                        <span class="preview-key">Monthly Fee / Student</span>
-                                        <span class="preview-val" id="pv-fee">—</span>
+                                <div class="room-preview mb-4 text-center">
+                                    <div class="preview-title" style="margin-bottom: 5px;">Rooms that will be generated:</div>
+                                    <div class="room-range-display" id="pv-range">Please select Block, Side, and Floor</div>
+                                    
+                                    <div class="preview-grid mt-4">
+                                        <div class="preview-box">
+                                            <div class="p-label">Total Rooms</div>
+                                            <div class="p-val" id="pv-count">0 Rooms</div>
+                                        </div>
+                                        <div class="preview-box">
+                                            <div class="p-label">Capacity (Beds)</div>
+                                            <div class="p-val" id="pv-capacity">0 Beds</div>
+                                        </div>
+                                        <div class="preview-box" style="background: rgba(67, 97, 238, 0.05); border: 1px solid rgba(67, 97, 238, 0.2);">
+                                            <div class="p-label" style="color: #4361ee;">Room Total Fee</div>
+                                            <div class="p-val" id="pv-total-fee" style="color: #4361ee;">Tsh. 0/=</div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Actions -->
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                                    <a href="dashboard.php" class="btn-back">
-                                        <i class="fas fa-arrow-left"></i> Back to Dashboard
-                                    </a>
-                                    <div class="d-flex gap-2">
-                                        <button type="reset" class="btn-back" onclick="resetPreview()">
-                                            <i class="fas fa-redo"></i> Reset
-                                        </button>
-                                        <button type="submit" name="submit" class="btn-create" id="createBtn">
-                                            <i class="fas fa-plus-circle"></i> Create Room
-                                        </button>
-                                    </div>
+                                    <button type="reset" class="btn-back" onclick="setTimeout(updatePreview, 100)">
+                                        <i class="fas fa-redo"></i> Reset Form
+                                    </button>
+                                    <button type="submit" name="submit" class="btn-create" id="createBtn">
+                                        <i class="fas fa-cogs"></i> Generate Rooms
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -753,85 +654,81 @@ if(isset($_POST['submit'])) {
 
     <script>
         // Show success modal on page load if just created
-        <?php if(isset($_GET['created'])): ?>
+        <?php if(isset($_GET['created']) && isset($_SESSION['room_success'])): 
+            $rs = $_SESSION['room_success'];
+            unset($_SESSION['room_success']);
+        ?>
         window.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('successOverlay').classList.add('show');
+            Swal.fire({
+                title: 'Block Generated!',
+                html: '<div style="text-align:left; background:#f8f9fc; padding:15px; border-radius:10px;">' +
+                      '<b>Location:</b> Block <?php echo htmlspecialchars($rs['block']); ?>, Side <?php echo htmlspecialchars($rs['side']); ?>, Floor <?php echo htmlspecialchars($rs['floor']); ?><br><br>' +
+                      '<span style="color:#06d6a0;"><b><i class="fas fa-check-circle"></i> Successfully Added:</b> <?php echo $rs['added']; ?> rooms</span><br>' +
+                      '<?php if($rs['skipped'] > 0){ echo "<span style=\'color:#ef233c;\'><b><i class=\'fas fa-exclamation-circle\'></i> Skipped (Already Exists):</b> " . $rs['skipped'] . " rooms</span>"; } ?>' +
+                      '</div>',
+                icon: 'success',
+                confirmButtonColor: '#4361ee',
+                confirmButtonText: 'Great, Thanks!'
+            }).then((result) => {
+                window.location.href = 'create-room.php';
+            });
         });
         <?php endif; ?>
 
-        function addAnother() {
-            document.getElementById('successOverlay').classList.remove('show');
-            window.location.href = 'create-room.php';
-        }
-
-        function goToManage() {
-            window.location.href = 'manage-rooms.php';
-        }
-
         // Live preview update
-        const seaterLabels = { '1':'Single (1-Person)', '2':'Double (2-Person)', '3':'Triple (3-Person)', '4':'Quad (4-Person)', '5':'Five-Bed (5-Person)' };
-
         function updatePreview() {
-            const rmno = document.getElementById('rmno').value;
-            const fee  = document.getElementById('fee').value;
-            const type = document.getElementById('room_type').value;
-            const selectedSeater = document.querySelector('input[name="seater"]:checked');
+            const blockInput = document.querySelector('input[name="block"]:checked');
+            const sideInput  = document.querySelector('input[name="side"]:checked');
+            const floorInput = document.querySelector('input[name="floor"]:checked');
+            const roomCount  = parseInt(document.getElementById('room_count').value) || 0;
+            const seater     = parseInt(document.getElementById('seater').value) || 0;
+            const fee        = parseInt(document.getElementById('fee').value) || 0;
 
-            document.getElementById('pv-room').textContent = rmno ? '#' + rmno : '—';
-            document.getElementById('pv-fee').textContent  = fee  ? 'TJS ' + parseInt(fee).toLocaleString() : '—';
-            document.getElementById('pv-type').textContent = type;
-            document.getElementById('pv-seater').textContent = selectedSeater ? seaterLabels[selectedSeater.value] : '—';
+            const pvRange   = document.getElementById('pv-range');
+            const pvCount   = document.getElementById('pv-count');
+            const pvCap     = document.getElementById('pv-capacity');
+            const pvTotalFee= document.getElementById('pv-total-fee');
+
+            if(blockInput && sideInput && floorInput && roomCount > 0) {
+                const b = blockInput.value;
+                const s = sideInput.value;
+                const f = floorInput.value;
+
+                let lastRoomFormat = (roomCount < 10) ? '0'+roomCount : roomCount;
+
+                pvRange.innerHTML = `<i class="fas fa-door-closed"></i> ${b}${s}-${f}01 &nbsp; <i class="fas fa-long-arrow-alt-right" style="color:#fff;"></i> &nbsp; <i class="fas fa-door-closed"></i> ${b}${s}-${f}${lastRoomFormat}`;
+                pvCount.textContent = roomCount + ' Rooms';
+                pvCap.textContent = (roomCount * seater) + ' Beds';
+                
+                let roomTotal = seater * fee;
+                pvTotalFee.textContent = roomTotal > 0 ? 'Tsh. ' + roomTotal.toLocaleString() + '/=' : 'Tsh. 0/=';
+            } else {
+                pvRange.textContent = 'Please select Block, Side, and Floor';
+                pvCount.textContent = '0 Rooms';
+                pvCap.textContent = '0 Beds';
+                pvTotalFee.textContent = 'Tsh. 0/=';
+            }
         }
 
-        function resetPreview() {
-            document.getElementById('pv-room').textContent = '—';
-            document.getElementById('pv-fee').textContent  = '—';
-            document.getElementById('pv-type').textContent = 'Standard';
-            document.getElementById('pv-seater').textContent = '—';
-        }
-
-        // Update preview when seater is clicked
-        document.querySelectorAll('input[name="seater"]').forEach(function(el) {
-            el.addEventListener('change', updatePreview);
-        });
-
-        document.getElementById('room_type').addEventListener('change', updatePreview);
-
-        // Form validation
+        // Form loading state
         document.getElementById('roomForm').addEventListener('submit', function(e) {
-            const seaterPicked = document.querySelector('input[name="seater"]:checked');
-            const rmno = document.getElementById('rmno').value;
-            const fee  = document.getElementById('fee').value;
+            const block = document.querySelector('input[name="block"]:checked');
+            const side  = document.querySelector('input[name="side"]:checked');
+            const floor = document.querySelector('input[name="floor"]:checked');
 
-            if (!seaterPicked) {
+            if (!block || !side || !floor) {
                 e.preventDefault();
-                alert('Please select a seater type.');
-                return;
-            }
-            if (!rmno || parseInt(rmno) < 1) {
-                e.preventDefault();
-                document.getElementById('rmno').classList.add('is-invalid');
-                return;
-            }
-            if (!fee || parseInt(fee) < 1) {
-                e.preventDefault();
-                document.getElementById('fee').classList.add('is-invalid');
+                Swal.fire('Incomplete', 'Please select a Block, Side, and Floor.', 'warning');
                 return;
             }
 
-            // Button loading state
             const btn = document.getElementById('createBtn');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             btn.disabled = true;
         });
 
-        // Clear invalid on input
-        document.getElementsByName('rmno')[0].addEventListener('input', function() {
-            this.classList.remove('is-invalid');
-        });
-        document.getElementById('fee').addEventListener('input', function() {
-            this.classList.remove('is-invalid');
-        });
+        // Init preview
+        updatePreview();
     </script>
 </body>
 </html>

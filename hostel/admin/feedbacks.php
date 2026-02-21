@@ -94,9 +94,9 @@ if(isset($_GET['del']))
                             Student Feedback
                         </h1>
                     </div>
-                    <div class="header-right">
-                        <div class="date-filter">
-                            <i class="fas fa-calendar-alt"></i>
+                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <div class="date-filter" style="background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px; color: #4a5568; font-weight: 500;">
+                            <i class="fas fa-calendar-alt" style="color: #4361ee;"></i>
                             <span><?php echo date('F d, Y'); ?></span>
                         </div>
                     </div>
@@ -104,11 +104,12 @@ if(isset($_GET['del']))
 
                 <!-- Table Panel -->
                 <div class="card-panel">
-                    <div class="card-header">
-                        <div class="card-title">All Student Feedbacks</div>
+                    <div class="card-header" style="border-bottom: 2px solid #f0f2f5; padding-bottom: 15px;">
+                        <div class="card-title" style="font-size: 1.1rem; font-weight: 700; color: #2d3748;">All Student Feedbacks</div>
                     </div>
                     
-                    <div class="table-responsive">
+                    <div class="card-body">
+                        <div class="table-responsive">
                         <table id="zctb" class="table table-modern" cellspacing="0" width="100%">
                             <thead>
                                 <tr>
@@ -155,6 +156,7 @@ if(isset($_GET['del']))
                                 } ?>
                             </tbody>
                         </table>
+                    </div>
                     </div>
                 </div>
             </div>

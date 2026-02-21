@@ -247,6 +247,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
+    position: relative;
+    z-index: 1050;
 }
 
 .page-title {

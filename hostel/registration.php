@@ -65,9 +65,7 @@ if(isset($_POST['submit'])) {
             $stmt->bind_param('ssssssss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $hashed_password);
             
             if($stmt->execute()) {
-                $_SESSION['success'] = "Registration successful! Your account is pending admin approval. You will be able to login once approved.";
-                header("Location: index.php");
-                exit();
+                $registration_success = true;
             } else {
                 $_SESSION['error'] = "Registration failed: " . $stmt->error;
             }
@@ -98,19 +96,45 @@ if(isset($_POST['submit'])) {
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
     <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
         .registration-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInDown 0.8s;
+        }
+        .registration-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
         }
         .registration-header {
             text-align: center;
-            margin-bottom: 30px;
-            color: #3a7bd5;
+            margin-bottom: 40px;
+        }
+        .registration-header h2 {
+            font-weight: 800;
+            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
         }
         .form-icon {
             position: relative;
@@ -123,6 +147,15 @@ if(isset($_POST['submit'])) {
         }
         .form-icon input, .form-icon select {
             padding-left: 40px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border: 1px solid #e1e5eb;
+            background: #f8f9fa;
+        }
+        .form-icon input:focus, .form-icon select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(58, 123, 213, 0.25);
+            border-color: #3a7bd5;
+            background: #fff;
         }
         .password-strength {
             height: 5px;
@@ -141,11 +174,16 @@ if(isset($_POST['submit'])) {
         .btn-register {
             background: linear-gradient(135deg, #3a7bd5, #00d2ff);
             border: none;
-            padding: 10px 25px;
+            padding: 12px 30px;
             font-weight: 600;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(58, 123, 213, 0.3);
         }
         .btn-register:hover {
             background: linear-gradient(135deg, #2c65b4, #00b7eb);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(58, 123, 213, 0.4);
         }
         .login-link {
             color: #3a7bd5;
@@ -195,13 +233,6 @@ if(isset($_POST['submit'])) {
                     <?php echo $_SESSION['error']; ?>
                 </div>
                 <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
-            
-            <?php if(isset($_SESSION['success'])): ?>
-                <div class="alert alert-success">
-                    <?php echo $_SESSION['success']; ?>
-                </div>
-                <?php unset($_SESSION['success']); ?>
             <?php endif; ?>
             
             <form method="post" action="" name="registration" class="needs-validation" novalidate>
@@ -328,8 +359,23 @@ if(isset($_POST['submit'])) {
     <!-- jQuery -->
     <script src="js/jquery.min.js"></script>
     
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <!-- Custom Scripts -->
     <script>
+    <?php if(isset($registration_success) && $registration_success): ?>
+    Swal.fire({
+        title: 'Registration Completed!',
+        text: 'Your account has been created successfully. Note: It is currently pending admin approval. You will be able to login once approved.',
+        icon: 'success',
+        confirmButtonColor: '#3a7bd5',
+        confirmButtonText: 'Go to Login'
+    }).then((result) => {
+        window.location.href = 'index.php';
+    });
+    <?php endif; ?>
+
     // Form validation
     (function() {
         'use strict';
