@@ -34,11 +34,7 @@
                 </span>
             </div>
             
-            <div class="sidebar-user-dropdown">
-                <a href="my-profile.php"><i class="fas fa-user"></i> My Profile</a>
-                <a href="change-password.php"><i class="fas fa-key"></i> Change Password</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            </div>
+
         <?php else: ?>
             <div class="user-avatar">
                 <i class="fas fa-user"></i>

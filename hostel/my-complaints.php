@@ -118,7 +118,7 @@ check_login();
                                     </thead>
                                     <tbody>
                                         <?php
-                                        $aid = $_SESSION['id'];
+                                        $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
                                         $ret = "SELECT * FROM complaints WHERE userId=? ORDER BY registrationDate DESC";
                                         $stmt = $mysqli->prepare($ret);
                                         $stmt->bind_param('i', $aid);

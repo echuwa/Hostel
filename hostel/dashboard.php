@@ -47,6 +47,19 @@ while ($row = $act_res->fetch_object()) {
     $recent_complaints[] = $row;
 }
 $stmt->close();
+
+// Fetch Latest Admin Reply (Notification)
+$alert_query = "SELECT c.ComplainNumber, h.compalintStatus, h.complaintRemark, h.postingDate 
+                FROM complainthistory h 
+                JOIN complaints c ON h.complaintid = c.id 
+                WHERE c.userId = ? 
+                ORDER BY h.postingDate DESC LIMIT 1";
+$stmt = $mysqli->prepare($alert_query);
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$alert_res = $stmt->get_result();
+$latest_reply = $alert_res->fetch_object();
+$stmt->close();
 ?>
 <!doctype html>
 <html lang="en">
@@ -192,6 +205,25 @@ $stmt->close();
                     <h1>Welcome Back, <?php echo htmlspecialchars($user_name); ?>! 👋</h1>
                     <p>Track your room status, manage complaints, and explore your dashboard.</p>
                 </div>
+                
+                <?php if($latest_reply): ?>
+                <div class="alert alert-info alert-dismissible fade show" role="alert" style="background-color: #e8f4fd; border: 1px solid #b8daff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 25px;">
+                    <div style="display: flex; gap: 15px; align-items: flex-start;">
+                        <div style="background: linear-gradient(135deg, #4361ee, #4895ef); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div>
+                            <h5 style="margin: 0 0 5px; color: #2b3452; font-weight: 700;">Admin Replied to Complaint #<?php echo htmlspecialchars($latest_reply->ComplainNumber); ?></h5>
+                            <p style="margin: 0; color: #4a5568;"><strong style="color: #4361ee;">Status updated to: <?php echo htmlspecialchars($latest_reply->compalintStatus); ?></strong></p>
+                            <p style="margin: 5px 0 0; background: white; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #4361ee; color: #2b3452; font-size: 0.95rem;">
+                                "<?php echo htmlspecialchars($latest_reply->complaintRemark); ?>"
+                            </p>
+                            <p style="margin: 5px 0 0; font-size: 0.8rem; color: #858796;"><i class="far fa-clock me-1"></i> <?php echo date('F j, Y, g:i a', strtotime($latest_reply->postingDate)); ?></p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="top: 15px; right: 15px;"></button>
+                </div>
+                <?php endif; ?>
 
                 <!-- 4 Key Metrics -->
                 <div class="row g-4 mb-4">

@@ -4,7 +4,7 @@ include('includes/config.php');
 date_default_timezone_set('Asia/Kolkata');
 include('includes/checklogin.php');
 check_login();
-$aid = $_SESSION['id'];
+$aid = $_SESSION['user_id'] ?? $_SESSION['id'];
 
 if(isset($_POST['submit'])) {
     // Sanitize inputs

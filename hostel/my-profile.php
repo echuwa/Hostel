@@ -4,7 +4,7 @@ include('includes/config.php');
 date_default_timezone_set('Asia/Kolkata');
 include('includes/checklogin.php');
 check_login();
-$aid = $_SESSION['id'];
+$aid = $_SESSION['user_id'] ?? $_SESSION['id'];
 
 if(isset($_POST['update'])) {
     $fname = trim($_POST['fname']);
@@ -109,7 +109,7 @@ if(isset($_POST['update'])) {
         <div class="content-wrapper">
             <div class="container-fluid">
                 <?php
-                $aid = $_SESSION['id'];
+                $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
                 $ret = "SELECT * FROM userregistration WHERE id=?";
                 $stmt = $mysqli->prepare($ret);
                 $stmt->bind_param('i', $aid);

@@ -152,7 +152,8 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             align-items: center;
             gap: 10px;
             padding: 10px 18px;
-            color: #444;
+            color: #3f37c9;
+            font-weight: 600;
             text-decoration: none;
             font-size: 0.88rem;
             transition: all 0.15s;
@@ -160,7 +161,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         
         .ts-account ul li a:hover {
             background: #f0f5ff;
-            color: #3a7bd5;
+            color: #b5179e;
             padding-left: 22px;
         }
         
