@@ -58,6 +58,23 @@ if(isset($_POST['submit'])) {
             $stmt->bind_param('sssssiss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password);
             
             if($stmt->execute()) {
+                $room = isset($_POST['room']) ? htmlspecialchars(trim($_POST['room'])) : '';
+                $seater = isset($_POST['seater']) ? intval($_POST['seater']) : 0;
+                $fpm = isset($_POST['fpm']) ? intval($_POST['fpm']) : 0;
+                $foodstatus = isset($_POST['foodstatus']) ? intval($_POST['foodstatus']) : 0;
+                $stayf = isset($_POST['stayf']) ? htmlspecialchars(trim($_POST['stayf'])) : '';
+                $duration = isset($_POST['duration']) ? intval($_POST['duration']) : 0;
+                
+                if (!empty($room)) {
+                    $regQuery = "INSERT INTO registration(roomno, seater, feespm, foodstatus, stayfrom, duration, regno, firstName, middleName, lastName, gender, contactno, emailid) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    $regStmt = $mysqli->prepare($regQuery);
+                    if($regStmt) {
+                        $regStmt->bind_param('siiisisssssss', $room, $seater, $fpm, $foodstatus, $stayf, $duration, $regno, $fname, $mname, $lname, $gender, $contactno, $emailid);
+                        $regStmt->execute();
+                        $regStmt->close();
+                    }
+                }
+                
                 $_SESSION['email_for_login']    = $emailid;
                 $_SESSION['registration_number'] = $regno;
                 $_SESSION['reg_success'] = [

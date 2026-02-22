@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         $errors[] = "Invalid form submission. Please try again.";
     } else {
         $form_data = [
-            'roomno' => filter_input(INPUT_POST, 'room', FILTER_VALIDATE_INT),
+            'roomno' => filter_input(INPUT_POST, 'room', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'seater' => filter_input(INPUT_POST, 'seater', FILTER_VALIDATE_INT),
             'feespm' => filter_input(INPUT_POST, 'fpm', FILTER_VALIDATE_FLOAT),
             'foodstatus' => filter_input(INPUT_POST, 'foodstatus', FILTER_VALIDATE_INT),
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         if (strlen($form_data['contactno']) < 10) $errors[] = "Invalid contact number (minimum 10 digits)";
         if (strlen($form_data['egycontactno']) < 10) $errors[] = "Invalid emergency contact number (minimum 10 digits)";
         if (strlen($form_data['guardianContactno']) < 10) $errors[] = "Invalid guardian contact number (minimum 10 digits)";
-        if ($form_data['roomno'] === false) $errors[] = "Invalid room selection";
+        if (empty($form_data['roomno'])) $errors[] = "Invalid room selection";
         if ($form_data['duration'] === false) $errors[] = "Invalid duration (must be 1-12 months)";
 
         if (empty($errors)) {
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             if ($room_check === false) {
                 $errors[] = "System error: Unable to check room availability";
             } else {
-                $room_check->bind_param('ii', $form_data['roomno'], $form_data['roomno']);
+                $room_check->bind_param('ss', $form_data['roomno'], $form_data['roomno']);
                 if (!$room_check->execute()) {
                     $errors[] = "Database error: " . $room_check->error;
                 } else {
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                             }
                             
                             $bind = $stmt->bind_param(
-                                'iiidssisssssisssisssisss', 
+                                'siidssisssssisssisssisss', 
                                 $form_data['roomno'], $form_data['seater'], $form_data['feespm'], 
                                 $form_data['foodstatus'], $form_data['stayfrom'], $form_data['duration'], 
                                 $form_data['course'], $form_data['regno'], $form_data['firstName'], 
@@ -142,8 +142,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                             $stmt->close();
                             $mysqli->commit();
 
-                            $_SESSION['success'] = "Hostel room booked successfully!";
-                            header("Location: room-details.php");
+                            $_SESSION['booking_success'] = [
+                                'room' => $form_data['roomno'],
+                                'fees' => $form_data['feespm']
+                            ];
+                            header("Location: book-hostel.php?success=1");
                             exit();
                         } catch (Exception $e) {
                             $mysqli->rollback();
@@ -293,9 +296,86 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         .was-validated .form-control:invalid, .form-control.is-invalid {
             background-position: right calc(0.375em + 2.5rem) center;
         }
+
+        /* Success overlay */
+        .success-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        .success-overlay.show { display: flex; }
+        .success-modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            animation: popIn 0.4s cubic-bezier(.175,.885,.32,1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+        .success-check {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #06d6a0, #0ab575);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2.2rem; color: #fff;
+            box-shadow: 0 10px 30px rgba(6,214,160,.35);
+        }
+        .success-modal h3 { font-size: 1.4rem; font-weight: 800; color: #1a202c; margin-bottom: 8px; }
+        .success-modal p  { color: #718096; font-size: 0.9rem; margin-bottom: 20px; }
+        
+        .btn-modal-primary {
+            background: linear-gradient(135deg, #4361ee, #7b2ff7);
+            color: #fff; border: none; text-decoration: none;
+            padding: 11px 24px; border-radius: 10px;
+            font-weight: 700; font-size: 0.88rem;
+            margin: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;
+        }
+        .btn-modal-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(67,97,238,.3); color: #fff;}
+        .btn-modal-secondary {
+            background: #f0f2f5; color: #4a5568; border: none; text-decoration: none;
+            padding: 11px 24px; border-radius: 10px;
+            font-weight: 600; font-size: 0.88rem;
+            margin: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;
+        }
+        .btn-modal-secondary:hover { background: #e2e8f0; color: #2d3748;}
     </style>
 </head>
 <body>
+    <!-- Success Popup Modal -->
+    <div class="success-overlay" id="bookSuccessOverlay">
+        <div class="success-modal">
+            <div class="success-check"><i class="fas fa-check"></i></div>
+            <h3>Booking Successful!</h3>
+            <p>You have successfully booked room number <strong><span id="bk-room"><?php echo isset($_SESSION['booking_success']['room']) ? htmlspecialchars($_SESSION['booking_success']['room']) : ''; ?></span></strong>.</p>
+            
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                <i class="fas fa-file-contract fa-2x text-primary mb-2"></i>
+                <h6>Download Contract / Mkataba</h6>
+                <p style="font-size: 0.8rem; margin-bottom: 0;">Please download your tenancy contract, sign it, and bring it to the management office.</p>
+            </div>
+
+            <div>
+                <a href="room-details.php" class="btn-modal-primary">
+                    <i class="fas fa-download me-1"></i> Download Mkataba
+                </a>
+                <a href="dashboard.php" class="btn-modal-secondary">
+                    <i class="fas fa-home me-1"></i> Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
     <?php include('includes/header.php'); ?>
     
     <div class="ts-main-content">
@@ -803,10 +883,16 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             error: function() {
                 $("#room-availability-status").html('<span class="text-danger">Error checking availability</span>');
                 $("#loaderIcon").hide();
-                console.error("Error checking room availability");
             }
         });
     }
+
+    <?php if(isset($_GET['success']) && isset($_SESSION['booking_success'])): ?>
+    window.addEventListener('DOMContentLoaded', function() {
+        var overlay = document.getElementById('bookSuccessOverlay');
+        if (overlay) overlay.classList.add('show');
+    });
+    <?php unset($_SESSION['booking_success']); endif; ?>
     
     $(document).ready(function() {
         if ($('#adcheck').is(':checked')) {

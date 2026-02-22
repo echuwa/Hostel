@@ -3,7 +3,12 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 ?>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            background: #f0f2f5 !important;
+        }
         .brand {
             display: flex;
             justify-content: space-between;
@@ -192,14 +197,36 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     </style>
 </head>
 <div class="brand">
+    <?php 
+    $currentPage = basename($_SERVER['PHP_SELF']);
+    $pageTitle = "Dashboard";
+    switch ($currentPage) {
+        case 'book-hostel.php': $pageTitle = 'Book Hostel'; break;
+        case 'room-details.php': $pageTitle = 'Room Details'; break;
+        case 'my-profile.php': $pageTitle = 'My Profile'; break;
+        case 'register-complaint.php': $pageTitle = 'Register Complaint'; break;
+        case 'my-complaints.php': $pageTitle = 'My Complaints'; break;
+        case 'change-password.php': $pageTitle = 'Change Password'; break;
+        case 'access-log.php': $pageTitle = 'Access Log'; break;
+        case 'dashboard.php': 
+        default: $pageTitle = 'Student Dashboard'; break;
+    }
+    $currentDate = date("F j, Y");
+    ?>
     <div class="brand-left">
         <button class="sidebar-mobile-toggle" id="mobileSidebarToggle" aria-label="Toggle Menu">
             <i class="fas fa-bars"></i>
         </button>
-        <a href="dashboard.php" class="logo">
-            <i class="fas fa-building"></i>
-            <span>Hostel Management</span>
-        </a>
+        <div class="header-page-info" style="margin-left: 10px; display: flex; align-items: center; gap: 20px;">
+            <div style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-th-large" style="font-size: 1.1rem; opacity: 0.9;"></i> 
+                <span class="page-title-text"><?php echo $pageTitle; ?></span>
+            </div>
+            <div class="header-calendar d-none d-md-flex" style="background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; align-items: center; gap: 8px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);">
+                <i class="far fa-calendar-alt"></i> 
+                <span><?php echo $currentDate; ?></span>
+            </div>
+        </div>
     </div>
     
     <?php if(isset($_SESSION['user_id']) || isset($_SESSION['id'])) { ?>
