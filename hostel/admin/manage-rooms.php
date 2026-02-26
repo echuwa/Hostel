@@ -62,6 +62,8 @@ $stmt->close();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Modern CSS -->
 	<link rel="stylesheet" href="css/modern.css">
     
@@ -119,115 +121,78 @@ $stmt->close();
             gap: 6px;
         }
 
-        /* Block structure styles */
-        .block-section {
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 24px;
-            background: #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        }
-        .block-header {
-            background: linear-gradient(135deg, #f8f9fa 0%, #eef2f7 100%);
-            border-bottom: 1px solid #e9ecef;
-            color: #2d3748;
-            padding: 15px 20px;
-            font-weight: 800;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .block-stats {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            color: #4a5568;
-            border-radius: 8px;
-            padding: 6px 14px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .block-stats span {
-            color: #4361ee;
-        }
+        /* Room Grid matching Student Reg */
         .room-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            padding: 14px;
             background: #fafbff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
         }
         .room-card {
-            border-radius: 12px;
-            padding: 20px 16px;
+            border-radius: 10px;
+            padding: 12px 10px;
             text-align: center;
-            border: 1px solid #e2e8f0;
-            position: relative;
+            border: 2px solid #e2e8f0;
             background: #fff;
-            transition: all 0.25s ease;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            position: relative;
+            transition: all 0.2s ease;
         }
-        .room-card:hover {
-            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
-            transform: translateY(-4px);
-            border-color: #cbd5e1;
-        }
-        .room-full { border-top: 5px solid #ef4444; }
-        .room-empty { border-top: 5px solid #10b981; }
-        .room-partial { border-top: 5px solid #f59e0b; }
+        .room-card:hover { border-color: #38a169; box-shadow: 0 4px 15px rgba(56,161,105,0.2); transform: translateY(-2px); }
+        .room-card.room-full { opacity: 0.6; background: #f8f9fa; border-color: #dee2e6; }
         
-        .room-number {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: #1e293b;
-            margin-bottom: 5px;
+        .room-card .room-number {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 6px;
         }
-        .room-meta {
-            font-size: 0.8rem;
-            color: #64748b;
+        .room-card .room-meta {
+            font-size: 0.72rem;
+            color: #718096;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-bottom: 15px;
+            gap: 2px;
+            margin-bottom: 8px;
         }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 5px 12px;
+        .room-badge {
+            display: inline-block;
+            padding: 3px 8px;
             border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            margin: 10px auto 15px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
-        .status-full { background: #fee2e2; color: #b91c1c; }
-        .status-empty { background: #d1fae5; color: #047857; }
-        .status-partial { background: #fef3c7; color: #b45309; }
+        .avail-badge {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .full-badge {
+            background: #fed7d7;
+            color: #c53030;
+        }
         
         .room-actions {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-top: auto;
+            gap: 8px;
+            margin-top: 5px;
             border-top: 1px solid #f1f5f9;
-            padding-top: 15px;
+            padding-top: 10px;
         }
         .btn-action {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
             text-decoration: none;
             transition: all 0.2s;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
         .btn-edit { background: #eff6ff; color: #3b82f6; }
         .btn-edit:hover { background: #3b82f6; color: #fff; }
@@ -294,7 +259,7 @@ $stmt->close();
                         <?php else: ?>
                             
                             <!-- Blocks Tabs -->
-                            <ul class="nav custom-nav-tabs mb-4" id="blockTabs" role="tablist">
+                            <ul class="nav nav-tabs custom-nav-tabs mb-4" id="blockTabs" role="tablist">
                                 <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link <?php echo $i===0?'active':''; ?>" style="font-weight: 600;" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
@@ -308,7 +273,7 @@ $stmt->close();
                                     <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
                                         
                                         <!-- Sides Pills -->
-                                        <ul class="nav custom-nav-pills mb-4 mt-2" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
+                                        <ul class="nav nav-pills custom-nav-pills mb-4 mt-2" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
                                             <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
                                                 <li class="nav-item" role="presentation">
                                                     <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
@@ -321,52 +286,27 @@ $stmt->close();
                                             <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
                                                 <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
                                                     
-                                                    <div class="block-section">
-                                                        <div class="block-header">
-                                                            <div>
-                                                                <i class="fas fa-building me-2" style="color:#4361ee;"></i>
-                                                                <?php echo htmlspecialchars($block_name); ?> - <?php echo htmlspecialchars($side_name); ?>
-                                                            </div>
-                                                            <div class="block-stats">
-                                                                <?php
-                                                                $total_rooms = count($side_rooms);
-                                                                $total_capacity = 0;
-                                                                $total_occupied = 0;
-                                                                foreach ($side_rooms as $r) {
-                                                                    $total_capacity += $r->seater;
-                                                                    $total_occupied += $r->occupied;
-                                                                }
-                                                                echo "Rooms: <span>$total_rooms</span> &bull; Occupancy: <span>$total_occupied / $total_capacity</span>";
-                                                                ?>
-                                                            </div>
-                                                        </div>
-                                                        <div class="room-grid">
+                                                    <div class="room-grid border rounded p-3 bg-light">
                                                             <?php foreach ($side_rooms as $rm): ?>
                                                             <?php
-                                                            if ($rm->is_empty) {
-                                                                $status_class = 'room-empty';
-                                                                $badge_class = 'status-empty';
-                                                                $status_text = 'EMPTY';
-                                                            } elseif ($rm->is_full) {
-                                                                $status_class = 'room-full';
-                                                                $badge_class = 'status-full';
-                                                                $status_text = 'FULL';
-                                                            } else {
-                                                                $status_class = 'room-partial';
-                                                                $badge_class = 'status-partial';
-                                                                $status_text = 'PARTIAL (' . $rm->occupied . '/' . $rm->seater . ')';
-                                                            }
+                                                            $is_full = ($rm->occupied >= $rm->seater);
+                                                            $remaining = $rm->seater - $rm->occupied;
+                                                            $status_class = $is_full ? 'room-full' : 'room-available';
                                                             ?>
                                                             <div class="room-card <?php echo $status_class; ?>">
                                                                 <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
-                                                                <div class="status-badge <?php echo $badge_class; ?>">
-                                                                    <i class="fas <?php echo $rm->is_empty ? 'fa-door-open' : ($rm->is_full ? 'fa-ban' : 'fa-users'); ?>"></i>
-                                                                    <?php echo $status_text; ?>
-                                                                </div>
+                                                                
                                                                 <div class="room-meta">
-                                                                    <span><i class="fas fa-bed text-muted"></i> <?php echo $rm->seater; ?> Seater</span>
-                                                                    <span><i class="fas fa-money-bill-wave text-muted"></i> Tsh. <?php echo number_format($rm->fees); ?>/=</span>
+                                                                    <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
+                                                                    <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
                                                                 </div>
+
+                                                                <?php if ($is_full): ?>
+                                                                    <div class="room-badge full-badge"><i class="fas fa-ban"></i> FULL</div>
+                                                                <?php else: ?>
+                                                                    <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
+                                                                <?php endif; ?>
+
                                                                 <div class="room-actions">
                                                                     <a href="edit-room.php?id=<?php echo $rm->id; ?>" class="btn-action btn-edit" title="Edit Room">
                                                                         <i class="fas fa-edit"></i>
@@ -378,7 +318,6 @@ $stmt->close();
                                                             </div>
                                                             <?php endforeach; ?>
                                                         </div>
-                                                    </div>
 
                                                 </div>
                                             <?php $j++; endforeach; ?>

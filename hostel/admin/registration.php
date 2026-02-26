@@ -490,7 +490,7 @@ foreach($rooms_by_block as $b => $s) {
                         <?php else: ?>
                             
                             <!-- Blocks Tabs -->
-                            <ul class="nav custom-nav-tabs" id="blockTabs" role="tablist">
+                            <ul class="nav nav-tabs custom-nav-tabs" id="blockTabs" role="tablist">
                                 <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link <?php echo $i===0?'active':''; ?>" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
@@ -504,7 +504,7 @@ foreach($rooms_by_block as $b => $s) {
                                     <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
                                         
                                         <!-- Sides Pills -->
-                                        <ul class="nav custom-nav-pills mb-3" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
+                                        <ul class="nav nav-pills custom-nav-pills mb-3" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
                                             <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
                                                 <li class="nav-item" role="presentation">
                                                     <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
