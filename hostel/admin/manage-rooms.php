@@ -17,6 +17,19 @@ if(isset($_GET['del'])) {
     exit();
 }
 
+// Unallocate student from room
+if(isset($_GET['unallocate'])) {
+    $reg = $_GET['unallocate'];
+    $adn = "DELETE FROM registration WHERE regno=?";
+    $stmt = $mysqli->prepare($adn);
+    $stmt->bind_param('s', $reg);
+    $stmt->execute();
+    $stmt->close();   
+    $_SESSION['success'] = "Student unallocated from room successfully";
+    header("Location: manage-rooms.php");
+    exit();
+}
+
 // Fetch rooms with occupancy
 $room_query = "SELECT r.*, 
                 (SELECT COUNT(*) FROM registration reg WHERE reg.roomno = r.room_no) AS occupied
@@ -140,15 +153,30 @@ $stmt->close();
             position: relative;
             transition: all 0.2s ease;
         }
-        .room-card:hover { border-color: #38a169; box-shadow: 0 4px 15px rgba(56,161,105,0.2); transform: translateY(-2px); }
-        .room-card.room-full { opacity: 0.6; background: #f8f9fa; border-color: #dee2e6; }
+        /* Room Card Interactivity */
+        .room-card:hover { border-color: #4361ee; box-shadow: 0 4px 15px rgba(67,97,238,0.2); transform: translateY(-2px); cursor: pointer; }
+        .room-card.room-full { background: #f8fafc; border-color: #cbd5e1; }
         
         .room-card .room-number {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #2d3748;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1e293b;
             margin-bottom: 6px;
         }
+        
+        /* Modal Style */
+        .modal-content { border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .modal-header { background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); color: white; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px 30px; }
+        .student-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #f8fafc; border-radius: 12px; padding: 15px; margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .student-name { font-weight: 700; color: #1e293b; }
+        .student-reg { font-size: 0.8rem; color: #64748b; font-family: monospace; }
+        .btn-remove-stud { color: #ef4444; background: #fee2e2; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border:none; transition: all 0.2s; }
+        .btn-remove-stud:hover { background: #ef4444; color: #fff; }
+
         .room-card .room-meta {
             font-size: 0.72rem;
             color: #718096;
@@ -293,7 +321,7 @@ $stmt->close();
                                                             $remaining = $rm->seater - $rm->occupied;
                                                             $status_class = $is_full ? 'room-full' : 'room-available';
                                                             ?>
-                                                            <div class="room-card <?php echo $status_class; ?>">
+                                                            <div class="room-card <?php echo $status_class; ?>" onclick="showRoomDetails('<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>)">
                                                                 <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
                                                                 
                                                                 <div class="room-meta">
@@ -334,9 +362,88 @@ $stmt->close();
         </div>
     </div>
 
+    <!-- Room Details Modal -->
+    <div class="modal fade" id="roomModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title FW-BOLD"><i class="fas fa-door-open me-2"></i> Room <span id="m-room-no"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted fw-bold">Occupancy:</span>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3" id="m-occupancy"></span>
+                    </div>
+                    <div id="m-student-list">
+                        <!-- Loaded via AJAX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 	<!-- Scripts -->
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Remove datatables as we use block layout -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+    function showRoomDetails(roomNo, seater) {
+        document.getElementById('m-room-no').textContent = roomNo;
+        const listDiv = document.getElementById('m-student-list');
+        listDiv.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+        
+        const myModal = new bootstrap.Modal(document.getElementById('roomModal'));
+        myModal.show();
+        
+        fetch('get_room_students.php?room_no=' + roomNo)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('m-occupancy').textContent = data.length + ' / ' + seater + ' Occupied';
+                
+                if (data.length === 0) {
+                    listDiv.innerHTML = '<div class="alert alert-light text-center py-4 border-dashed rounded-4"><i class="fas fa-ghost fa-2x mb-3 text-muted opacity-25"></i><p class="mb-0 text-muted">This room is currently empty</p></div>';
+                } else {
+                    let html = '';
+                    data.forEach(student => {
+                        html += `
+                        <div class="student-item animate__animated animate__fadeInUp">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-small me-3" style="width:40px; height:40px; background: #e0e7ff; color:#4361ee; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                                    ${student.firstName.charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="student-name">${student.firstName} ${student.lastName}</div>
+                                    <div class="student-reg">${student.regNo}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="student-details.php?regno=${student.regNo}" class="btn-action btn-edit" title="View Profile"><i class="fas fa-user"></i></a>
+                                <button onclick="removeStudent('${student.regNo}', '${roomNo}')" class="btn-remove-stud" title="Unallocate Room"><i class="fas fa-user-minus"></i></button>
+                            </div>
+                        </div>`;
+                    });
+                    listDiv.innerHTML = html;
+                }
+            });
+    }
+
+    function removeStudent(regNo, roomNo) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `You want to remove this student from room ${roomNo}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, remove him!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = `manage-rooms.php?unallocate=${regNo}`;
+            }
+        })
+    }
+    </script>
 </body>
 </html>

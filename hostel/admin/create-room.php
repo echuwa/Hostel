@@ -8,7 +8,7 @@ check_login();
 // Code for batch adding rooms
 if(isset($_POST['submit'])) {
     $seater = intval($_POST['seater']);
-    $fees   = intval($_POST['fee']);
+    $fees   = 178500; // Fixed accommodation fee per standard
     
     $block = intval($_POST['block']); // 1 to 6
     $side = htmlspecialchars(trim($_POST['side'])); // A or B
@@ -669,16 +669,8 @@ while ($row = $res->fetch_object()) {
                                         </div>
                                     </div>
 
-                                    <!-- Fee -->
-                                    <div class="col-md-4">
-                                        <label class="form-label">Fee (Per Student) *</label>
-                                        <div class="position-relative">
-                                            <span class="currency-prefix">Tsh.</span>
-                                            <input type="number" class="form-control currency-field" 
-                                                   name="fee" id="fee" required min="1"
-                                                   placeholder="e.g. 178500" value="178500" oninput="updatePreview()">
-                                        </div>
-                                    </div>
+                                    <!-- Fee (Hidden/Fixed) -->
+                                    <input type="hidden" name="fee" value="178500">
                                 </div>
 
                                 <div class="form-divider"></div>
@@ -702,8 +694,8 @@ while ($row = $res->fetch_object()) {
                                             <div class="p-val" id="pv-capacity">0 Beds</div>
                                         </div>
                                         <div class="preview-box" style="background: rgba(67, 97, 238, 0.05); border: 1px solid rgba(67, 97, 238, 0.2);">
-                                            <div class="p-label" style="color: #4361ee;">Room Total Fee</div>
-                                            <div class="p-val" id="pv-total-fee" style="color: #4361ee;">Tsh. 0/=</div>
+                                            <div class="p-label" style="color: #4361ee;">Accommodation Fee</div>
+                                            <div class="p-val" style="color: #4361ee;">Tsh. 178,500/=</div>
                                         </div>
                                     </div>
                                 </div>
@@ -816,41 +808,38 @@ while ($row = $res->fetch_object()) {
         });
         <?php endif; ?>
 
-        // Live preview update
         function updatePreview() {
             const blockInput = document.querySelector('input[name="block"]:checked');
             const sideInput  = document.querySelector('input[name="side"]:checked');
             const floorInput = document.querySelector('input[name="floor"]:checked');
             const roomCount  = parseInt(document.getElementById('room_count').value) || 0;
             const seater     = parseInt(document.getElementById('seater').value) || 0;
-            const fee        = parseInt(document.getElementById('fee').value) || 0;
 
             const pvRange   = document.getElementById('pv-range');
             const pvCount   = document.getElementById('pv-count');
             const pvCap     = document.getElementById('pv-capacity');
-            const pvTotalFee= document.getElementById('pv-total-fee');
 
             if(blockInput && sideInput && floorInput && roomCount > 0) {
                 const b = blockInput.value;
                 const s = sideInput.value;
                 const f = floorInput.value;
-
                 let lastRoomFormat = (roomCount < 10) ? '0'+roomCount : roomCount;
 
-                pvRange.innerHTML = `<i class="fas fa-door-closed"></i> ${b}${s}-${f}01 &nbsp; <i class="fas fa-long-arrow-alt-right" style="color:#fff;"></i> &nbsp; <i class="fas fa-door-closed"></i> ${b}${s}-${f}${lastRoomFormat}`;
+                pvRange.innerHTML = `<i class="fas fa-door-closed"></i> ${b}${s}-${f}01 &nbsp; → &nbsp; <i class="fas fa-door-closed"></i> ${b}${s}-${f}${lastRoomFormat}`;
                 pvCount.textContent = roomCount + ' Rooms';
                 pvCap.textContent = (roomCount * seater) + ' Beds';
                 
-                let roomTotal = seater * fee;
-                pvTotalFee.textContent = roomTotal > 0 ? 'Tsh. ' + roomTotal.toLocaleString() + '/=' : 'Tsh. 0/=';
+                document.getElementById('createBtn').disabled = false;
             } else {
-                pvRange.textContent = 'Please select Block, Side, and Floor';
-                pvCount.textContent = '0 Rooms';
-                pvCap.textContent = '0 Beds';
-                pvTotalFee.textContent = 'Tsh. 0/=';
+                pvRange.textContent = "Please select Block, Side, and Floor";
+                pvCount.textContent = "0 Rooms";
+                pvCap.textContent = "0 Beds";
+                document.getElementById('createBtn').disabled = true;
             }
         }
-
+        
+        // Initial run
+        updatePreview();
         // Form loading state
         document.getElementById('roomForm').addEventListener('submit', function(e) {
             const block = document.querySelector('input[name="block"]:checked');
