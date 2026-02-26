@@ -13,8 +13,8 @@ if (!file_exists($admin_logs_path)) {
 require_once($admin_logs_path);
 
 // Only superadmin can access this page
-if (!isset($_SESSION['is_superadmin'])) {
-    header("Location: superadmin-login.php");
+if (!isset($_SESSION['is_superadmin']) || $_SESSION['is_superadmin'] != 1) {
+    header("Location: dashboard.php");
     exit();
 }
 
@@ -31,7 +31,8 @@ $permissions = [
 
 // Check for success message from redirect
 if (isset($_SESSION['admin_created'])) {
-    $success = $_SESSION['admin_created'];
+    $success_data = $_SESSION['admin_created'];
+    $success = "Admin account for <strong>" . htmlspecialchars($success_data['username']) . "</strong> created successfully!";
     unset($_SESSION['admin_created']);
 }
 
@@ -120,266 +121,201 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create-admin'])) {
     }
 }
 ?>
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Admin Account | Hostel Management System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <meta name="theme-color" content="#4361ee">
+    <title>Create Admin | HostelMS</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="css/modern.css">
+    
     <style>
-        .admin-card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        .form-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+            border: 1px solid #f1f5f9;
         }
-        
-        .card-header {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: white;
-            padding: 1.5rem;
-        }
-        
-        .permission-card {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
+        .permission-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
             cursor: pointer;
-            transition: all 0.3s ease;
+            height: 100%;
         }
-        
-        .permission-card:hover {
-            border-color: #0d6efd;
-            background-color: #f8f9fa;
+        .permission-item:hover {
+            border-color: #4361ee;
+            background: #eff6ff;
         }
-        
-        .permission-card.active {
-            border-color: #0d6efd;
-            background-color: #f0f7ff;
+        .permission-item.active {
+            border-color: #4361ee;
+            background: #eff6ff;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
         }
-        
-        .form-check-input {
-            width: 1.2em;
-            height: 1.2em;
-            margin-top: 0.2em;
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
-        
-        .success-message {
-            border-left: 4px solid #28a745;
-            background-color: #f8f9fa;
+        .form-control {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .form-control:focus {
+            background: #fff;
+            border-color: #4361ee;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
         }
     </style>
 </head>
+
 <body>
-    <?php include('includes/header.php'); ?>
-    
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="admin-card">
-                    <div class="card-header">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-user-shield fa-2x me-3"></i>
-                            <div>
-                                <h2 class="h4 mb-0">Create New Admin Account</h2>
-                                <p class="mb-0 opacity-75">Add new administrators with specific permissions</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card-body p-4">
-                        <?php if ($error): ?>
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($error); ?>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($success)): ?>
-                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle me-2 fa-lg"></i>
-                                    <div>
-                                        <h5 class="alert-heading mb-1">Admin Account Created Successfully!</h5>
-                                        <p class="mb-0">New administrator <strong><?php echo htmlspecialchars($success['username']); ?></strong> has been added to the system.</p>
-                                        <p class="mb-0"><small>Created on: <?php echo htmlspecialchars($success['time']); ?></small></p>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <form method="post" action="" class="needs-validation" novalidate>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($formData['username'] ?? ''); ?>" required>
-                                        <div class="invalid-feedback">Please provide a username</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                                        <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($formData['email'] ?? ''); ?>" required>
-                                        <div class="invalid-feedback">Please provide a valid email</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                                        <input type="password" class="form-control" id="password" name="password" minlength="8" required>
-                                        <small class="text-muted">Minimum 8 characters</small>
-                                        <div class="invalid-feedback">Password must be at least 8 characters</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="8" required>
-                                        <div class="invalid-feedback">Passwords must match</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <hr class="my-4">
-                            
-                            <h5 class="mb-3">
-                                <i class="fas fa-key me-2"></i> Permissions
-                            </h5>
-                            
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="permission-card" onclick="toggleCheckbox('manage_students')">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="manage_students" name="manage_students" <?php echo ($permissions['manage_students'] ?? true) ? 'checked' : ''; ?>>
-                                            <label class="form-check-label fw-bold" for="manage_students">
-                                                <i class="fas fa-users me-2"></i> Manage Students
-                                            </label>
-                                            <p class="text-muted mb-0 mt-1 small">Create, edit, and delete student records</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="permission-card" onclick="toggleCheckbox('manage_rooms')">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="manage_rooms" name="manage_rooms" <?php echo ($permissions['manage_rooms'] ?? true) ? 'checked' : ''; ?>>
-                                            <label class="form-check-label fw-bold" for="manage_rooms">
-                                                <i class="fas fa-bed me-2"></i> Manage Rooms
-                                            </label>
-                                            <p class="text-muted mb-0 mt-1 small">Manage room allocations and details</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="permission-card" onclick="toggleCheckbox('manage_complaints')">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="manage_complaints" name="manage_complaints" <?php echo ($permissions['manage_complaints'] ?? true) ? 'checked' : ''; ?>>
-                                            <label class="form-check-label fw-bold" for="manage_complaints">
-                                                <i class="fas fa-comment-dots me-2"></i> Manage Complaints
-                                            </label>
-                                            <p class="text-muted mb-0 mt-1 small">Handle student complaints and issues</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="permission-card" onclick="toggleCheckbox('view_reports')">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="view_reports" name="view_reports" <?php echo ($permissions['view_reports'] ?? true) ? 'checked' : ''; ?>>
-                                            <label class="form-check-label fw-bold" for="view_reports">
-                                                <i class="fas fa-chart-bar me-2"></i> View Reports
-                                            </label>
-                                            <p class="text-muted mb-0 mt-1 small">Access system reports and analytics</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between mt-4">
-                                <a href="superadmin-dashboard.php" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
-                                </a>
-                                
-                                <button type="submit" name="create-admin" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i> Create Admin Account
-                                </button>
-                            </div>
-                        </form>
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <?php include('includes/sidebar_modern.php'); ?>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <div class="content-wrapper">
+                
+                <!-- Header -->
+                <div class="content-header mb-4">
+                    <div class="header-left">
+                        <h1 class="page-title">
+                            <i class="fas fa-user-plus"></i>
+                            Create Admin
+                        </h1>
+                        <p class="text-muted small">Register a new administrator and assign permissions</p>
                     </div>
                 </div>
+
+                <div class="row g-4 justify-content-center">
+                    <div class="col-lg-10">
+                        <div class="form-card">
+                            <?php if ($error): ?>
+                                <div class="alert alert-danger rounded-4 border-0 shadow-sm mb-4"><?php echo $error; ?></div>
+                            <?php endif; ?>
+                            <?php if ($success): ?>
+                                <div class="alert alert-success rounded-4 border-0 shadow-sm mb-4"><?php echo $success; ?></div>
+                            <?php endif; ?>
+
+                            <form method="POST">
+                                <h5 class="fw-bold mb-4">Account Credentials</h5>
+                                <div class="row g-3 mb-5">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" name="username" class="form-control" value="<?php echo htmlspecialchars($formData['username'] ?? ''); ?>" required placeholder="e.g. admin_john">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email Address</label>
+                                        <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($formData['email'] ?? ''); ?>" required placeholder="john@example.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Password</label>
+                                        <input type="password" name="password" class="form-control" required placeholder="Min 8 characters">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Confirm Password</label>
+                                        <input type="password" name="confirm_password" class="form-control" required placeholder="Repeat password">
+                                    </div>
+                                </div>
+
+                                <h5 class="fw-bold mb-4">Access Permissions</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="permission-item <?php echo ($permissions['manage_students'] ?? true) ? 'active' : ''; ?>" onclick="togglePerm(this, 'manage_students')">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="manage_students" name="manage_students" <?php echo ($permissions['manage_students'] ?? true) ? 'checked' : ''; ?> style="display:none">
+                                                <label class="form-check-label fw-bold d-block" for="manage_students">
+                                                    <i class="fas fa-user-graduate me-2 text-primary"></i> Manage Students
+                                                </label>
+                                                <small class="text-muted">Register, edit and manage student information</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="permission-item <?php echo ($permissions['manage_rooms'] ?? true) ? 'active' : ''; ?>" onclick="togglePerm(this, 'manage_rooms')">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="manage_rooms" name="manage_rooms" <?php echo ($permissions['manage_rooms'] ?? true) ? 'checked' : ''; ?> style="display:none">
+                                                <label class="form-check-label fw-bold d-block" for="manage_rooms">
+                                                    <i class="fas fa-bed me-2 text-primary"></i> Manage Rooms
+                                                </label>
+                                                <small class="text-muted">Allocate rooms and handle room settings</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="permission-item <?php echo ($permissions['manage_complaints'] ?? true) ? 'active' : ''; ?>" onclick="togglePerm(this, 'manage_complaints')">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="manage_complaints" name="manage_complaints" <?php echo ($permissions['manage_complaints'] ?? true) ? 'checked' : ''; ?> style="display:none">
+                                                <label class="form-check-label fw-bold d-block" for="manage_complaints">
+                                                    <i class="fas fa-headset me-2 text-primary"></i> Manage Complaints
+                                                </label>
+                                                <small class="text-muted">Respond to student issues and feedback</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="permission-item <?php echo ($permissions['view_reports'] ?? true) ? 'active' : ''; ?>" onclick="togglePerm(this, 'view_reports')">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="view_reports" name="view_reports" <?php echo ($permissions['view_reports'] ?? true) ? 'checked' : ''; ?> style="display:none">
+                                                <label class="form-check-label fw-bold d-block" for="view_reports">
+                                                    <i class="fas fa-chart-line me-2 text-primary"></i> View Reports
+                                                </label>
+                                                <small class="text-muted">Access analytics and system reports</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-5 pt-3 border-top d-flex gap-3">
+                                    <button type="submit" name="create-admin" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
+                                        Create Administrator
+                                    </button>
+                                    <a href="manage-admins.php" class="btn btn-outline-secondary rounded-pill px-4 py-3 fw-bold">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
-        // Toggle permission cards
-        function toggleCheckbox(id) {
-            const checkbox = document.getElementById(id);
-            checkbox.checked = !checkbox.checked;
-            
-            const card = checkbox.closest('.permission-card');
-            if (checkbox.checked) {
-                card.classList.add('active');
+        function togglePerm(el, id) {
+            const cb = document.getElementById(id);
+            cb.checked = !cb.checked;
+            if(cb.checked) {
+                el.classList.add('active');
             } else {
-                card.classList.remove('active');
+                el.classList.remove('active');
             }
         }
-        
-        // Initialize permission cards
-        document.querySelectorAll('.permission-card').forEach(card => {
-            const checkbox = card.querySelector('.form-check-input');
-            if (checkbox.checked) {
-                card.classList.add('active');
-            }
-        });
-        
-        // Password confirmation check
-        document.getElementById('confirm_password')?.addEventListener('input', function() {
-            const password = document.getElementById('password')?.value;
-            const confirmPassword = this.value;
-            
-            if (confirmPassword && password !== confirmPassword) {
-                this.setCustomValidity("Passwords don't match");
-            } else {
-                this.setCustomValidity('');
-            }
-        });
-        
-        // Form validation
-        (function() {
-            'use strict';
-            const forms = document.querySelectorAll('.needs-validation');
-            
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    form.classList.add('was-validated');
-                }, false);
-            });
-        })();
-        
-        // Auto-dismiss success alert after 5 seconds
-        setTimeout(() => {
-            const alert = document.querySelector('.alert-success');
-            if (alert) {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            }
-        }, 5000);
     </script>
 </body>
 </html>

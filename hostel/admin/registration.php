@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 include('includes/config.php');
 
@@ -71,39 +74,59 @@ if(isset($_POST['submit'])) {
 
             $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,fees_paid,accommodation_paid,registration_paid,payment_status,fee_status,fee_control_no,acc_control_no,reg_control_no) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $stmt = $mysqli->prepare($query);
-            $stmt->bind_param('sssssissdddsisss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $fees_paid, $accommodation_paid, $registration_paid, $payment_status, $fee_status, $fee_ctrl, $acc_ctrl, $reg_ctrl);
-            
-            if($stmt->execute()) {
-                $room = isset($_POST['room']) ? htmlspecialchars(trim($_POST['room'])) : '';
-                $seater = isset($_POST['seater']) ? intval($_POST['seater']) : 0;
-                $fpm = isset($_POST['fpm']) ? intval($_POST['fpm']) : 0;
-                $foodstatus = isset($_POST['foodstatus']) ? intval($_POST['foodstatus']) : 0;
-                $stayf = isset($_POST['stayf']) ? htmlspecialchars(trim($_POST['stayf'])) : '';
-                $duration = isset($_POST['duration']) ? intval($_POST['duration']) : 0;
-                
-                if (!empty($room)) {
-                    $regQuery = "INSERT INTO registration(roomno, seater, feespm, foodstatus, stayfrom, duration, regno, firstName, middleName, lastName, gender, contactno, emailid) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                    $regStmt = $mysqli->prepare($regQuery);
-                    if($regStmt) {
-                        $regStmt->bind_param('siiisisssssss', $room, $seater, $fpm, $foodstatus, $stayf, $duration, $regno, $fname, $mname, $lname, $gender, $contactno, $emailid);
-                        $regStmt->execute();
-                        $regStmt->close();
-                    }
-                }
-                
-                $_SESSION['email_for_login']    = $emailid;
-                $_SESSION['registration_number'] = $regno;
-                $_SESSION['reg_success'] = [
-                    'name'  => "$fname $lname",
-                    'regno' => $regno,
-                    'email' => $emailid,
-                ];
-                header("Location: registration.php?registered=1");
-                exit();
+            if(!$stmt) {
+                $_SESSION['error'] = "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
             } else {
-                $_SESSION['error'] = "Registration failed. Please try again.";
+                $stmt->bind_param('ssssssssdddsisss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $fees_paid, $accommodation_paid, $registration_paid, $payment_status, $fee_status, $fee_ctrl, $acc_ctrl, $reg_ctrl);
+                
+                if($stmt->execute()) {
+                    $room = isset($_POST['room']) ? htmlspecialchars(trim($_POST['room'])) : '';
+                    $seater = isset($_POST['seater']) ? intval($_POST['seater']) : 0;
+                    $fpm = isset($_POST['fpm']) ? intval($_POST['fpm']) : 0;
+                    $foodstatus = 0; // Default to 0 as requested
+                    $stayf = isset($_POST['stayf']) ? htmlspecialchars(trim($_POST['stayf'])) : '';
+                    $duration = isset($_POST['duration']) ? intval($_POST['duration']) : 0;
+                    
+                    if (!empty($room)) {
+                        // Adding missing mandatory fields for registration table to avoid SQL errors
+                        $empty = "";
+                        $zero = 0;
+                        $regQuery = "INSERT INTO registration(roomno, seater, feespm, foodstatus, stayfrom, duration, regno, firstName, middleName, lastName, gender, contactno, emailid, course, egycontactno, guardianName, guardianRelation, guardianContactno, corresAddress, corresCountry, corresState, pmntAddress, pmntCountry, pmntState) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                        $regStmt = $mysqli->prepare($regQuery);
+                        if($regStmt) {
+                            $regStmt->bind_param('siiisissssssssssssssssss', 
+                                $room, $seater, $fpm, $foodstatus, $stayf, $duration, $regno, $fname, $mname, $lname, $gender, $contactno, $emailid,
+                                $empty, // course
+                                $empty, // egycontactno
+                                $empty, // guardianName
+                                $empty, // guardianRelation
+                                $empty, // guardianContactno
+                                $empty, // corresAddress
+                                $empty, // corresCountry
+                                $empty, // corresState
+                                $empty, // pmntAddress
+                                $empty, // pmntCountry
+                                $empty  // pmntState
+                            );
+                            $regStmt->execute();
+                            $regStmt->close();
+                        }
+                    }
+                    
+                    $_SESSION['email_for_login']    = $emailid;
+                    $_SESSION['registration_number'] = $regno;
+                    $_SESSION['reg_success'] = [
+                        'name'  => "$fname $lname",
+                        'regno' => $regno,
+                        'email' => $emailid,
+                    ];
+                    header("Location: registration.php?registered=1");
+                    exit();
+                } else {
+                    $_SESSION['error'] = "Execution failed: (" . $stmt->errno . ") " . $stmt->error;
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     } else {
         $_SESSION['errors'] = $errors;
@@ -151,732 +174,230 @@ foreach($rooms_by_block as $b => $s) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Registration | Hostel Management</title>
     
-    <!-- Favicon -->
-    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Modern Styling -->
+	<link rel="stylesheet" href="css/modern.css">
     
     <style>
-        .registration-container {
-            max-width: 800px;
-            margin: 0 auto;
+        .reg-card { background: #fff; border-radius: 24px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.02); overflow: hidden; }
+        .form-section-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; display: flex; align-items: center; gap: 10px; }
+        .form-section-title i { color: #4361ee; }
+        .form-control, .form-select { border-radius: 12px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem; transition: all 0.2s; }
+        .form-control:focus, .form-select:focus { background: #fff; border-color: #4361ee; box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1); }
+        .room-picker-btn { background: #eff6ff; color: #3b82f6; border: 2px dashed #3b82f6; border-radius: 16px; padding: 24px; text-align: center; cursor: pointer; transition: 0.2s; width: 100%; border-style: dashed !important; }
+        .room-picker-btn:hover { background: #dbeafe; transform: scale(1.01); }
+        .success-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9999; backdrop-filter: blur(8px); align-items: center; justify-content: center; }
+        .success-overlay.show { display: flex; }
+        .success-modal { background: #fff; border-radius: 30px; padding: 40px; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,.3); }
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 400px; overflow-y: auto; padding: 10px; }
+        .room-card-mini { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .room-card-mini:hover:not(.full) { border-color: #4361ee; background: #f8fafc; }
+        .room-card-mini.full { opacity: 0.5; cursor: not-allowed; background: #f1f5f9; }
+        .room-card-mini.selected { border-color: #4361ee; background: #eff6ff; box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1); }
+
+        /* Fancy Header Styling */
+        .fancy-header-card {
+            background: linear-gradient(135deg, #4361ee 0%, #3a7bd5 100%);
+            border-radius: 20px;
             padding: 30px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        .registration-header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #3a7bd5;
-        }
-        .form-icon {
+            color: #fff;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.2);
             position: relative;
-        }
-        .form-icon i {
-            position: absolute;
-            left: 15px;
-            top: 12px;
-            color: #6c757d;
-        }
-        .form-icon input, .form-icon select {
-            padding-left: 40px;
-        }
-        .password-strength {
-            height: 5px;
-            background: #ddd;
-            margin-top: 5px;
-            border-radius: 5px;
             overflow: hidden;
         }
-        .password-strength span {
-            display: block;
-            height: 100%;
-            width: 0;
-            background: #28a745;
-            transition: width 0.3s;
+        .fancy-header-card::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
         }
-        .btn-register {
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-            border: none;
-            padding: 10px 25px;
-            font-weight: 600;
-        }
-        .btn-register:hover {
-            background: linear-gradient(135deg, #2c65b4, #00b7eb);
-        }
-        .login-link {
-            color: #3a7bd5;
-            text-decoration: none;
-        }
-        .login-link:hover {
-            text-decoration: underline;
-        }
-        .regno-display {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .contact-format {
-            font-size: 0.8rem;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-
-        /* Success overlay */
-        .success-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 9999;
-            backdrop-filter: blur(4px);
+        .header-icon-badge {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.8rem;
+            margin-right: 20px;
         }
-        .success-overlay.show { display: flex; }
-        .success-modal {
-            background: #fff;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 440px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,.25);
-            animation: popIn 0.4s cubic-bezier(.175,.885,.32,1.275);
-        }
-        @keyframes popIn {
-            from { transform: scale(0.7); opacity: 0; }
-            to   { transform: scale(1); opacity: 1; }
-        }
-        .success-check {
-            width: 80px; height: 80px;
-            background: linear-gradient(135deg, #06d6a0, #0ab575);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.2rem; color: #fff;
-            box-shadow: 0 10px 30px rgba(6,214,160,.35);
-        }
-        .success-modal h3 { font-size: 1.4rem; font-weight: 800; color: #1a202c; margin-bottom: 8px; }
-        .success-modal p  { color: #718096; font-size: 0.9rem; margin-bottom: 20px; }
-        .success-details {
-            background: #f7fafc;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .success-detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            font-size: 0.85rem;
-        }
-        .success-detail-row:not(:last-child) { border-bottom: 1px solid #edf2f7; }
-        .success-detail-row .key { color: #718096; }
-        .success-detail-row .val { font-weight: 700; color: #2d3748; }
-        .btn-modal-primary {
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-            color: #fff; border: none;
-            padding: 11px 24px; border-radius: 10px;
-            font-weight: 700; font-size: 0.88rem;
-            margin: 4px; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-modal-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(58,123,213,.3); }
-        .btn-modal-secondary {
-            background: #f0f2f5; color: #4a5568; border: none;
-            padding: 11px 24px; border-radius: 10px;
-            font-weight: 600; font-size: 0.88rem;
-            margin: 4px; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-modal-secondary:hover { background: #e2e8f0; }
-
-        /* ============ ROOM BLOCK GRID ============ */
-        .block-section {
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 16px;
-        }
-        .block-header {
-            background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
-            color: #fff;
-            padding: 10px 18px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .block-stats {
-            background: rgba(255,255,255,0.25);
-            border-radius: 20px;
-            padding: 3px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .room-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 10px;
-            padding: 14px;
-            background: #fafbff;
-        }
-        .room-card {
-            border-radius: 10px;
-            padding: 12px 10px;
-            text-align: center;
-            border: 2px solid #e2e8f0;
-            position: relative;
-            transition: all 0.2s ease;
-            background: #fff;
-        }
-        .room-available {
-            cursor: pointer;
-            border-color: #c6f6d5;
-        }
-        .room-available:hover {
-            border-color: #38a169;
-            box-shadow: 0 4px 15px rgba(56,161,105,0.2);
-            transform: translateY(-2px);
-        }
-        .room-selected {
-            border-color: #4361ee !important;
-            background: #eef2ff !important;
-            box-shadow: 0 4px 18px rgba(67,97,238,0.25) !important;
-        }
-        .room-full {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background: #f8f9fa;
-            border-color: #dee2e6;
-        }
-        .room-number {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 6px;
-        }
-        .room-meta {
-            font-size: 0.72rem;
-            color: #718096;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            margin-bottom: 8px;
-        }
-        .room-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-        }
-        .full-badge {
-            background: #fed7d7;
-            color: #c53030;
-        }
-        .avail-badge {
-            background: #c6f6d5;
-            color: #276749;
-        }
-        .room-selected .avail-badge {
-            background: #4361ee;
-            color: #fff;
-        }
-
-        /* Custom Tabs & Pills Styling */
-        .custom-nav-tabs { border-bottom: 2px solid #e2e8f0; gap: 8px; margin-bottom: 20px; }
-        .custom-nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; border-radius: 10px 10px 0 0; padding: 12px 24px; transition: all 0.3s ease; font-size: 1.05rem; }
-        .custom-nav-tabs .nav-link:hover { color: #4361ee; background: #f8fafc; }
-        .custom-nav-tabs .nav-link.active { color: #4361ee; background: transparent; border-bottom: 3px solid #4361ee; }
-        
-        .custom-nav-pills { gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 14px; display: inline-flex; flex-wrap: wrap; margin-bottom: 25px; }
-        .custom-nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; font-size: 0.95rem; }
-        .custom-nav-pills .nav-link:hover { background: #e2e8f0; color: #1e293b; }
-        .custom-nav-pills .nav-link.active { background: #4361ee; color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
     </style>
-
 </head>
 <body>
-    <!-- Success Popup Modal -->
+    <div class="app-container">
+        <?php include('includes/sidebar_modern.php'); ?>
+        <div class="main-content">
+            <div class="content-wrapper">
+                <div class="fancy-header-card d-flex align-items-center mb-4">
+                    <div class="header-icon-badge">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-0">Student Registration</h2>
+                        <p class="mb-0 opacity-75">Register a new student and assign a room in the system.</p>
+                    </div>
+                </div>
+
+                <?php if(isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger rounded-4 p-3 mb-4 shadow-sm border-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if(isset($_SESSION['errors'])): ?>
+                    <div class="alert alert-danger rounded-4 p-3 mb-4 shadow-sm border-0">
+                        <ul class="mb-0 small">
+                            <?php foreach($_SESSION['errors'] as $e): ?>
+                                <li><?php echo $e; ?></li>
+                            <?php endforeach; unset($_SESSION['errors']); ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <form method="post" action="" onsubmit="return validateForm()">
+                    <div class="row g-4">
+                        <div class="col-lg-7">
+                            <div class="reg-card p-4 h-100 shadow-sm">
+                                <h5 class="form-section-title"><i class="fas fa-user"></i> Personal Details</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label small fw-bold">First Name</label><input type="text" name="fname" class="form-control" required value="<?php echo $_POST['fname'] ?? ''; ?>"></div>
+                                    <div class="col-md-6"><label class="form-label small fw-bold">Last Name</label><input type="text" name="lname" class="form-control" required value="<?php echo $_POST['lname'] ?? ''; ?>"></div>
+                                    <div class="col-md-6"><label class="form-label small fw-bold">Gender</label><select name="gender" class="form-select" required><option value="">Select</option><option value="male">Male</option><option value="female">Female</option></select></div>
+                                    <div class="col-md-6"><label class="form-label small fw-bold">Contact No</label><input type="tel" name="contact" id="contact" class="form-control" required value="<?php echo $_POST['contact'] ?? ''; ?>"></div>
+                                    <div class="col-12"><label class="form-label small fw-bold">Email</label><input type="email" name="email" class="form-control" required value="<?php echo $_POST['email'] ?? ''; ?>"></div>
+                                    <div class="col-md-6"><label class="form-label small fw-bold">Password</label><input type="password" name="password" id="password" class="form-control" required></div>
+                                    <div class="col-md-6"><label class="form-label small fw-bold">Confirm</label><input type="password" name="cpassword" id="cpassword" class="form-control" required></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="reg-card p-4 h-100 shadow-sm">
+                                <h5 class="form-section-title"><i class="fas fa-bed"></i> Room & Stay</h5>
+                                <input type="hidden" name="room" id="room" required>
+                                <input type="hidden" name="seater" id="seater"><input type="hidden" name="fpm" id="fpm">
+                                <div id="roomSelector" class="room-picker-btn mb-4" data-bs-toggle="modal" data-bs-target="#roomModal">
+                                    <div id="noRoomView"><i class="fas fa-plus-circle fs-3 mb-2"></i><div class="fw-bold fs-5">Pick a Room</div></div>
+                                    <div id="activeRoomView" style="display:none;"><h3 id="displayRoomNo" class="fw-bold text-dark mb-0"></h3><div id="displayRoomMeta" class="small text-muted fw-bold"></div></div>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6"><label class="form-label small fw-bold">Stay From</label><input type="date" name="stayf" class="form-control bg-white" value="<?php echo date('Y-m-d'); ?>" required></div>
+                                    <div class="col-6"><label class="form-label small fw-bold">Duration</label><select name="duration" class="form-select bg-white" required><option value="5">1 Semester</option><option value="10">Full Year</option></select></div>
+                                </div>
+                                <div class="p-3 rounded-4 bg-light border mb-4 d-none">
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="foodstatus" id="food0" value="0" checked><label class="form-check-label small fw-bold" for="food0">Without Food</label></div>
+                                    <div class="form-check"><input class="form-check-input" type="radio" name="foodstatus" id="food1" value="1"><label class="form-check-label small fw-bold" for="food1">With Food</label></div>
+                                </div>
+                                <button type="submit" name="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Register Student</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="roomModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg" style="border-radius: 28px;">
+                <div class="modal-header border-0 px-4 pt-4"><h5 class="fw-bold mb-0 fs-4">Select a Room</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-4 pt-2">
+                    <ul class="nav nav-pills mb-4 p-2 bg-light rounded-4" role="tablist">
+                        <?php $bi=0; foreach ($rooms_by_block as $bn => $wings): ?>
+                            <li class="nav-item"><button class="nav-link rounded-pill px-4 <?php echo $bi===0?'active':''; ?>" data-bs-toggle="tab" data-bs-target="#m-pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$bn); ?>" type="button"><?php echo $bn; ?></button></li>
+                        <?php $bi++; endforeach; ?>
+                    </ul>
+                    <div class="tab-content mt-4">
+                        <?php $bi=0; foreach ($rooms_by_block as $bn => $wings): ?>
+                            <div class="tab-pane fade <?php echo $bi===0?'show active':''; ?>" id="m-pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$bn); ?>">
+                                <?php foreach ($wings as $sn => $s_rooms): ?>
+                                    <div class="mb-4">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div style="width:12px; height:12px; background:#4361ee; border-radius:3px; margin-right:10px;"></div>
+                                            <h6 class="fw-bold text-dark small text-uppercase mb-0"><?php echo $sn; ?></h6>
+                                        </div>
+                                        <div class="room-grid">
+                                            <?php foreach ($s_rooms as $rm): 
+                                                $full = $rm->is_full;
+                                                $remaining = $rm->seater - $rm->occupied;
+                                            ?>
+                                                <div class="room-card-mini <?php echo $full?'full':''; ?>" 
+                                                     onclick="pickRoom(this, '<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>, <?php echo $rm->fees; ?>, <?php echo $rm->occupied; ?>)">
+                                                    <div class="fw-bold text-dark fs-5 mb-1"><?php echo $rm->room_no; ?></div>
+                                                    <div class="small fw-semibold text-muted mb-2" style="font-size: 0.75rem;">
+                                                        <i class="fas fa-users me-1"></i> <?php echo $rm->occupied; ?> / <?php echo $rm->seater; ?> Full
+                                                    </div>
+                                                    <?php if($full): ?>
+                                                        <span class="badge bg-danger-subtle text-danger rounded-pill w-100" style="font-size: 0.65rem;">ROOM FULL</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-success-subtle text-success rounded-pill w-100" style="font-size: 0.65rem;"><?php echo $remaining; ?> SPOTS LEFT</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php $bi++; endforeach; ?>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <div class="d-flex gap-3 me-auto small">
+                        <div class="d-flex align-items-center"><span class="d-inline-block bg-success-subtle rounded-circle me-1" style="width:10px; height:10px;"></span> Available</div>
+                        <div class="d-flex align-items-center"><span class="d-inline-block bg-danger-subtle rounded-circle me-1" style="width:10px; height:10px;"></span> Full</div>
+                    </div>
+                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold" data-bs-dismiss="modal">Confirm Selection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="success-overlay" id="regSuccessOverlay">
         <div class="success-modal">
-            <div class="success-check"><i class="fas fa-check"></i></div>
-            <h3>Usajili Umekamilika!</h3>
-            <p>Usajili wa mwanafunzi na upangaji wa chumba umekamilika kikamilifu.</p>
-            <?php if(isset($_SESSION['reg_success']) && isset($_GET['registered'])):
-                $rs = $_SESSION['reg_success'];
-                unset($_SESSION['reg_success']);
-            ?>
-            <div class="success-details">
-                <div class="success-detail-row">
-                    <span class="key">Student Name</span>
-                    <span class="val"><?php echo htmlspecialchars($rs['name']); ?></span>
-                </div>
-                <div class="success-detail-row">
-                    <span class="key">Registration #</span>
-                    <span class="val" style="color:#4361ee;"><?php echo htmlspecialchars($rs['regno']); ?></span>
-                </div>
-                <div class="success-detail-row">
-                    <span class="key">Email (login)</span>
-                    <span class="val"><?php echo htmlspecialchars($rs['email']); ?></span>
-                </div>
-                <div class="success-detail-row">
-                    <span class="key">Room Assignment</span>
-                    <span class="val text-success"><i class="fas fa-bed"></i> Room Occupancy Updated</span>
-                </div>
+            <div class="bg-success text-white d-flex align-items-center justify-content-center mx-auto mb-4" style="width:80px; height:80px; border-radius:30px; font-size:2.5rem;"><i class="fas fa-check"></i></div>
+            <h2 class="fw-bold text-dark mb-2">Usajili Umekamilika!</h2>
+            <?php if(isset($_SESSION['reg_success'])): $rs = $_SESSION['reg_success']; ?>
+            <div class="bg-light rounded-4 p-4 text-start mt-4 border">
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted small fw-bold">NAME</span><span class="fw-bold"><?php echo htmlspecialchars($rs['name']); ?></span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted small fw-bold">REG #</span><span class="fw-bold text-primary"><?php echo htmlspecialchars($rs['regno']); ?></span></div>
+                <div class="d-flex justify-content-between"><span class="text-muted small fw-bold">EMAIL</span><span class="fw-bold small"><?php echo htmlspecialchars($rs['email']); ?></span></div>
             </div>
             <?php endif; ?>
-            <div>
-                <button class="btn-modal-primary" onclick="registerAnother()">
-                    <i class="fas fa-user-plus me-1"></i> Register Another
-                </button>
-                <a href="../logout.php" class="btn btn-modal-secondary d-inline-flex align-items-center justify-content-center" style="text-decoration:none;">
-                    <i class="fas fa-sign-out-alt me-1"></i> Logout & Login as Student
-                </a>
-            </div>
+            <div class="mt-4 pt-3 d-grid gap-2"><button class="btn btn-primary rounded-pill py-3 fw-bold" onclick="location.href='registration.php'">Sajili Mwingine</button><a href="manage-students.php" class="btn btn-outline-secondary rounded-pill py-2 border-0 fw-bold">Student List</a></div>
         </div>
     </div>
 
-    <div class="container py-5">
-        <!-- Back to Dashboard bar -->
-        <div style="max-width:800px; margin:0 auto 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-            <a href="dashboard.php" class="btn btn-outline-secondary btn-sm" style="border-radius:8px; font-size:0.85rem;">
-                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
-            </a>
-            <a href="manage-students.php" class="btn btn-outline-primary btn-sm" style="border-radius:8px; font-size:0.85rem;">
-                <i class="fas fa-users me-1"></i> Manage Students
-            </a>
-        </div>
-        <div class="registration-container">
-
-            <div class="registration-header">
-                <h2><i class="fas fa-user-graduate me-2"></i> Student Registration</h2>
-                <p class="text-muted">Fill in your details to create an account</p>
-            </div>
-            
-            <!-- Display Errors -->
-            <?php if(isset($_SESSION['errors'])): ?>
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        <?php foreach($_SESSION['errors'] as $error): ?>
-                            <li><?php echo $error; ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-                <?php unset($_SESSION['errors']); ?>
-            <?php endif; ?>
-            
-            <!-- Display Success/Error Messages -->
-            <?php if(isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger">
-                    <?php echo $_SESSION['error']; ?>
-                </div>
-                <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
-            
-            <?php if(isset($_SESSION['success'])): ?>
-                <div class="alert alert-success">
-                    <?php echo $_SESSION['success']; ?>
-                </div>
-                <?php unset($_SESSION['success']); ?>
-            <?php endif; ?>
-            
-            <form method="post" action="" name="registration" class="needs-validation" novalidate>
-
-			 <!-- Room Info -->
-			 <div class="form-section">
-                    <h4 class="form-title">Room Information</h4>
-                    
-                    <div class="mb-4">
-                        <label class="form-label fw-bold"><i class="fas fa-building me-1"></i> Select Room</label>
-                        <input type="hidden" name="room" id="room" required>
-                        <input type="hidden" name="seater" id="seater">
-                        
-                        <?php if (empty($rooms_by_block)): ?>
-                            <div class="alert alert-warning">No rooms available.</div>
-                        <?php else: ?>
-                            
-                            <!-- Blocks Tabs -->
-                            <ul class="nav nav-tabs custom-nav-tabs" id="blockTabs" role="tablist">
-                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link <?php echo $i===0?'active':''; ?>" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
-                                    </li>
-                                <?php $i++; endforeach; ?>
-                            </ul>
-
-                            <!-- Blocks Content -->
-                            <div class="tab-content pt-3" id="blockTabsContent">
-                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
-                                    <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
-                                        
-                                        <!-- Sides Pills -->
-                                        <ul class="nav nav-pills custom-nav-pills mb-3" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
-                                            <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
-                                                </li>
-                                            <?php $j++; endforeach; ?>
-                                        </ul>
-                                        
-                                        <!-- Sides Content -->
-                                        <div class="tab-content" id="pills-Content-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>">
-                                            <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
-                                                <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
-                                                    
-                                                    <div class="room-grid border rounded p-3 bg-light">
-                                                        <?php foreach ($side_rooms as $rm): ?>
-                                                        <?php
-                                                        $is_full = $rm->is_full;
-                                                        $remaining = $rm->seater - $rm->occupied;
-                                                        ?>
-                                                        <div class="room-card <?php echo $is_full ? 'room-full' : 'room-available'; ?>"
-                                                             onclick="<?php echo $is_full ? '' : 'selectRoom(this, \'' . htmlspecialchars($rm->room_no, ENT_QUOTES) . '\', ' . $rm->seater . ', ' . $rm->fees . ')'; ?>"
-                                                             title="<?php echo $is_full ? 'Room Full' : 'Click to select'; ?>">
-                                                            <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
-                                                            <div class="room-meta">
-                                                                <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
-                                                                <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
-                                                            </div>
-                                                            <?php if ($is_full): ?>
-                                                                <div class="room-badge full-badge"><i class="fas fa-times-circle"></i> FULL</div>
-                                                            <?php else: ?>
-                                                                <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                        <?php endforeach; ?>
-                                                    </div>
-
-                                                </div>
-                                            <?php $j++; endforeach; ?>
-                                        </div>
-                                        
-                                    </div>
-                                <?php $i++; endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                        <div class="invalid-feedback d-block" id="room-error" style="display:none !important;">Please select a room.</div>
-                    </div>
-                    
-                    <div class="row g-3 mt-0 mb-3" id="room-details-row" style="display:none !important;">
-                        <div class="col-md-12"><div class="alert alert-info py-2" id="selected-room-info"></div></div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Fee Per Student (TSH)</label>
-                            <input type="text" name="fpm" id="fpm" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Food Status</label><br>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="foodstatus" value="0" checked>
-                                <label class="form-check-label">Without Food</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="foodstatus" value="1">
-                                <label class="form-check-label">With Food (TSH2000/month)</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Stay From</label>
-                            <input type="date" name="stayf" id="stayf" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Duration (Semester)</label>
-                            <select name="duration" class="form-control" required>
-                                <option value="">-- Choose Semester --</option>
-                                <option value="5">📅 Semester 1 &nbsp;(5 months · Feb – Jun)</option>
-                                <option value="5">📅 Semester 2 &nbsp;(5 months · Jul – Nov)</option>
-                                <option value="10">🎓 Full Academic Year &nbsp;(10 months · Feb – Nov)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    </div>
-                </div>
-                <!-- Registration Info -->
-                <div class="regno-display">
-                    <i class="fas fa-id-card me-2"></i>
-                    Your registration number will be automatically generated
-                </div>
-                
-                <div class="row g-3">
-                    <!-- First Name -->
-                    <div class="col-md-6">
-                        <label for="fname" class="form-label">First Name</label>
-                        <div class="form-icon">
-                            <i class="fas fa-user"></i>
-                            <input type="text" class="form-control" id="fname" name="fname" required
-                                   value="<?php echo isset($_POST['fname']) ? htmlspecialchars($_POST['fname']) : ''; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Middle Name -->
-                    <div class="col-md-6">
-                        <label for="mname" class="form-label">Middle Name</label>
-                        <div class="form-icon">
-                            <i class="fas fa-user"></i>
-                            <input type="text" class="form-control" id="mname" name="mname"
-                                   value="<?php echo isset($_POST['mname']) ? htmlspecialchars($_POST['mname']) : ''; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Last Name -->
-                    <div class="col-md-6">
-                        <label for="lname" class="form-label">Last Name</label>
-                        <div class="form-icon">
-                            <i class="fas fa-user"></i>
-                            <input type="text" class="form-control" id="lname" name="lname" required
-                                   value="<?php echo isset($_POST['lname']) ? htmlspecialchars($_POST['lname']) : ''; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Gender -->
-                    <div class="col-md-6">
-                        <label for="gender" class="form-label">Gender</label>
-                        <div class="form-icon">
-                            <i class="fas fa-venus-mars"></i>
-                            <select class="form-select" id="gender" name="gender" required>
-                                <option value="" disabled selected>Select Gender</option>
-                                <option value="male" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'male') ? 'selected' : ''; ?>>Male</option>
-                                <option value="female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'female') ? 'selected' : ''; ?>>Female</option>
-                                <option value="others" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'others') ? 'selected' : ''; ?>>Others</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Contact Number -->
-                    <div class="col-md-6">
-                        <label for="contact" class="form-label">Contact Number</label>
-                        <div class="form-icon">
-                            <i class="fas fa-phone"></i>
-                            <input type="tel" class="form-control" id="contact" name="contact" required
-                                   maxlength="12" placeholder="255XXXXXXXXX"
-                                   value="<?php echo isset($_POST['contact']) ? htmlspecialchars($_POST['contact']) : ''; ?>">
-                        </div>
-                        <div class="contact-format">Format: 255 followed by 9 digits (12 digits total)</div>
-                    </div>
-                    
-                    <!-- Email -->
-                    <div class="col-md-6">
-                        <label for="email" class="form-label">Email Address</label>
-                        <div class="form-icon">
-                            <i class="fas fa-envelope"></i>
-                            <input type="email" class="form-control" id="email" name="email" required
-                                    value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-                        </div>
-                        <div id="user-availability-status" class="small text-muted mt-1"></div>
-                    </div>
-                    
-                    <!-- Password -->
-                    <div class="col-md-6">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="form-icon">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" class="form-control" id="password" name="password" required
-                                   onkeyup="checkPasswordStrength()">
-                        </div>
-                        <div class="password-strength">
-                            <span id="password-strength-bar"></span>
-                        </div>
-                        <small class="text-muted">Minimum 6 characters</small>
-                    </div>
-                    
-                    <!-- Confirm Password -->
-                    <div class="col-md-6">
-                        <label for="cpassword" class="form-label">Confirm Password</label>
-                        <div class="form-icon">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" class="form-control" id="cpassword" name="cpassword" required
-                                   onkeyup="checkPasswordMatch()">
-                        </div>
-                        <div id="password-match" class="small mt-1"></div>
-                    </div>
-                </div>
-                
-                <!-- Form Buttons -->
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div>
-                        Already have an account? <a href="../index.php" class="login-link">Login here</a>
-                    </div>
-                    <div>
-                        <button type="reset" class="btn btn-outline-secondary me-2">
-                            <i class="fas fa-redo me-1"></i> Reset
-                        </button>
-                        <button type="submit" name="submit" class="btn btn-register text-white">
-                            <i class="fas fa-user-plus me-1"></i> Register
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery -->
-    <script src="js/jquery.min.js"></script>
-    
-    <!-- Custom Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Form validation
-    (function() {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function(form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-    
-    // Check email availability
-    function checkAvailability() {
-        $("#loaderIcon").show();
-        jQuery.ajax({
-            url: "check_availability.php",
-            data: 'emailid='+$("#email").val(),
-            type: "POST",
-            success:function(data){
-                $("#user-availability-status").html(data);
-                $("#loaderIcon").hide();
-            },
-            error:function () {
-                alert('Error checking email availability');
-            }
-        });
+    function pickRoom(el, rNo, seater, fees, occupied) { 
+        if (el.classList.contains('full')) return; 
+        document.querySelectorAll('.room-card-mini').forEach(c => c.classList.remove('selected')); 
+        el.classList.add('selected'); 
+        document.getElementById('room').value = rNo; 
+        document.getElementById('seater').value = seater; 
+        document.getElementById('fpm').value = fees; 
+        document.getElementById('noRoomView').style.display = 'none'; 
+        document.getElementById('activeRoomView').style.display = 'block'; 
+        document.getElementById('displayRoomNo').innerText = 'Room ' + rNo; 
+        document.getElementById('displayRoomMeta').innerText = occupied + '/' + seater + ' Occupied • TSH ' + fees.toLocaleString(); 
     }
-    
-    // Check password strength
-    function checkPasswordStrength() {
-        var password = $("#password").val();
-        var strength = 0;
-        
-        if (password.length >= 6) strength += 1;
-        if (password.match(/([a-z].*[A-Z])|([A-Z].*[a-z])/)) strength += 1;
-        if (password.match(/([0-9])/)) strength += 1;
-        if (password.match(/([!,%,&,@,#,$,^,*,?,_,~])/)) strength += 1;
-        
-        var width = (strength / 4) * 100;
-        $("#password-strength-bar").css("width", width + "%");
-        
-        if (strength < 2) {
-            $("#password-strength-bar").css("background-color", "#dc3545");
-        } else if (strength == 2) {
-            $("#password-strength-bar").css("background-color", "#ffc107");
-        } else {
-            $("#password-strength-bar").css("background-color", "#28a745");
-        }
-    }
-    
-    // Check password match
-    function checkPasswordMatch() {
-        var password = $("#password").val();
-        var confirmPassword = $("#cpassword").val();
-        
-        if (password != confirmPassword) {
-            $("#password-match").html("<span style='color:#dc3545'>Passwords do not match!</span>");
-            return false;
-        } else {
-            $("#password-match").html("<span style='color:#28a745'>Passwords match.</span>");
-            return true;
-        }
-    }
-    
-    // Contact number validation and formatting
-    document.getElementById('contact').addEventListener('input', function(e) {
-        // Remove any non-digit characters
-        this.value = this.value.replace(/[^0-9]/g, '');
-        
-        // Ensure it starts with 255
-        if (!this.value.startsWith('255') && this.value.length > 0) {
-            this.value = '255' + this.value.replace(/^255/, '');
-        }
-        
-        // Limit to 12 characters (255 + 9 digits)
-        if (this.value.length > 12) {
-            this.value = this.value.substring(0, 12);
-        }
-    });
-    
-    // Validate form submission
-    function validateForm() {
-        if (!checkPasswordMatch()) {
-            alert("Passwords do not match!");
-            return false;
-        }
-        
-        // Validate contact number format
-        var contact = document.getElementById('contact').value;
-        if (!/^255\d{9}$/.test(contact)) {
-            alert("Contact number must be 12 digits starting with 255 (255XXXXXXXXX)");
-            return false;
-        }
-
-        var roomVal = document.getElementById('room').value;
-        if (!roomVal) {
-            alert("Please select a room.");
-            return false;
-        }
-        
-        return true;
-    }
-
-	function selectRoom(el, roomNo, seater, fees) {
-        document.querySelectorAll('.room-card.room-available').forEach(function(c) {
-            c.classList.remove('room-selected');
-        });
-        el.classList.add('room-selected');
-        document.getElementById('room').value = roomNo;
-        document.getElementById('seater').value = seater;
-        document.getElementById('fpm').value = fees;
-        document.getElementById('room-error').style.setProperty('display','none','important');
-        var infoDiv = document.getElementById('selected-room-info');
-        var infoRow = document.getElementById('room-details-row');
-        if (infoDiv && infoRow) {
-            infoDiv.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> <strong>Room ' + roomNo + '</strong> selected &bull; ' + seater + ' Bed &bull; TSH ' + fees.toLocaleString() + '/= per student';
-            infoRow.style.setProperty('display','flex','important');
-        }
-    }
-
-    </script>
-
-    <script>
+    function validateForm() { const pass = document.getElementById('password').value; const cpass = document.getElementById('cpassword').value; if (pass !== cpass) { alert("Passwords do not match!"); return false; } if (!document.getElementById('room').value) { alert("Please pick a room!"); return false; } return true; }
     <?php if(isset($_GET['registered'])): ?>
-    // Show success popup
-    window.addEventListener('DOMContentLoaded', function() {
-        var overlay = document.getElementById('regSuccessOverlay');
-        if (overlay) overlay.classList.add('show');
-    });
+    document.addEventListener('DOMContentLoaded', () => { document.getElementById('regSuccessOverlay').classList.add('show'); <?php unset($_SESSION['reg_success']); ?> });
     <?php endif; ?>
-
-    function registerAnother() {
-        document.getElementById('regSuccessOverlay').classList.remove('show');
-        window.location.href = 'registration.php';
-    }
-
-    function goToLogin() {
-        window.location.href = '../index.php';
-    }
+    document.getElementById('contact').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); if (!this.value.startsWith('255') && this.value.length > 0) this.value = '255' + this.value; if (this.value.length > 12) this.value = this.value.substring(0, 12); });
     </script>
 </body>
 </html>

@@ -18,52 +18,39 @@ check_login();
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Modern CSS -->
     <link rel="stylesheet" href="css/modern.css">
     
     <style>
-        /* Table overrides for light theme */
-        .dataTables_wrapper .dataTables_length, 
-        .dataTables_wrapper .dataTables_filter, 
-        .dataTables_wrapper .dataTables_info, 
-        .dataTables_wrapper .dataTables_processing, 
-        .dataTables_wrapper .dataTables_paginate {
-            color: var(--text-muted);
-            margin-bottom: 20px;
+        .complaint-item-row { 
+            background: #fff; 
+            margin-bottom: 12px; 
+            padding: 16px 24px; 
+            border-radius: 16px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            border: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
-        
-        .dataTables_wrapper .dataTables_length select,
-        .dataTables_wrapper .dataTables_filter input {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            color: var(--text-main);
-            border-radius: 8px;
-            padding: 5px 10px;
+        .complaint-item-row:hover {
+            border-color: #10b981;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.1);
         }
-        
-        .dataTables_wrapper .dataTables_filter input:focus {
-            border-color: var(--primary);
-            outline: none;
+        .complaint-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: #ecfdf5; color: #10b981; 
+            font-size: 1.2rem; margin-right: 18px;
         }
-        
-        .page-item.active .page-link {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-        
-        .page-link {
-            background-color: #fff;
-            border-color: #e0e0e0;
-            color: var(--text-muted);
-        }
-        
-        .page-link:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
+        .info-card { background: #f8fafc; border-radius: 16px; padding: 15px; margin-bottom: 10px; }
+        .info-label { display: block; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 3px; }
+        .info-val { font-size: 0.95rem; font-weight: 700; color: #1e293b; }
+        .modal-content { border-radius: 24px; border: none; }
     </style>
 </head>
 
@@ -72,81 +59,114 @@ check_login();
         <!-- SIDEBAR -->
         <?php include('includes/sidebar_modern.php'); ?>
 
-        <!-- MAIN CONTENT -->
-        <div class="main-content" id="mainContent">
+        <div class="main-content">
             <div class="content-wrapper">
                 
-                <!-- Header -->
-                <div class="content-header">
-                    <div class="header-left">
-                        <h1 class="page-title">
-                            <i class="fas fa-check-circle"></i>
-                            Closed Complaints
-                        </h1>
-                    </div>
-                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
-                        <div class="date-filter" style="background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px; color: #4a5568; font-weight: 500;">
-                            <i class="fas fa-calendar-alt" style="color: #4361ee;"></i>
-                            <span><?php echo date('F d, Y'); ?></span>
-                        </div>
+                <div class="d-flex justify-content-between align-items-end mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-0">Closed Complaints</h2>
+                        <p class="text-muted small mb-0">Record of resolved student issues</p>
                     </div>
                 </div>
 
-                <!-- Table Panel -->
-                <div class="card-panel">
-                    <div class="card-header" style="border-bottom: 2px solid #f0f2f5; padding-bottom: 15px;">
-                        <div class="card-title" style="font-size: 1.1rem; font-weight: 700; color: #2d3748;">All Closed Complaints Details</div>
-                    </div>
-                    
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="complaints-table" class="table table-modern" cellspacing="0" width="100%">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Student Name</th>
-                                        <th>Room No</th>
-                                        <th>Complaint No.</th>
-                                        <th>Complaint Type</th>
-                                        <th>Status</th>
-                                        <th>Reg. Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php  
-                                    $ret="SELECT c.*, u.firstName, u.lastName, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus='Closed'";
-                                    $stmt= $mysqli->prepare($ret) ;
-                                    $stmt->execute();
-                                    $res=$stmt->get_result();
-                                    $cnt=1;
-                                    while($row=$res->fetch_object()):
-                                    ?>
-                                    <tr>
-                                        <td><?php echo $cnt++; ?></td>
-                                        <td>
-                                            <div style="font-weight:600;"><?php echo $row->firstName . ' ' . $row->lastName;?></div>
-                                        </td>
-                                        <td><?php echo $row->roomno;?></td>
-                                        <td><span style="font-family:monospace; font-weight:bold; color:var(--primary);"><?php echo $row->ComplainNumber;?></span></td>
-                                        <td><?php echo $row->complaintType;?></td>
-                                        <td>
-                                            <span class="badge" style="background-color:rgba(28, 200, 138, 0.1); color:#1cc88a; font-size:0.85em; padding:6px 12px; border-radius:20px; font-weight:600;"><i class="fas fa-check-circle me-1"></i> Closed</span>
-                                        </td>
-                                        <td><?php echo date('d-m-Y', strtotime($row->registrationDate));?></td>
-                                        <td>
-                                            <a href="complaint-details.php?cid=<?php echo $row->id;?>" class="action-btn" title="View Full Details">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php endwhile; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="mb-4 position-relative">
+                    <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                    <input type="text" id="complaintSearch" class="form-control ps-5 py-3 border-0 shadow-sm" placeholder="Search archived complaints..." style="border-radius: 16px;">
                 </div>
 
+                <div id="complaintList">
+                    <?php  
+                    $ret="SELECT c.*, u.firstName, u.lastName, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus = 'Closed' ORDER BY c.registrationDate DESC";
+                    $res=$mysqli->query($ret);
+                    if($res->num_rows > 0):
+                        while($row=$res->fetch_object()):
+                    ?>
+                    <div class="complaint-item-row" onclick='openComplaintInfo(<?php echo json_encode($row); ?>)'>
+                        <div class="d-flex align-items-center">
+                            <div class="complaint-icon">
+                                <i class="fas fa-check-double"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($row->complaintType); ?></h6>
+                                <small class="text-muted"><?php echo htmlspecialchars($row->firstName . ' ' . $row->lastName); ?> • Room <?php echo $row->roomno; ?></small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold small text-success mb-1">RESOLVED</div>
+                            <small class="text-muted" style="font-size:0.7rem;"><?php echo date('d-m-Y', strtotime($row->registrationDate)); ?></small>
+                        </div>
+                    </div>
+                    <?php 
+                        endwhile; 
+                    else:
+                    ?>
+                    <div class="bg-white rounded-4 p-5 text-center shadow-sm">
+                        <i class="fas fa-archive text-muted fs-1 mb-3"></i>
+                        <h4 class="fw-bold">No Closed Complaints</h4>
+                        <p class="text-muted">Archives are currently empty.</p>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaint Modal -->
+    <div class="modal fade" id="complaintModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg">
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold mb-0">Resolved Complaint</h4>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="info-card">
+                                <label class="info-label">Student</label>
+                                <div id="mStudent" class="info-val"></div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="info-card">
+                                <label class="info-label">Room</label>
+                                <div id="mRoom" class="info-val"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card mb-4">
+                        <label class="info-label">Problem History</label>
+                        <div id="mDesc" class="info-val" style="font-weight: 500; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;"></div>
+                    </div>
+
+                    <div class="alert alert-success rounded-4 border-0 py-3 mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle mt-1 me-3"></i>
+                            <div>
+                                <div class="fw-bold small">Status: CLOSED</div>
+                                <div class="small opacity-75">This complaint has been resolved and archived.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="actionForm">
+                        <input type="hidden" id="mCid" name="cid">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Reopen Complaint? (Optional)</label>
+                            <select name="cstatus" id="mStatus" class="form-select rounded-3 border-0 bg-light">
+                                <option value="Closed" selected>Stay Closed</option>
+                                <option value="In Process">Reopen (Mark In Process)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">New Remark</label>
+                            <textarea name="remark" id="mRemark" class="form-control rounded-3 border-0 bg-light" rows="3" placeholder="Add a final note or reopening reason..."></textarea>
+                        </div>
+                        <button type="button" onclick="submitAction()" class="btn btn-outline-success w-100 rounded-pill py-3 fw-bold">Apply Changes</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -154,20 +174,45 @@ check_login();
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
-        $(document).ready(function() {
-            $('#complaints-table').DataTable({
-                "language": {
-                    "search": "",
-                    "searchPlaceholder": "Search complaints..."
-                },
-                "order": [[ 6, "desc" ]], // Order by reg date descending
-                "dom": '<"d-flex justify-content-between align-items-center mb-3"lf>rt<"d-flex justify-content-between align-items-center mt-3"ip>'
-            });
+    function openComplaintInfo(data) {
+        document.getElementById('mCid').value = data.id;
+        document.getElementById('mStudent').innerText = data.firstName + ' ' + data.lastName;
+        document.getElementById('mRoom').innerText = 'Room ' + data.roomno;
+        document.getElementById('mDesc').innerText = data.complaintDetails;
+        
+        const modal = new bootstrap.Modal(document.getElementById('complaintModal'));
+        modal.show();
+    }
+
+    function submitAction() {
+        const formData = {
+            action: 'update_complaint',
+            cid: $('#mCid').val(),
+            cstatus: $('#mStatus').val(),
+            remark: $('#mRemark').val()
+        };
+
+        $.post('ajax/complaint-actions.php', formData, function(res) {
+            const data = JSON.parse(res);
+            if(data.status === 'success') {
+                Swal.fire('Updated', 'Record updated successfully', 'success').then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire('Error', 'Failed: ' + data.msg, 'error');
+            }
         });
+    }
+
+    $("#complaintSearch").on("keyup", function() {
+        var value = $(this).val().toLowerCase();
+        $(".complaint-item-row").filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
     </script>
 </body>
 </html>

@@ -184,55 +184,72 @@ if(isset($_POST['submit'])) {
                                     while($row = $res->fetch_object()):
                             ?>
                             
-                            <div class="feedback-view">
-                                <h4 class="text-center mb-4"><i class="fas fa-check-circle me-2"></i>Your Feedback Details</h4>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Feedback Date:</div>
-                                    <div><?php echo date('d M Y, h:i A', strtotime($row->postinDate)); ?></div>
+                            <div class="feedback-view mb-4 border-0 shadow-sm" style="background: #fff; border-radius: 20px; overflow: hidden;">
+                                <div class="p-4" style="background: linear-gradient(135deg, #3a7bd5, #00d2ff); color: white;">
+                                    <h4 class="mb-0 fw-bold"><i class="fas fa-check-circle me-2"></i>My Submitted Feedback</h4>
+                                    <small class="opacity-75">Submitted on <?php echo date('d M Y, h:i A', strtotime($row->postinDate)); ?></small>
                                 </div>
                                 
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Accessibility to Warden:</div>
-                                    <div class="rating-badge"><?php echo $row->AccessibilityWarden; ?></div>
+                                <div class="p-4">
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3 bg-light rounded-4 text-center">
+                                                <div class="small fw-bold text-muted mb-1">WARDEN</div>
+                                                <div class="text-primary fw-bold"><?php echo $row->AccessibilityWarden; ?></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3 bg-light rounded-4 text-center">
+                                                <div class="small fw-bold text-muted mb-1">MESS</div>
+                                                <div class="text-primary fw-bold"><?php echo $row->Mess; ?></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3 bg-light rounded-4 text-center">
+                                                <div class="small fw-bold text-muted mb-1">ROOM</div>
+                                                <div class="text-primary fw-bold"><?php echo $row->Room; ?></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="p-3 bg-primary bg-opacity-10 rounded-4 text-center">
+                                                <div class="small fw-bold text-primary mb-1">OVERALL</div>
+                                                <div class="text-primary fw-bold"><?php echo $row->OverallRating; ?></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <?php if(!empty($row->FeedbackMessage)): ?>
+                                    <div class="mb-4">
+                                        <label class="small fw-bold text-muted mb-2 text-uppercase">My Message:</label>
+                                        <div class="p-3 bg-light rounded-4" style="font-style: italic; color: #4a5568;">
+                                            "<?php echo htmlspecialchars($row->FeedbackMessage); ?>"
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <!-- Admin Response Section -->
+                                    <div class="pt-4 border-top">
+                                        <label class="small fw-bold text-muted mb-3 text-uppercase">Admin Response:</label>
+                                        <?php if($row->adminRemark): ?>
+                                        <div class="admin-reply p-3 rounded-4" style="background: #f0fdf4; border-left: 4px solid #10b981;">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width:24px; height:24px;">
+                                                    <i class="fas fa-user-shield" style="font-size:0.7rem;"></i>
+                                                </div>
+                                                <span class="fw-bold text-success small">Hostel Management</span>
+                                                <span class="ms-auto text-muted" style="font-size:0.7rem;"><?php echo date('d M, Y', strtotime($row->adminRemarkDate)); ?></span>
+                                            </div>
+                                            <div style="color: #166534; line-height: 1.5;">
+                                                <?php echo nl2br(htmlspecialchars($row->adminRemark)); ?>
+                                            </div>
+                                        </div>
+                                        <?php else: ?>
+                                        <div class="p-3 bg-light rounded-4 text-center text-muted small">
+                                            <i class="fas fa-clock me-2"></i> Your feedback is being reviewed by the management.
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Accessibility to Hostel Committee members:</div>
-                                    <div class="rating-badge"><?php echo $row->AccessibilityMember; ?></div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Redressal of Problem:</div>
-                                    <div class="rating-badge"><?php echo $row->RedressalProblem; ?></div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Room:</div>
-                                    <div class="rating-badge"><?php echo $row->Room; ?></div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Mess:</div>
-                                    <div class="rating-badge"><?php echo $row->Mess; ?></div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Hostel Surroundings:</div>
-                                    <div class="rating-badge"><?php echo $row->HostelSurroundings; ?></div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Overall Rating:</div>
-                                    <div class="rating-badge"><?php echo $row->OverallRating; ?></div>
-                                </div>
-                                
-                                <?php if(!empty($row->FeedbackMessage)): ?>
-                                <div class="feedback-item">
-                                    <div class="feedback-label">Your Feedback Message:</div>
-                                    <div class="feedback-message"><?php echo $row->FeedbackMessage; ?></div>
-                                </div>
-                                <?php endif; ?>
                             </div>
                             
                             <?php
