@@ -28,17 +28,23 @@ $res = $stmt->get_result();
 
 $rooms_by_block = [];
 while ($room = $res->fetch_object()) {
-    if (preg_match('/^([A-Z0-9]+[A-Z])-/i', $room->room_no, $m)) {
-        $block = strtoupper($m[1]);
+    if (preg_match('/^(\d+)([A-Z]+)-/i', $room->room_no, $m)) {
+        $block = 'Block ' . $m[1];
+        $side = 'Side ' . strtoupper($m[2]);
     } else {
-        $block = 'Other';
+        $block = 'General';
+        $side = 'General Wing';
     }
     $room->block = $block;
+    $room->side = $side;
     $room->is_full = ($room->occupied >= $room->seater);
     $room->is_empty = ($room->occupied == 0);
-    $rooms_by_block[$block][] = $room;
+    $rooms_by_block[$block][$side][] = $room;
 }
 ksort($rooms_by_block);
+foreach($rooms_by_block as $b => $s) {
+    ksort($rooms_by_block[$b]);
+}
 $stmt->close();
 ?>
 <!doctype html>
@@ -227,6 +233,17 @@ $stmt->close();
         .btn-edit:hover { background: #3b82f6; color: #fff; }
         .btn-delete { background: #fef2f2; color: #ef4444; }
         .btn-delete:hover { background: #ef4444; color: #fff; }
+
+        /* Custom Tabs & Pills Styling */
+        .custom-nav-tabs { border-bottom: 2px solid #e2e8f0; gap: 8px; margin-bottom: 20px; }
+        .custom-nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; border-radius: 10px 10px 0 0; padding: 12px 24px; transition: all 0.3s ease; font-size: 1.05rem; }
+        .custom-nav-tabs .nav-link:hover { color: #4361ee; background: #f8fafc; }
+        .custom-nav-tabs .nav-link.active { color: #4361ee; background: transparent; border-bottom: 3px solid #4361ee; }
+        
+        .custom-nav-pills { gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 14px; display: inline-flex; flex-wrap: wrap; margin-bottom: 25px; }
+        .custom-nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; font-size: 0.95rem; }
+        .custom-nav-pills .nav-link:hover { background: #e2e8f0; color: #1e293b; }
+        .custom-nav-pills .nav-link.active { background: #4361ee; color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
     </style>
 </head>
 
@@ -275,66 +292,101 @@ $stmt->close();
                         <?php if (empty($rooms_by_block)): ?>
                             <div class="alert alert-info" style="border-radius:10px;"><i class="fas fa-info-circle me-2"></i>No rooms found. Get started by generating a block.</div>
                         <?php else: ?>
-                            <?php foreach ($rooms_by_block as $block_name => $block_rooms): ?>
-                            <div class="block-section">
-                                <div class="block-header">
-                                    <div>
-                                        <i class="fas fa-building me-2" style="color:#4361ee;"></i>
-                                        <?php echo ($block_name === 'Other') ? 'General Rooms' : 'Block ' . htmlspecialchars($block_name); ?>
-                                    </div>
-                                    <div class="block-stats">
-                                        <?php
-                                        $total_rooms = count($block_rooms);
-                                        $total_capacity = 0;
-                                        $total_occupied = 0;
-                                        foreach ($block_rooms as $r) {
-                                            $total_capacity += $r->seater;
-                                            $total_occupied += $r->occupied;
-                                        }
-                                        echo "Rooms: <span>$total_rooms</span> &bull; Occupancy: <span>$total_occupied / $total_capacity</span>";
-                                        ?>
-                                    </div>
-                                </div>
-                                <div class="room-grid">
-                                    <?php foreach ($block_rooms as $rm): ?>
-                                    <?php
-                                    if ($rm->is_empty) {
-                                        $status_class = 'room-empty';
-                                        $badge_class = 'status-empty';
-                                        $status_text = 'EMPTY';
-                                    } elseif ($rm->is_full) {
-                                        $status_class = 'room-full';
-                                        $badge_class = 'status-full';
-                                        $status_text = 'FULL';
-                                    } else {
-                                        $status_class = 'room-partial';
-                                        $badge_class = 'status-partial';
-                                        $status_text = 'PARTIAL (' . $rm->occupied . '/' . $rm->seater . ')';
-                                    }
-                                    ?>
-                                    <div class="room-card <?php echo $status_class; ?>">
-                                        <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
-                                        <div class="status-badge <?php echo $badge_class; ?>">
-                                            <i class="fas <?php echo $rm->is_empty ? 'fa-door-open' : ($rm->is_full ? 'fa-ban' : 'fa-users'); ?>"></i>
-                                            <?php echo $status_text; ?>
+                            
+                            <!-- Blocks Tabs -->
+                            <ul class="nav custom-nav-tabs mb-4" id="blockTabs" role="tablist">
+                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link <?php echo $i===0?'active':''; ?>" style="font-weight: 600;" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
+                                    </li>
+                                <?php $i++; endforeach; ?>
+                            </ul>
+
+                            <!-- Blocks Content -->
+                            <div class="tab-content" id="blockTabsContent">
+                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                                    <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
+                                        
+                                        <!-- Sides Pills -->
+                                        <ul class="nav custom-nav-pills mb-4 mt-2" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
+                                            <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
+                                                </li>
+                                            <?php $j++; endforeach; ?>
+                                        </ul>
+                                        
+                                        <!-- Sides Content -->
+                                        <div class="tab-content" id="pills-Content-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>">
+                                            <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
+                                                    
+                                                    <div class="block-section">
+                                                        <div class="block-header">
+                                                            <div>
+                                                                <i class="fas fa-building me-2" style="color:#4361ee;"></i>
+                                                                <?php echo htmlspecialchars($block_name); ?> - <?php echo htmlspecialchars($side_name); ?>
+                                                            </div>
+                                                            <div class="block-stats">
+                                                                <?php
+                                                                $total_rooms = count($side_rooms);
+                                                                $total_capacity = 0;
+                                                                $total_occupied = 0;
+                                                                foreach ($side_rooms as $r) {
+                                                                    $total_capacity += $r->seater;
+                                                                    $total_occupied += $r->occupied;
+                                                                }
+                                                                echo "Rooms: <span>$total_rooms</span> &bull; Occupancy: <span>$total_occupied / $total_capacity</span>";
+                                                                ?>
+                                                            </div>
+                                                        </div>
+                                                        <div class="room-grid">
+                                                            <?php foreach ($side_rooms as $rm): ?>
+                                                            <?php
+                                                            if ($rm->is_empty) {
+                                                                $status_class = 'room-empty';
+                                                                $badge_class = 'status-empty';
+                                                                $status_text = 'EMPTY';
+                                                            } elseif ($rm->is_full) {
+                                                                $status_class = 'room-full';
+                                                                $badge_class = 'status-full';
+                                                                $status_text = 'FULL';
+                                                            } else {
+                                                                $status_class = 'room-partial';
+                                                                $badge_class = 'status-partial';
+                                                                $status_text = 'PARTIAL (' . $rm->occupied . '/' . $rm->seater . ')';
+                                                            }
+                                                            ?>
+                                                            <div class="room-card <?php echo $status_class; ?>">
+                                                                <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
+                                                                <div class="status-badge <?php echo $badge_class; ?>">
+                                                                    <i class="fas <?php echo $rm->is_empty ? 'fa-door-open' : ($rm->is_full ? 'fa-ban' : 'fa-users'); ?>"></i>
+                                                                    <?php echo $status_text; ?>
+                                                                </div>
+                                                                <div class="room-meta">
+                                                                    <span><i class="fas fa-bed text-muted"></i> <?php echo $rm->seater; ?> Seater</span>
+                                                                    <span><i class="fas fa-money-bill-wave text-muted"></i> Tsh. <?php echo number_format($rm->fees); ?>/=</span>
+                                                                </div>
+                                                                <div class="room-actions">
+                                                                    <a href="edit-room.php?id=<?php echo $rm->id; ?>" class="btn-action btn-edit" title="Edit Room">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    <a href="manage-rooms.php?del=<?php echo $rm->id; ?>" class="btn-action btn-delete" title="Delete Room" onclick="return confirm('Are you sure you want to delete room <?php echo htmlspecialchars($rm->room_no, ENT_QUOTES); ?>?');">
+                                                                        <i class="fas fa-trash-alt"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            <?php $j++; endforeach; ?>
                                         </div>
-                                        <div class="room-meta">
-                                            <span><i class="fas fa-bed text-muted"></i> <?php echo $rm->seater; ?> Seater</span>
-                                            <span><i class="fas fa-money-bill-wave text-muted"></i> Tsh. <?php echo number_format($rm->fees); ?>/=</span>
-                                        </div>
-                                        <div class="room-actions">
-                                            <a href="edit-room.php?id=<?php echo $rm->id; ?>" class="btn-action btn-edit" title="Edit Room">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="manage-rooms.php?del=<?php echo $rm->id; ?>" class="btn-action btn-delete" title="Delete Room" onclick="return confirm('Are you sure you want to delete room <?php echo htmlspecialchars($rm->room_no, ENT_QUOTES); ?>?');">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </a>
-                                        </div>
+                                        
                                     </div>
-                                    <?php endforeach; ?>
-                                </div>
+                                <?php $i++; endforeach; ?>
                             </div>
-                            <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
                 </div>

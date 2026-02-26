@@ -62,7 +62,7 @@
             <li>
                 <a href="book-hostel.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'book-hostel.php' ? 'active' : ''; ?>">
                     <i class="fas fa-bed"></i>
-                    <span class="link-text">Book Hostel</span>
+                    <span class="link-text">Request Room</span>
                 </a>
             </li>
             

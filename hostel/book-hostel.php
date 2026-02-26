@@ -217,11 +217,12 @@ try {
     
     $res = $stmt->get_result();
     while ($room = $res->fetch_object()) {
-        // Derive block from room_no pattern e.g. "1A-G01" -> block = "1A"
-        if (preg_match('/^([A-Z0-9]+[A-Z])-/i', $room->room_no, $m)) {
-            $room->block = strtoupper($m[1]);
+        if (preg_match('/^(\d+)([A-Z]+)-/i', $room->room_no, $m)) {
+            $room->block = 'Block ' . $m[1];
+            $room->side = 'Side ' . strtoupper($m[2]);
         } else {
-            $room->block = 'Other';
+            $room->block = 'General';
+            $room->side = 'General Wing';
         }
         $room->is_full = ($room->occupied >= $room->seater);
         $rooms[] = $room;
@@ -231,9 +232,12 @@ try {
     // Group rooms by block
     $rooms_by_block = [];
     foreach ($rooms as $rm) {
-        $rooms_by_block[$rm->block][] = $rm;
+        $rooms_by_block[$rm->block][$rm->side][] = $rm;
     }
     ksort($rooms_by_block);
+    foreach($rooms_by_block as $b => $s) {
+        ksort($rooms_by_block[$b]);
+    }
 
     $courses = [];
     $course_query = "SELECT * FROM courses";
@@ -474,6 +478,17 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             margin: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;
         }
         .btn-modal-secondary:hover { background: #e2e8f0; color: #2d3748;}
+
+        /* Custom Tabs & Pills Styling */
+        .custom-nav-tabs { border-bottom: 2px solid #e2e8f0; gap: 8px; margin-bottom: 20px; }
+        .custom-nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; border-radius: 10px 10px 0 0; padding: 12px 24px; transition: all 0.3s ease; font-size: 1.05rem; }
+        .custom-nav-tabs .nav-link:hover { color: #4361ee; background: #f8fafc; }
+        .custom-nav-tabs .nav-link.active { color: #4361ee; background: transparent; border-bottom: 3px solid #4361ee; }
+        
+        .custom-nav-pills { gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 14px; display: inline-flex; flex-wrap: wrap; margin-bottom: 25px; }
+        .custom-nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; font-size: 0.95rem; }
+        .custom-nav-pills .nav-link:hover { background: #e2e8f0; color: #1e293b; }
+        .custom-nav-pills .nav-link.active { background: #4361ee; color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
     </style>
 </head>
 <body>
@@ -510,7 +525,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 <div class="row">
                     <div class="col-md-12">
                         <h2 class="page-title">
-                            <i class="fas fa-user-graduate me-2"></i>Hostel Registration
+                            <i class="fas fa-bed me-2"></i>Request Room
                         </h2>
                         
                         <?php if(isset($_SESSION['success'])): ?>
@@ -527,7 +542,14 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                             </div>
                         <?php endif; ?>
                         
-                        <?php if($has_booking): ?>
+                        <?php if($user->fee_status != 1): ?>
+                            <div class="alert alert-danger shadow-sm">
+                                <h4 class="alert-heading">
+                                    <i class="fas fa-exclamation-triangle"></i> Fee Payment Required
+                                </h4>
+                                <p>You cannot request a room because your fee status is incomplete. Please contact the administration or Bursar to complete your fee payments before reserving a room.</p>
+                            </div>
+                        <?php elseif($has_booking): ?>
                             <div class="alert alert-info">
                                 <h4 class="alert-heading">
                                     <i class="fas fa-info-circle"></i> Hostel Already Booked
@@ -543,7 +565,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                         <?php else: ?>
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
-                                <i class="fas fa-edit me-2"></i>Registration Form
+                                <i class="fas fa-edit me-2"></i>Room Request Form
                             </div>
                             <div class="card-body">
                                 <form method="post" action="" class="needs-validation" novalidate>
@@ -562,44 +584,66 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                             <?php if (empty($rooms_by_block)): ?>
                                                 <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No rooms available at the moment.</div>
                                             <?php else: ?>
-                                            <?php foreach ($rooms_by_block as $block_name => $block_rooms): ?>
-                                            <div class="block-section mb-3">
-                                                <div class="block-header">
-                                                    <i class="fas fa-layer-group me-2"></i>
-                                                    <?php echo ($block_name === 'Other') ? 'General Rooms' : 'Block ' . htmlspecialchars($block_name); ?>
-                                                    <span class="block-stats">
-                                                        <?php
-                                                        $avail = count(array_filter($block_rooms, fn($r) => !$r->is_full));
-                                                        $total = count($block_rooms);
-                                                        ?>
-                                                        <?php echo $avail; ?>/<?php echo $total; ?> Available
-                                                    </span>
-                                                </div>
-                                                <div class="room-grid">
-                                                    <?php foreach ($block_rooms as $rm): ?>
-                                                    <?php
-                                                    $is_full = $rm->is_full;
-                                                    $is_selected = isset($_SESSION['form_data']['roomno']) && $_SESSION['form_data']['roomno'] == $rm->room_no;
-                                                    $remaining = $rm->seater - $rm->occupied;
-                                                    ?>
-                                                    <div class="room-card <?php echo $is_full ? 'room-full' : 'room-available'; ?> <?php echo $is_selected ? 'room-selected' : ''; ?>"
-                                                         onclick="<?php echo $is_full ? '' : 'selectRoom(this, \'' . htmlspecialchars($rm->room_no, ENT_QUOTES) . '\', ' . $rm->seater . ', ' . $rm->fees . ')'; ?>"
-                                                         title="<?php echo $is_full ? 'Room Full' : 'Click to select'; ?>">
-                                                        <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
-                                                        <div class="room-meta">
-                                                            <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
-                                                            <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
+                                                
+                                                <!-- Blocks Tabs -->
+                                                <ul class="nav custom-nav-tabs" id="blockTabs" role="tablist">
+                                                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                                                        <li class="nav-item" role="presentation">
+                                                            <button class="nav-link <?php echo $i===0?'active':''; ?>" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
+                                                        </li>
+                                                    <?php $i++; endforeach; ?>
+                                                </ul>
+
+                                                <!-- Blocks Content -->
+                                                <div class="tab-content pt-3" id="blockTabsContent">
+                                                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                                                        <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
+                                                            
+                                                            <!-- Sides Pills -->
+                                                            <ul class="nav custom-nav-pills mb-3" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
+                                                                <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                                    <li class="nav-item" role="presentation">
+                                                                        <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
+                                                                    </li>
+                                                                <?php $j++; endforeach; ?>
+                                                            </ul>
+                                                            
+                                                            <!-- Sides Content -->
+                                                            <div class="tab-content" id="pills-Content-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>">
+                                                                <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                                    <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
+                                                                        
+                                                                        <div class="room-grid border rounded p-3 bg-light">
+                                                                            <?php foreach ($side_rooms as $rm): ?>
+                                                                            <?php
+                                                                            $is_full = $rm->is_full;
+                                                                            $is_selected = isset($_SESSION['form_data']['roomno']) && $_SESSION['form_data']['roomno'] == $rm->room_no;
+                                                                            $remaining = $rm->seater - $rm->occupied;
+                                                                            ?>
+                                                                            <div class="room-card <?php echo $is_full ? 'room-full' : 'room-available'; ?> <?php echo $is_selected ? 'room-selected' : ''; ?>"
+                                                                                onclick="<?php echo $is_full ? '' : 'selectRoom(this, \'' . htmlspecialchars($rm->room_no, ENT_QUOTES) . '\', ' . $rm->seater . ', ' . $rm->fees . ')'; ?>"
+                                                                                title="<?php echo $is_full ? 'Room Full' : 'Click to select'; ?>">
+                                                                                <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
+                                                                                <div class="room-meta">
+                                                                                    <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
+                                                                                    <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
+                                                                                </div>
+                                                                                <?php if ($is_full): ?>
+                                                                                    <div class="room-badge full-badge"><i class="fas fa-times-circle"></i> FULL</div>
+                                                                                <?php else: ?>
+                                                                                    <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
+                                                                                <?php endif; ?>
+                                                                            </div>
+                                                                            <?php endforeach; ?>
+                                                                        </div>
+
+                                                                    </div>
+                                                                <?php $j++; endforeach; ?>
+                                                            </div>
+                                                            
                                                         </div>
-                                                        <?php if ($is_full): ?>
-                                                            <div class="room-badge full-badge"><i class="fas fa-times-circle"></i> FULL</div>
-                                                        <?php else: ?>
-                                                            <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                    <?php endforeach; ?>
+                                                    <?php $i++; endforeach; ?>
                                                 </div>
-                                            </div>
-                                            <?php endforeach; ?>
                                             <?php endif; ?>
                                             
                                             <div class="invalid-feedback d-block" id="room-error" style="display:none !important;"></div>

@@ -25,6 +25,19 @@ if(isset($_GET['approve']))
     }
     $stmt->close();	   
 }
+
+if(isset($_GET['toggle_fee']))
+{
+	$id=$_GET['toggle_fee'];
+	$adn="UPDATE userregistration SET fee_status = NOT fee_status WHERE regNo=?";
+	$stmt= $mysqli->prepare($adn);
+	$stmt->bind_param('s',$id);
+    if($stmt->execute()) {
+        echo "<script>alert('Fee status updated successfully');</script>";
+        echo "<script>window.location.href='manage-students.php';</script>";
+    }
+    $stmt->close();	   
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -128,13 +141,14 @@ if(isset($_GET['approve']))
                                     <th>Contact</th>
                                     <th>Room</th>
                                     <th>Seater</th>
+                                    <th>Fee Status</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php	
-                                $ret="SELECT u.regNo, u.firstName, u.middleName, u.lastName, u.contactNo, u.status, r.roomno, r.seater, r.stayfrom FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno";
+                                $ret="SELECT u.regNo, u.firstName, u.middleName, u.lastName, u.contactNo, u.status, u.fee_status, r.roomno, r.seater, r.stayfrom FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno";
                                 $stmt= $mysqli->prepare($ret) ;
                                 $stmt->execute() ;
                                 $res=$stmt->get_result();
@@ -153,6 +167,13 @@ if(isset($_GET['approve']))
                                     <td><?php echo $row->roomno ? $row->roomno : '<span style="opacity:0.5">-</span>';?></td>
                                     <td><?php echo $row->seater ? $row->seater : '<span style="opacity:0.5">-</span>';?></td>
                                     <td>
+                                        <?php if($row->fee_status == 1): ?>
+                                            <span class="badge-status" style="background:var(--success-light); color:var(--success);">Completed</span>
+                                        <?php else: ?>
+                                            <span class="badge-status" style="background:var(--danger-light); color:var(--danger);">Pending</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
                                         <?php if(strtolower($row->status) == 'active'): ?>
                                             <span class="badge-status active">Active</span>
                                         <?php elseif(strtolower($row->status) == 'pending'): ?>
@@ -163,6 +184,9 @@ if(isset($_GET['approve']))
                                     </td>
                                     <td>
                                         <div style="display:flex;">
+                                            <a href="manage-students.php?toggle_fee=<?php echo $row->regNo;?>" class="action-btn" title="Toggle Fee Status" style="background:#eef2ff; color:#4361ee;" onclick="return confirm('Do you want to update the fee status for this student?');">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            </a>
                                             <a href="student-details.php?regno=<?php echo $row->regNo;?>" class="action-btn" title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </a>

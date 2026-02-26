@@ -58,6 +58,32 @@ if(isset($_POST['submit'])) {
         $_SESSION['error'] = "All selected rooms already exist or an error occurred.";
     }
 }
+
+// Fetch all existing rooms to list them below the generator
+$ret = "select * from rooms order by room_no asc";
+$stmt = $mysqli->prepare($ret);
+$stmt->execute();
+$res = $stmt->get_result();
+$rooms_by_block = [];
+
+while ($row = $res->fetch_object()) {
+    $room_no = $row->room_no;
+    if (preg_match('/^(\d+)([A-Za-z]+)-/', $room_no, $matches)) {
+        $block_name = "Block " . $matches[1];
+        $side_name = "Side " . strtoupper($matches[2]);
+    } else {
+        $block_name = "Other Rooms";
+        $side_name = "Default";
+    }
+    
+    if (!isset($rooms_by_block[$block_name])) {
+        $rooms_by_block[$block_name] = [];
+    }
+    if (!isset($rooms_by_block[$block_name][$side_name])) {
+        $rooms_by_block[$block_name][$side_name] = [];
+    }
+    $rooms_by_block[$block_name][$side_name][] = $row;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -434,6 +460,58 @@ if(isset($_POST['submit'])) {
         @media (max-width: 576px) {
             .preview-grid { grid-template-columns: 1fr; }
         }
+
+        /* Room Grid & Custom Tabs Styling */
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            padding: 14px;
+            background: #fafbff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .room-card {
+            border-radius: 10px;
+            padding: 12px 10px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            background: #fff;
+        }
+        .room-card .room-number {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 6px;
+        }
+        .room-card .room-meta {
+            font-size: 0.72rem;
+            color: #718096;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+        .avail-badge {
+            background: #c6f6d5;
+            color: #276749;
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        
+        /* Custom Tabs & Pills Styling */
+        .custom-nav-tabs { border-bottom: 2px solid #e2e8f0; gap: 8px; margin-bottom: 20px; }
+        .custom-nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; border-radius: 10px 10px 0 0; padding: 12px 24px; transition: all 0.3s ease; font-size: 1.05rem; }
+        .custom-nav-tabs .nav-link:hover { color: #4361ee; background: #f8fafc; }
+        .custom-nav-tabs .nav-link.active { color: #4361ee; background: transparent; border-bottom: 3px solid #4361ee; }
+        
+        .custom-nav-pills { gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 14px; display: inline-flex; flex-wrap: wrap; margin-bottom: 25px; }
+        .custom-nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; font-size: 0.95rem; }
+        .custom-nav-pills .nav-link:hover { background: #e2e8f0; color: #1e293b; }
+        .custom-nav-pills .nav-link.active { background: #4361ee; color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
     </style>
 </head>
 
@@ -642,6 +720,69 @@ if(isset($_POST['submit'])) {
                             </form>
                         </div>
                     </div>
+
+                    <!-- Already Added Rooms Display -->
+                    <div class="room-form-card mt-5">
+                        <div class="room-card-header" style="padding: 24px 36px; background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+                            <h2><i class="fas fa-list"></i> Already Added Rooms</h2>
+                            <p>View the existing room layout to avoid duplicating rooms.</p>
+                        </div>
+                        <div class="room-card-body">
+                            <?php if (empty($rooms_by_block)): ?>
+                                <div class="alert alert-info border-0 shadow-sm" style="border-radius:10px;"><i class="fas fa-info-circle me-2"></i>No rooms have been added to the system yet. Use the form above to generate your first blocks!</div>
+                            <?php else: ?>
+                                <!-- Blocks Tabs -->
+                                <ul class="nav custom-nav-tabs" id="blockTabs" role="tablist">
+                                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link <?php echo $i===0?'active':''; ?>" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
+                                        </li>
+                                    <?php $i++; endforeach; ?>
+                                </ul>
+
+                                <!-- Blocks Content -->
+                                <div class="tab-content pt-3" id="blockTabsContent">
+                                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                                        <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
+                                            
+                                            <!-- Sides Pills -->
+                                            <ul class="nav custom-nav-pills mb-3" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
+                                                <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                    <li class="nav-item" role="presentation">
+                                                        <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
+                                                    </li>
+                                                <?php $j++; endforeach; ?>
+                                            </ul>
+                                            
+                                            <!-- Sides Content -->
+                                            <div class="tab-content" id="pills-Content-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>">
+                                                <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                    <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
+                                                        
+                                                        <div class="room-grid border rounded p-3 bg-light">
+                                                            <?php foreach ($side_rooms as $rm): ?>
+                                                            <div class="room-card" title="Room already exists">
+                                                                <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
+                                                                <div class="room-meta">
+                                                                    <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
+                                                                    <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
+                                                                </div>
+                                                                <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> ADDED</div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+
+                                                    </div>
+                                                <?php $j++; endforeach; ?>
+                                            </div>
+
+                                        </div>
+                                    <?php $i++; endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>
