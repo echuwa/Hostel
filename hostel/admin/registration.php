@@ -93,6 +93,34 @@ if(isset($_POST['submit'])) {
         $_SESSION['errors'] = $errors;
     }
 }
+
+// Fetch ALL rooms with occupancy count (including full ones)
+$rooms = [];
+$room_query = "SELECT r.room_no, r.seater, r.fees,
+                (SELECT COUNT(*) FROM registration reg WHERE reg.roomno = r.room_no) AS occupied
+               FROM rooms r
+               ORDER BY r.room_no";
+if($stmt = $mysqli->prepare($room_query)) {
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($room = $res->fetch_object()) {
+        if (preg_match('/^([A-Z0-9]+[A-Z])-/i', $room->room_no, $m)) {
+            $room->block = strtoupper($m[1]);
+        } else {
+            $room->block = 'Other';
+        }
+        $room->is_full = ($room->occupied >= $room->seater);
+        $rooms[] = $room;
+    }
+    $stmt->close();
+}
+
+// Group rooms by block
+$rooms_by_block = [];
+foreach ($rooms as $rm) {
+    $rooms_by_block[$rm->block][] = $rm;
+}
+ksort($rooms_by_block);
 ?>
 
 <!DOCTYPE html>
@@ -252,6 +280,100 @@ if(isset($_POST['submit'])) {
             margin: 4px; cursor: pointer; transition: all 0.2s;
         }
         .btn-modal-secondary:hover { background: #e2e8f0; }
+
+        /* ============ ROOM BLOCK GRID ============ */
+        .block-section {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .block-header {
+            background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+            color: #fff;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .block-stats {
+            background: rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            padding: 14px;
+            background: #fafbff;
+        }
+        .room-card {
+            border-radius: 10px;
+            padding: 12px 10px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            position: relative;
+            transition: all 0.2s ease;
+            background: #fff;
+        }
+        .room-available {
+            cursor: pointer;
+            border-color: #c6f6d5;
+        }
+        .room-available:hover {
+            border-color: #38a169;
+            box-shadow: 0 4px 15px rgba(56,161,105,0.2);
+            transform: translateY(-2px);
+        }
+        .room-selected {
+            border-color: #4361ee !important;
+            background: #eef2ff !important;
+            box-shadow: 0 4px 18px rgba(67,97,238,0.25) !important;
+        }
+        .room-full {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        .room-number {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 6px;
+        }
+        .room-meta {
+            font-size: 0.72rem;
+            color: #718096;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+        .room-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .full-badge {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        .avail-badge {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .room-selected .avail-badge {
+            background: #4361ee;
+            color: #fff;
+        }
     </style>
 
 </head>
@@ -285,8 +407,8 @@ if(isset($_POST['submit'])) {
                 <button class="btn-modal-primary" onclick="registerAnother()">
                     <i class="fas fa-user-plus me-1"></i> Register Another
                 </button>
-                <button class="btn-modal-secondary" onclick="goToDashboard()">
-                    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                <button class="btn-modal-secondary" onclick="goToLogin()">
+                    <i class="fas fa-sign-in-alt me-1"></i> Go to Login
                 </button>
             </div>
         </div>
@@ -341,28 +463,63 @@ if(isset($_POST['submit'])) {
 			 <!-- Room Info -->
 			 <div class="form-section">
                     <h4 class="form-title">Room Information</h4>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="fas fa-building me-1"></i> Select Room</label>
+                        <input type="hidden" name="room" id="room" required>
+                        <input type="hidden" name="seater" id="seater">
+                        
+                        <?php if (empty($rooms_by_block)): ?>
+                            <div class="alert alert-warning">No rooms available.</div>
+                        <?php else: ?>
+                            <?php foreach ($rooms_by_block as $block_name => $block_rooms): ?>
+                            <div class="block-section mb-3">
+                                <div class="block-header">
+                                    <i class="fas fa-layer-group me-2"></i>
+                                    <?php echo ($block_name === 'Other') ? 'General Rooms' : 'Block ' . htmlspecialchars($block_name); ?>
+                                    <span class="block-stats">
+                                        <?php
+                                        $avail = count(array_filter($block_rooms, fn($r) => !$r->is_full));
+                                        $total = count($block_rooms);
+                                        ?>
+                                        <?php echo $avail; ?>/<?php echo $total; ?> Available
+                                    </span>
+                                </div>
+                                <div class="room-grid">
+                                    <?php foreach ($block_rooms as $rm): ?>
+                                    <?php
+                                    $is_full = $rm->is_full;
+                                    $remaining = $rm->seater - $rm->occupied;
+                                    ?>
+                                    <div class="room-card <?php echo $is_full ? 'room-full' : 'room-available'; ?>"
+                                         onclick="<?php echo $is_full ? '' : 'selectRoom(this, \'' . htmlspecialchars($rm->room_no, ENT_QUOTES) . '\', ' . $rm->seater . ', ' . $rm->fees . ')'; ?>"
+                                         title="<?php echo $is_full ? 'Room Full' : 'Click to select'; ?>">
+                                        <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
+                                        <div class="room-meta">
+                                            <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
+                                            <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
+                                        </div>
+                                        <?php if ($is_full): ?>
+                                            <div class="room-badge full-badge"><i class="fas fa-times-circle"></i> FULL</div>
+                                        <?php else: ?>
+                                            <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        <div class="invalid-feedback d-block" id="room-error" style="display:none !important;">Please select a room.</div>
+                    </div>
+                    
+                    <div class="row g-3 mt-0 mb-3" id="room-details-row" style="display:none !important;">
+                        <div class="col-md-12"><div class="alert alert-info py-2" id="selected-room-info"></div></div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Room Number</label>
-                            <select name="room" id="room" class="form-control" onChange="getSeater(this.value);" required>
-                                <option value="">Select Room</option>
-                                <?php 
-                                $query = "SELECT * FROM rooms";
-                                $stmt = $mysqli->prepare($query);
-                                $stmt->execute();
-                                $res = $stmt->get_result();
-                                while($row = $res->fetch_object()) {
-                                    echo "<option value='{$row->room_no}'>{$row->room_no}</option>";
-                                }
-                                ?>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Seater</label>
-                            <input type="text" name="seater" id="seater" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Fees Per Month</label>
+                            <label class="form-label">Fee Per Student (TSH)</label>
                             <input type="text" name="fpm" id="fpm" class="form-control" readonly>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -373,18 +530,20 @@ if(isset($_POST['submit'])) {
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="foodstatus" value="1">
-                                <label class="form-check-label">With Food (TSH2000)</label>
+                                <label class="form-check-label">With Food (TSH2000/month)</label>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Stay From</label>
-                            <input type="date" name="stayf" class="form-control" required>
+                            <input type="date" name="stayf" id="stayf" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Duration (Months)</label>
+                            <label class="form-label">Duration (Semester)</label>
                             <select name="duration" class="form-control" required>
-                                <option value="">Select Duration</option>
-                                <?php for($i=1; $i<=12; $i++) { echo "<option value='$i'>$i</option>"; } ?>
+                                <option value="">-- Choose Semester --</option>
+                                <option value="5">📅 Semester 1 &nbsp;(5 months · Feb – Jun)</option>
+                                <option value="5">📅 Semester 2 &nbsp;(5 months · Jul – Nov)</option>
+                                <option value="10">🎓 Full Academic Year &nbsp;(10 months · Feb – Nov)</option>
                             </select>
                         </div>
                     </div>
@@ -612,28 +771,31 @@ if(isset($_POST['submit'])) {
             alert("Contact number must be 12 digits starting with 255 (255XXXXXXXXX)");
             return false;
         }
+
+        var roomVal = document.getElementById('room').value;
+        if (!roomVal) {
+            alert("Please select a room.");
+            return false;
+        }
         
         return true;
     }
 
-	function getSeater(val) {
-        $.ajax({
-            type: "POST",
-            url: "get_seater.php",
-            data: 'roomid=' + val,
-            success: function(data) {
-                $('#seater').val(data);
-            }
+	function selectRoom(el, roomNo, seater, fees) {
+        document.querySelectorAll('.room-card.room-available').forEach(function(c) {
+            c.classList.remove('room-selected');
         });
-
-        $.ajax({
-            type: "POST",
-            url: "get_seater.php",
-            data: 'rid=' + val,
-            success: function(data) {
-                $('#fpm').val(data);
-            }
-        });
+        el.classList.add('room-selected');
+        document.getElementById('room').value = roomNo;
+        document.getElementById('seater').value = seater;
+        document.getElementById('fpm').value = fees;
+        document.getElementById('room-error').style.setProperty('display','none','important');
+        var infoDiv = document.getElementById('selected-room-info');
+        var infoRow = document.getElementById('room-details-row');
+        if (infoDiv && infoRow) {
+            infoDiv.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> <strong>Room ' + roomNo + '</strong> selected &bull; ' + seater + ' Bed &bull; TSH ' + fees.toLocaleString() + '/= per student';
+            infoRow.style.setProperty('display','flex','important');
+        }
     }
 
     </script>
@@ -652,8 +814,8 @@ if(isset($_POST['submit'])) {
         window.location.href = 'registration.php';
     }
 
-    function goToDashboard() {
-        window.location.href = 'dashboard.php';
+    function goToLogin() {
+        window.location.href = '../index.php';
     }
     </script>
 </body>

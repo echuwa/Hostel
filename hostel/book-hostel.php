@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             'foodstatus' => filter_input(INPUT_POST, 'foodstatus', FILTER_VALIDATE_INT),
             'stayfrom' => filter_input(INPUT_POST, 'stayf', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'duration' => filter_input(INPUT_POST, 'duration', FILTER_VALIDATE_INT, [
-                'options' => ['min_range' => 1, 'max_range' => 12]
+                'options' => ['min_range' => 1, 'max_range' => 10]
             ]),
             'course' => filter_input(INPUT_POST, 'course', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'regno' => filter_input(INPUT_POST, 'regno', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
@@ -80,9 +80,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             'adcheck' => isset($_POST['adcheck']) ? 1 : 0
         ];
 
+        // Fields that are allowed to be empty or zero
+        $optional_fields = ['middleName', 'adcheck'];
+        $zero_ok_fields  = ['foodstatus']; // these can legitimately be 0
+
         foreach ($form_data as $key => $value) {
-            if (empty($value) && $value !== 0) {
-                $errors[] = ucfirst($key) . " is required";
+            if (in_array($key, $optional_fields)) continue;
+            if (in_array($key, $zero_ok_fields)) {
+                if ($value === null || $value === false || $value === '') {
+                    $errors[] = ucfirst($key) . " is required";
+                }
+            } else {
+                if (empty($value) && $value !== false) {
+                    $errors[] = ucfirst($key) . " is required";
+                }
             }
         }
 
@@ -90,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         if (strlen($form_data['egycontactno']) < 10) $errors[] = "Invalid emergency contact number (minimum 10 digits)";
         if (strlen($form_data['guardianContactno']) < 10) $errors[] = "Invalid guardian contact number (minimum 10 digits)";
         if (empty($form_data['roomno'])) $errors[] = "Invalid room selection";
-        if ($form_data['duration'] === false) $errors[] = "Invalid duration (must be 1-12 months)";
+        if ($form_data['duration'] === false) $errors[] = "Invalid duration selection";
 
         if (empty($errors)) {
             $room_check = $mysqli->prepare("SELECT (seater - (SELECT COUNT(*) FROM registration WHERE roomno = ?)) as available FROM rooms WHERE room_no = ? FOR UPDATE");
@@ -193,17 +204,36 @@ try {
     $has_booking = $stmt->num_rows > 0;
     $stmt->close();
 
+    // Fetch ALL rooms with occupancy count (including full ones)
     $rooms = [];
-    $room_query = "SELECT r.room_no, r.seater, r.fees FROM rooms r
-                   WHERE (SELECT COUNT(*) FROM registration reg WHERE reg.roomno = r.room_no) < r.seater";
+    $room_query = "SELECT r.room_no, r.seater, r.fees,
+                    (SELECT COUNT(*) FROM registration reg WHERE reg.roomno = r.room_no) AS occupied
+                   FROM rooms r
+                   ORDER BY r.room_no";
     $stmt = $mysqli->prepare($room_query);
     if (!$stmt) throw new Exception("Prepare failed: " . $mysqli->error);
     
     if (!$stmt->execute()) throw new Exception("Execute failed: " . $stmt->error);
     
     $res = $stmt->get_result();
-    while ($room = $res->fetch_object()) $rooms[] = $room;
+    while ($room = $res->fetch_object()) {
+        // Derive block from room_no pattern e.g. "1A-G01" -> block = "1A"
+        if (preg_match('/^([A-Z0-9]+[A-Z])-/i', $room->room_no, $m)) {
+            $room->block = strtoupper($m[1]);
+        } else {
+            $room->block = 'Other';
+        }
+        $room->is_full = ($room->occupied >= $room->seater);
+        $rooms[] = $room;
+    }
     $stmt->close();
+
+    // Group rooms by block
+    $rooms_by_block = [];
+    foreach ($rooms as $rm) {
+        $rooms_by_block[$rm->block][] = $rm;
+    }
+    ksort($rooms_by_block);
 
     $courses = [];
     $course_query = "SELECT * FROM courses";
@@ -334,7 +364,101 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         .success-modal h3 { font-size: 1.4rem; font-weight: 800; color: #1a202c; margin-bottom: 8px; }
         .success-modal p  { color: #718096; font-size: 0.9rem; margin-bottom: 20px; }
-        
+
+        /* ============ ROOM BLOCK GRID ============ */
+        .block-section {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .block-header {
+            background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+            color: #fff;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .block-stats {
+            background: rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            padding: 14px;
+            background: #fafbff;
+        }
+        .room-card {
+            border-radius: 10px;
+            padding: 12px 10px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            position: relative;
+            transition: all 0.2s ease;
+            background: #fff;
+        }
+        .room-available {
+            cursor: pointer;
+            border-color: #c6f6d5;
+        }
+        .room-available:hover {
+            border-color: #38a169;
+            box-shadow: 0 4px 15px rgba(56,161,105,0.2);
+            transform: translateY(-2px);
+        }
+        .room-selected {
+            border-color: #4361ee !important;
+            background: #eef2ff !important;
+            box-shadow: 0 4px 18px rgba(67,97,238,0.25) !important;
+        }
+        .room-full {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        .room-number {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 6px;
+        }
+        .room-meta {
+            font-size: 0.72rem;
+            color: #718096;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+        .room-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .full-badge {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        .avail-badge {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        .room-selected .avail-badge {
+            background: #4361ee;
+            color: #fff;
+        }
+
         .btn-modal-primary {
             background: linear-gradient(135deg, #4361ee, #7b2ff7);
             color: #fff; border: none; text-decoration: none;
@@ -429,37 +553,68 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                     <div class="form-section animate__animated animate__fadeIn">
                                         <h4><i class="fas fa-door-open me-2"></i>Room Information</h4>
                                         
-                                        <div class="row g-3">
-                                            <!-- Room Number -->
-                                            <div class="col-md-6">
-                                                <label for="room" class="form-label">Room Number</label>
-                                                <div class="icon-input">
-                                                    <i class="fas fa-home"></i>
-                                                    <select name="room" id="room" class="form-control" onChange="getSeater(this.value); checkAvailability();" required>
-                                                        <option value="">Select Room</option>
-                                                        <?php foreach($rooms as $room): ?>
-                                                        <option value="<?php echo htmlspecialchars($room->room_no); ?>"
-                                                            <?php echo isset($_SESSION['form_data']['roomno']) && $_SESSION['form_data']['roomno'] == $room->room_no ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars($room->room_no); ?> (<?php echo htmlspecialchars($room->seater); ?> seater)
-                                                        </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <div class="invalid-feedback">
-                                                        Please select a room.
-                                                    </div>
-                                                </div>
-                                                <div id="room-availability-status" class="small mt-1"></div>
-                                                <div id="loaderIcon" class="loader mt-1"></div>
-                                            </div>
+                                        <!-- ROOM SELECTION BY BLOCK -->
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold"><i class="fas fa-building me-1"></i> Select Room</label>
+                                            <input type="hidden" name="room" id="room" required>
+                                            <div id="room-availability-status" class="small mt-1"></div>
                                             
-                                            <!-- Seater -->
-                                            <div class="col-md-6">
-                                                <label for="seater" class="form-label">Seater</label>
-                                                <div class="icon-input">
-                                                    <i class="fas fa-users"></i>
-                                                    <input type="text" name="seater" id="seater" class="form-control" 
-                                                        value="<?php echo isset($_SESSION['form_data']['seater']) ? htmlspecialchars($_SESSION['form_data']['seater']) : ''; ?>" readonly>
+                                            <?php if (empty($rooms_by_block)): ?>
+                                                <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No rooms available at the moment.</div>
+                                            <?php else: ?>
+                                            <?php foreach ($rooms_by_block as $block_name => $block_rooms): ?>
+                                            <div class="block-section mb-3">
+                                                <div class="block-header">
+                                                    <i class="fas fa-layer-group me-2"></i>
+                                                    <?php echo ($block_name === 'Other') ? 'General Rooms' : 'Block ' . htmlspecialchars($block_name); ?>
+                                                    <span class="block-stats">
+                                                        <?php
+                                                        $avail = count(array_filter($block_rooms, fn($r) => !$r->is_full));
+                                                        $total = count($block_rooms);
+                                                        ?>
+                                                        <?php echo $avail; ?>/<?php echo $total; ?> Available
+                                                    </span>
                                                 </div>
+                                                <div class="room-grid">
+                                                    <?php foreach ($block_rooms as $rm): ?>
+                                                    <?php
+                                                    $is_full = $rm->is_full;
+                                                    $is_selected = isset($_SESSION['form_data']['roomno']) && $_SESSION['form_data']['roomno'] == $rm->room_no;
+                                                    $remaining = $rm->seater - $rm->occupied;
+                                                    ?>
+                                                    <div class="room-card <?php echo $is_full ? 'room-full' : 'room-available'; ?> <?php echo $is_selected ? 'room-selected' : ''; ?>"
+                                                         onclick="<?php echo $is_full ? '' : 'selectRoom(this, \'' . htmlspecialchars($rm->room_no, ENT_QUOTES) . '\', ' . $rm->seater . ', ' . $rm->fees . ')'; ?>"
+                                                         title="<?php echo $is_full ? 'Room Full' : 'Click to select'; ?>">
+                                                        <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
+                                                        <div class="room-meta">
+                                                            <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
+                                                            <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
+                                                        </div>
+                                                        <?php if ($is_full): ?>
+                                                            <div class="room-badge full-badge"><i class="fas fa-times-circle"></i> FULL</div>
+                                                        <?php else: ?>
+                                                            <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                            <?php endif; ?>
+                                            
+                                            <div class="invalid-feedback d-block" id="room-error" style="display:none !important;"></div>
+                                        </div>
+
+                                        <div class="row g-3 mt-0" id="room-details-row" style="display:none !important;">
+                                        <div class="col-md-12"><div class="alert alert-info py-2" id="selected-room-info"></div></div>
+                                        </div>
+
+                                        <div class="col-md-0" style="display:none;"><!-- placeholder --></div>
+                                            
+                                            <!-- Seater (hidden, filled by JS) -->
+                                            <div class="col-md-6" style="display:none;">
+                                                <input type="text" name="seater" id="seater" class="form-control" 
+                                                    value="<?php echo isset($_SESSION['form_data']['seater']) ? htmlspecialchars($_SESSION['form_data']['seater']) : ''; ?>" readonly>
                                             </div>
                                             
                                             <!-- Fees -->
@@ -506,24 +661,38 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                                 </div>
                                             </div>
                                             
-                                            <!-- Duration -->
+                                            <!-- Duration - Semester Based -->
                                             <div class="col-md-6">
-                                                <label for="duration" class="form-label">Duration (Months)</label>
+                                                <label for="duration" class="form-label">Duration (Semester)</label>
                                                 <div class="icon-input">
-                                                    <i class="fas fa-clock"></i>
+                                                    <i class="fas fa-calendar-check"></i>
                                                     <select name="duration" id="duration" class="form-control" required>
-                                                        <option value="">Select Duration</option>
-                                                        <?php for($i=1; $i<=12; $i++): ?>
-                                                        <option value="<?php echo $i; ?>"
-                                                            <?php echo isset($_SESSION['form_data']['duration']) && $_SESSION['form_data']['duration'] == $i ? 'selected' : ''; ?>>
-                                                            <?php echo $i; ?>
-                                                        </option>
-                                                        <?php endfor; ?>
+                                                        <option value="">-- Choose Semester --</option>
+                                                        <?php
+                                                        $semester_options = [
+                                                            ['value' => 5,  'label' => 'Semester 1 (5 months)',    'sub' => 'Feb – Jun'],
+                                                            ['value' => 5,  'label' => 'Semester 2 (5 months)',    'sub' => 'Jul – Nov'],
+                                                            ['value' => 10, 'label' => 'Full Academic Year (10 months)', 'sub' => 'Feb – Nov'],
+                                                        ];
+                                                        // De-duplicate keys to allow separate selection
+                                                        $sem_keys = [5, 6, 10];
+                                                        $sem_list = [
+                                                            ['value' => 5,  'label' => 'Semester 1  (5 months · Feb – Jun)'],
+                                                            ['value' => 5,  'label' => 'Semester 2  (5 months · Jul – Nov)', 'key' => '5b'],
+                                                            ['value' => 10, 'label' => 'Full Academic Year  (10 months · Feb – Nov)'],
+                                                        ];
+                                                        // Use simple defined list
+                                                        $saved_dur = isset($_SESSION['form_data']['duration']) ? intval($_SESSION['form_data']['duration']) : 0;
+                                                        ?>
+                                                        <option value="5" <?php echo $saved_dur === 5 ? 'selected' : ''; ?>>📅 Semester 1 &nbsp;(5 months · Feb – Jun)</option>
+                                                        <option value="5" <?php echo $saved_dur === 5 ? 'selected' : ''; ?>>📅 Semester 2 &nbsp;(5 months · Jul – Nov)</option>
+                                                        <option value="10" <?php echo $saved_dur === 10 ? 'selected' : ''; ?>>🎓 Full Academic Year &nbsp;(10 months · Feb – Nov)</option>
                                                     </select>
                                                     <div class="invalid-feedback">
-                                                        Please select duration.
+                                                        Please select a semester duration.
                                                     </div>
                                                 </div>
+                                                <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle me-1"></i>Based on the academic calendar (2 semesters per year).</small>
                                             </div>
                                         </div>
                                     </div>
@@ -650,15 +819,23 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                                 </div>
                                             </div>
                                             
-                                            <!-- Guardian Relation -->
+                                             <!-- Guardian Relation (dropdown) -->
                                             <div class="col-md-4">
                                                 <label for="grelation" class="form-label">Relation</label>
                                                 <div class="icon-input">
                                                     <i class="fas fa-users"></i>
-                                                    <input type="text" name="grelation" id="grelation" class="form-control" 
-                                                        value="<?php echo isset($_SESSION['form_data']['guardianRelation']) ? htmlspecialchars($_SESSION['form_data']['guardianRelation']) : ''; ?>" required>
+                                                    <select name="grelation" id="grelation" class="form-control" required>
+                                                        <option value="">-- Select Relation --</option>
+                                                        <?php
+                                                        $grel_options = ['Father','Mother','Brother','Sister','Uncle','Aunt','Spouse','Grandparent','Guardian','Other'];
+                                                        $saved_grel = $_SESSION['form_data']['guardianRelation'] ?? '';
+                                                        foreach ($grel_options as $gr):
+                                                        ?>
+                                                        <option value="<?php echo $gr; ?>" <?php echo $saved_grel === $gr ? 'selected' : ''; ?>><?php echo $gr; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                     <div class="invalid-feedback">
-                                                        Please specify your relationship with guardian.
+                                                        Please select your relation with the guardian.
                                                     </div>
                                                 </div>
                                             </div>
@@ -700,15 +877,27 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                                 </div>
                                             </div>
                                             
-                                            <!-- Country -->
+                                            <!-- Country (dropdown) -->
                                             <div class="col-md-4">
                                                 <label for="country" class="form-label">Country</label>
                                                 <div class="icon-input">
                                                     <i class="fas fa-globe"></i>
-                                                    <input type="text" name="country" id="country" class="form-control" 
-                                                        value="<?php echo isset($_SESSION['form_data']['corresCountry']) ? htmlspecialchars($_SESSION['form_data']['corresCountry']) : ''; ?>" required>
+                                                    <select name="country" id="country" class="form-control" required>
+                                                        <option value="">-- Select Country --</option>
+                                                        <?php
+                                                        $countries_list = [
+                                                            'Tanzania','Kenya','Uganda','Rwanda','Burundi',
+                                                            'Ethiopia','Somalia','South Sudan','Democratic Republic of Congo',
+                                                            'Mozambique','Malawi','Zambia','Zimbabwe','Other'
+                                                        ];
+                                                        $saved_country = $_SESSION['form_data']['corresCountry'] ?? '';
+                                                        foreach ($countries_list as $cn):
+                                                        ?>
+                                                        <option value="<?php echo $cn; ?>" <?php echo $saved_country === $cn ? 'selected' : ''; ?>><?php echo $cn; ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                     <div class="invalid-feedback">
-                                                        Please provide your country.
+                                                        Please select your country.
                                                     </div>
                                                 </div>
                                             </div>
@@ -760,15 +949,22 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                                     </div>
                                                 </div>
                                                 
-                                                <!-- Country -->
+                                                <!-- Country (dropdown) -->
                                                 <div class="col-md-4">
                                                     <label for="pcountry" class="form-label">Country</label>
                                                     <div class="icon-input">
                                                         <i class="fas fa-globe"></i>
-                                                        <input type="text" name="pcountry" id="pcountry" class="form-control" 
-                                                            value="<?php echo isset($_SESSION['form_data']['pmntCountry']) ? htmlspecialchars($_SESSION['form_data']['pmntCountry']) : ''; ?>" required>
+                                                        <select name="pcountry" id="pcountry" class="form-control" required>
+                                                            <option value="">-- Select Country --</option>
+                                                            <?php
+                                                            $saved_pcountry = $_SESSION['form_data']['pmntCountry'] ?? '';
+                                                            foreach ($countries_list as $cn2):
+                                                            ?>
+                                                            <option value="<?php echo $cn2; ?>" <?php echo $saved_pcountry === $cn2 ? 'selected' : ''; ?>><?php echo $cn2; ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
                                                         <div class="invalid-feedback">
-                                                            Please provide your country.
+                                                            Please select your country.
                                                         </div>
                                                     </div>
                                                 </div>
@@ -818,11 +1014,47 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/jquery.min.js"></script>
     <script>
+    // ============ ROOM CARD SELECTION ============
+    function selectRoom(el, roomNo, seater, fees) {
+        // Deselect all
+        document.querySelectorAll('.room-card.room-available').forEach(function(c) {
+            c.classList.remove('room-selected');
+        });
+        // Select clicked
+        el.classList.add('room-selected');
+        // Set hidden input values
+        document.getElementById('room').value = roomNo;
+        document.getElementById('seater').value = seater;
+        document.getElementById('fpm').value = fees;
+        // Clear error
+        document.getElementById('room-error').style.setProperty('display','none','important');
+        // Show info banner
+        var infoDiv = document.getElementById('selected-room-info');
+        var infoRow = document.getElementById('room-details-row');
+        if (infoDiv && infoRow) {
+            infoDiv.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> <strong>Room ' + roomNo + '</strong> selected &bull; ' + seater + ' Bed &bull; TSH ' + fees.toLocaleString() + '/= per student';
+            infoRow.style.setProperty('display','flex','important');
+        }
+    }
+
+    // Form validation including room selection check
     (function() {
         'use strict';
         var forms = document.querySelectorAll('.needs-validation');
         Array.prototype.slice.call(forms).forEach(function(form) {
             form.addEventListener('submit', function(event) {
+                var roomVal = document.getElementById('room') ? document.getElementById('room').value : '';
+                if (!roomVal) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var errEl = document.getElementById('room-error');
+                    if (errEl) {
+                        errEl.textContent = 'Please select a room from the list above.';
+                        errEl.style.setProperty('display','block','important');
+                        errEl.scrollIntoView({behavior:'smooth', block:'center'});
+                    }
+                    return;
+                }
                 if (!form.checkValidity()) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -832,61 +1064,6 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         });
     })();
     
-    function getSeater(val) {
-        if (!val) return;
-        
-        $.ajax({
-            type: "POST",
-            url: "get_seater.php",
-            data: 'roomid=' + val,
-            success: function(data) {
-                $('#seater').val(data);
-            },
-            error: function() {
-                $('#seater').val('');
-                console.error("Error fetching seater information");
-            }
-        });
-
-        $.ajax({
-            type: "POST",
-            url: "get_seater.php",
-            data: 'rid=' + val,
-            success: function(data) {
-                $('#fpm').val(data);
-            },
-            error: function() {
-                $('#fpm').val('');
-                console.error("Error fetching fees information");
-            }
-        });
-    }
-    
-    function checkAvailability() {
-        var roomno = $("#room").val();
-        if (!roomno) {
-            $("#room-availability-status").html('');
-            return;
-        }
-        
-        $("#loaderIcon").show();
-        $("#room-availability-status").html('');
-        
-        $.ajax({
-            url: "check_availability.php",
-            data: 'roomno=' + roomno,
-            type: "POST",
-            success: function(data) {
-                $("#room-availability-status").html(data);
-                $("#loaderIcon").hide();
-            },
-            error: function() {
-                $("#room-availability-status").html('<span class="text-danger">Error checking availability</span>');
-                $("#loaderIcon").hide();
-            }
-        });
-    }
-
     <?php if(isset($_GET['success']) && isset($_SESSION['booking_success'])): ?>
     window.addEventListener('DOMContentLoaded', function() {
         var overlay = document.getElementById('bookSuccessOverlay');
@@ -907,7 +1084,9 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         
         function copyAddressFields() {
             $('#paddress').val($('#address').val());
+            // Copy country dropdown
             $('#pcountry').val($('#country').val());
+            // Copy state dropdown
             $('#pstate').val($('#state').val());
         }
         
@@ -919,6 +1098,19 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             var today = new Date().toISOString().split('T')[0];
             $('#stayf').val(today);
         }
+
+        // Pre-select room if form_data session restored
+        <?php if(isset($_SESSION['form_data']['roomno']) && !empty($_SESSION['form_data']['roomno'])): ?>
+        var savedRoom = "<?php echo addslashes($_SESSION['form_data']['roomno']); ?>";
+        if (savedRoom) {
+            var cards = document.querySelectorAll('.room-available');
+            cards.forEach(function(card) {
+                if (card.querySelector('.room-number') && card.querySelector('.room-number').textContent.trim() === savedRoom) {
+                    card.classList.add('room-selected');
+                }
+            });
+        }
+        <?php endif; ?>
     });
     </script>
 </body>

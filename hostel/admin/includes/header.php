@@ -8,15 +8,20 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        body {
+            font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            background: #f4f6fb;
+        }
         .brand {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
-            background: linear-gradient(135deg, #2c3136, #3a4149);
+            padding: 0 24px;
+            background: linear-gradient(135deg, #4361ee 0%, #7b2ff7 100%);
             color: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            height: 60px;
+            box-shadow: 0 3px 16px rgba(67,97,238,0.3);
+            height: 64px;
             position: fixed;
             top: 0;
             left: 0;
@@ -41,8 +46,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         }
         
         .logo i {
-            font-size: 1.3rem;
-            color: #37a6c4;
+            display: none; /* Hide old icon to match student layout */
         }
         
         .logo:hover {
@@ -53,8 +57,8 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         /* Mobile sidebar toggle */
         .sidebar-mobile-toggle {
             display: none;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
             border-radius: 8px;
             color: #fff;
             width: 38px;
@@ -67,7 +71,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         }
         
         .sidebar-mobile-toggle:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.25);
         }
         
         /* Profile nav */
@@ -84,51 +88,75 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         .ts-account > a {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             color: #fff;
             text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            background: rgba(255,255,255,0.1);
-            transition: background 0.2s;
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.28);
+            backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
         
         .ts-account > a:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.32);
             color: #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
         }
 
         .ts-account > a .avatar-circle {
-            width: 30px;
-            height: 30px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
-            background: #37a6c4;
+            background: linear-gradient(135deg, #b5179e, #7209b7);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
+            font-weight: 800;
+            font-size: 0.95rem;
             color: #fff;
+            box-shadow: 0 2px 8px rgba(114,9,183,0.4);
+            flex-shrink: 0;
+        }
+
+        .ts-account > a .user-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .ts-account > a .user-info .user-label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            opacity: 0.75;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .ts-account > a .user-info .username {
+            font-size: 0.88rem;
+            font-weight: 700;
         }
         
         .ts-account ul {
             position: absolute;
             right: 0;
-            top: calc(100% + 8px);
+            top: calc(100% + 10px);
             background: #fff;
-            min-width: 190px;
-            border-radius: 10px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            min-width: 210px;
+            border-radius: 14px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.18);
             list-style: none;
-            padding: 8px 0;
+            padding: 10px 0;
             margin: 0;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-8px);
+            transform: translateY(-10px);
             transition: all 0.25s ease;
             z-index: 1000;
+            border: 1px solid rgba(0,0,0,0.06);
         }
         
         .ts-account:hover ul,
@@ -141,45 +169,87 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         .ts-account ul::before {
             content: '';
             position: absolute;
-            top: -6px;
-            right: 16px;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-bottom: 6px solid #fff;
+            top: -7px;
+            right: 20px;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-bottom: 7px solid #fff;
+            filter: drop-shadow(0 -2px 2px rgba(0,0,0,0.06));
+        }
+
+        /* Dropdown profile header */
+        .ts-account ul .dd-profile-head {
+            padding: 12px 18px 10px;
+            border-bottom: 1px solid #f0f2f5;
+            margin-bottom: 4px;
+        }
+        .ts-account ul .dd-profile-head .dd-name {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #1a202c;
+        }
+        .ts-account ul .dd-profile-head .dd-role {
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 500;
         }
         
         .ts-account ul li a {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             padding: 10px 18px;
-            color: #444;
+            color: #2d3748;
+            font-weight: 600;
             text-decoration: none;
-            font-size: 0.88rem;
+            font-size: 0.875rem;
             transition: all 0.15s;
+            border-radius: 0;
         }
         
+        .ts-account ul li a .menu-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f0f4ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: #4361ee;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
         .ts-account ul li a:hover {
-            background: #f0f5ff;
-            color: #3a7bd5;
-            padding-left: 22px;
+            background: #f7f8ff;
+            color: #4361ee;
         }
         
-        .ts-account ul li a i {
-            width: 18px;
-            text-align: center;
-            font-size: 0.9rem;
-            color: #37a6c4;
+        .ts-account ul li a:hover .menu-icon {
+            background: #4361ee;
+            color: #fff;
+        }
+
+        .ts-account ul li.logout-item a {
+            color: #e74a3b;
+        }
+        .ts-account ul li.logout-item a .menu-icon {
+            background: #fff5f5;
+            color: #e74a3b;
+        }
+        .ts-account ul li.logout-item a:hover {
+            background: #fff5f5;
+            color: #c53030;
+        }
+        .ts-account ul li.logout-item a:hover .menu-icon {
+            background: #e74a3b;
+            color: #fff;
         }
 
         .ts-account ul li:last-child a {
-            color: #e74a3b;
-            border-top: 1px solid #f0f0f0;
+            border-top: 1px solid #f0f2f5;
             margin-top: 4px;
-        }
-
-        .ts-account ul li:last-child a i {
-            color: #e74a3b;
         }
         
         @media (max-width: 768px) {
@@ -199,14 +269,35 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 </head>
 <body>
     <div class="brand">
+        <?php 
+        $currentPage = basename($_SERVER['PHP_SELF']);
+        $pageTitle = "Admin Dashboard";
+        switch ($currentPage) {
+            case 'manage-students.php': $pageTitle = 'Manage Students'; break;
+            case 'create-room.php': $pageTitle = 'Create Room'; break;
+            case 'manage-rooms.php': $pageTitle = 'Manage Rooms'; break;
+            case 'new-complaints.php': $pageTitle = 'New Complaints'; break;
+            case 'inprocess-complaints.php': $pageTitle = 'In Process'; break;
+            case 'closed-complaints.php': $pageTitle = 'Closed Complaints'; break;
+            case 'all-complaints.php': $pageTitle = 'All Complaints'; break;
+            case 'manage-courses.php': $pageTitle = 'Manage Courses'; break;
+        }
+        $currentDate = date("F j, Y");
+        ?>
         <div class="brand-left">
             <button class="sidebar-mobile-toggle" id="adminMobileSidebarToggle" aria-label="Toggle Menu">
                 <i class="fas fa-bars"></i>
             </button>
-            <a href="dashboard.php" class="logo">
-                <i class="fas fa-building"></i>
-                <span>HostelMS Admin</span>
-            </a>
+            <div class="header-page-info" style="margin-left: 10px; display: flex; align-items: center; gap: 20px;">
+                <div style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-th-large" style="font-size: 1.1rem; opacity: 0.9;"></i> 
+                    <span class="page-title-text" style="display:inline-block;"><?php echo $pageTitle; ?></span>
+                </div>
+                <div class="header-calendar d-none d-md-flex" style="background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; align-items: center; gap: 8px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); display:flex;">
+                    <i class="far fa-calendar-alt"></i> 
+                    <span><?php echo $currentDate; ?></span>
+                </div>
+            </div>
         </div>
         
         <ul class="ts-profile-nav">
@@ -214,17 +305,31 @@ if (session_status() === PHP_SESSION_NONE) session_start();
                 <a href="#" id="adminProfileToggle">
                     <div class="avatar-circle">
                         <?php
-                        $aname = $_SESSION['username'] ?? $_SESSION['login'] ?? 'A';
+                        $aname = $_SESSION['username'] ?? 'Admin';
+                        $adminDisplay = ucfirst($aname);
                         echo strtoupper(substr($aname, 0, 1));
                         ?>
                     </div>
-                    <span class="username"><?php echo htmlspecialchars($aname); ?></span>
-                    <i class="fa fa-angle-down"></i>
+                    <div class="user-info">
+                        <span class="user-label">Admin</span>
+                        <span class="username"><?php echo htmlspecialchars($adminDisplay); ?></span>
+                    </div>
+                    <i class="fa fa-angle-down" style="margin-left:4px; font-size:0.8rem;"></i>
                 </a>
                 <ul>
-                    <li><a href="admin-profile.php"><i class="fas fa-user"></i> My Profile</a></li>
-                    <li><a href="change-password.php"><i class="fas fa-key"></i> Change Password</a></li>
-                    <li><a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    <li class="dd-profile-head" style="list-style:none;">
+                        <div class="dd-name"><?php echo htmlspecialchars($adminDisplay); ?></div>
+                        <div class="dd-role">System Administrator</div>
+                    </li>
+                    <li><a href="admin-profile.php">
+                        <span class="menu-icon"><i class="fas fa-user"></i></span> My Profile
+                    </a></li>
+                    <li><a href="change-password.php">
+                        <span class="menu-icon"><i class="fas fa-key"></i></span> Change Password
+                    </a></li>
+                    <li class="logout-item"><a href="../logout.php">
+                        <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span> Logout
+                    </a></li>
                 </ul>
             </li>
         </ul>

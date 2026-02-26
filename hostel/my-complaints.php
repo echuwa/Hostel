@@ -149,12 +149,12 @@ check_login();
                                             </td>
                                             <td><?php echo date('d M Y', strtotime($row->registrationDate)); ?></td>
                                             <td>
-                                                <a href="complaint-details.php?cid=<?php echo $row->id; ?>" 
-                                                   class="action-btn view-btn" 
-                                                   title="View Details"
-                                                   data-bs-toggle="tooltip">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
+                                                <form action="complaint-details.php" method="POST" style="display:inline; margin:0; padding:0;">
+                                                    <input type="hidden" name="cid" value="<?php echo $row->id; ?>">
+                                                    <button type="submit" class="action-btn view-btn" title="View Details" data-bs-toggle="tooltip" style="border:none; cursor:pointer;">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                         <?php

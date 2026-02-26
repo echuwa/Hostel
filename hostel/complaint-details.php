@@ -30,25 +30,28 @@ check_login();
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fc;
+            font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+            background-color: #f4f6fb;
             margin: 0;
             overflow-x: hidden;
-            color: #5a5c69;
+            color: #2d3748;
         }
 
         /* Sidebar & Header Setup */
         .ts-main-content {
             display: flex;
-            min-height: calc(100vh - 60px);
-            margin-top: 60px;
+            min-height: calc(100vh - 64px);
+            margin-top: 64px;
         }
 
         .content-wrapper {
             flex: 1;
-            padding: 1.5rem;
+            padding: 28px 32px;
             transition: all 0.3s;
             width: 100%;
+        }
+        @media (max-width: 768px) {
+            .content-wrapper { padding: 16px; }
         }
 
         /* Card Styles */
@@ -149,7 +152,11 @@ check_login();
 
                 <?php    
                 $aid = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
-                $cid = intval($_GET['cid']);
+                
+                if (isset($_POST['cid'])) {
+                    $_SESSION['view_cid'] = intval($_POST['cid']);
+                }
+                $cid = intval($_GET['cid'] ?? $_POST['cid'] ?? $_SESSION['view_cid'] ?? 0);
                 
                 $ret = "SELECT * FROM complaints WHERE id=? AND userId=?";
                 $stmt = $mysqli->prepare($ret);

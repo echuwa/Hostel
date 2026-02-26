@@ -1,12 +1,27 @@
 <?php
 session_start();
 include('includes/config.php');
-date_default_timezone_set('Asia/Kolkata');
+date_default_timezone_set('Africa/Nairobi');
 include('includes/checklogin.php');
 check_login();
 $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
+$uid_login = $_SESSION['login'] ?? '';
+
+// ============ CHECK: Student must have an assigned room ============
+$has_room = false;
+$stmt_room = $mysqli->prepare("SELECT id FROM registration WHERE emailid=? OR regno=? LIMIT 1");
+$stmt_room->bind_param('ss', $uid_login, $uid_login);
+$stmt_room->execute();
+$stmt_room->store_result();
+$has_room = $stmt_room->num_rows > 0;
+$stmt_room->close();
 
 if(isset($_POST['submit'])) {
+    if (!$has_room) {
+        $_SESSION['error'] = "Huwezi kutuma malalamiko. Unahitaji kwanza kupewa chumba na admin.";
+        header("Location: register-complaint.php");
+        exit();
+    }
     // Sanitize inputs
     $complainttype = htmlspecialchars(trim($_POST['ctype']));
     $complaintdetails = htmlspecialchars(trim($_POST['cdetails']));
@@ -165,11 +180,30 @@ if(isset($_POST['submit'])) {
                             
                             <!-- Display Success/Error Messages -->
                             <?php if(isset($_SESSION['error'])): ?>
-                                <div class="alert alert-danger">
-                                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
                             <?php endif; ?>
-                            
+
+                            <?php if (!$has_room): ?>
+                            <!-- NOT ELIGIBLE: No room assigned -->
+                            <div class="text-center py-5">
+                                <div style="width:90px;height:90px;background:linear-gradient(135deg,#fed7d7,#fc8181);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2.5rem;color:#c53030;">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+                                <h4 class="fw-bold text-dark">Huna Chumba Kilichopewa</h4>
+                                <p class="text-muted mb-4">Unahitaji kwanza kupewa chumba na admin ili uweze kutuma malalamiko.<br>Omba chumba hapa chini, na baada ya admin kukuidhinisha utaweza kutuma malalamiko.</p>
+                                <a href="book-hostel.php" class="btn btn-primary me-2">
+                                    <i class="fas fa-bed me-2"></i> Omba Chumba
+                                </a>
+                                <a href="dashboard.php" class="btn btn-outline-secondary">
+                                    <i class="fas fa-home me-2"></i> Rudi Dashboard
+                                </a>
+                            </div>
+
+                            <?php else: ?>
+                            <!-- ELIGIBLE: Has room -->
                             <form method="post" action="" name="complaint" class="needs-validation" novalidate enctype="multipart/form-data">
                                 <div class="row g-3">
                                     <!-- Complaint Type -->
@@ -227,6 +261,7 @@ if(isset($_POST['submit'])) {
                                     </div>
                                 </div>
                             </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -242,6 +277,7 @@ if(isset($_POST['submit'])) {
     
     <!-- Custom Scripts -->
     <script>
+    <?php if ($has_room): ?>
     // Form validation
     (function() {
         'use strict';
@@ -258,42 +294,48 @@ if(isset($_POST['submit'])) {
     })();
     
     // File upload display
-    document.getElementById('image').addEventListener('change', function(e) {
-        var fileName = '';
-        if(this.files && this.files.length > 1) {
-            fileName = (this.files.length + ' files selected');
-        } else {
-            fileName = this.files[0] ? this.files[0].name : '';
-        }
-        document.getElementById('file-name').textContent = fileName;
-    });
+    var imgInput = document.getElementById('image');
+    if (imgInput) {
+        imgInput.addEventListener('change', function(e) {
+            var fileName = '';
+            if(this.files && this.files.length > 1) {
+                fileName = (this.files.length + ' files selected');
+            } else {
+                fileName = this.files[0] ? this.files[0].name : '';
+            }
+            var fnEl = document.getElementById('file-name');
+            if (fnEl) fnEl.textContent = fileName;
+        });
+    }
     
     // Drag and drop functionality
-    const fileUploadBtn = document.querySelector('.file-upload-btn');
-    
-    fileUploadBtn.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        fileUploadBtn.style.borderColor = '#3a7bd5';
-        fileUploadBtn.style.backgroundColor = '#f8f9fa';
-    });
-    
-    fileUploadBtn.addEventListener('dragleave', () => {
-        fileUploadBtn.style.borderColor = '#ddd';
-        fileUploadBtn.style.backgroundColor = 'transparent';
-    });
-    
-    fileUploadBtn.addEventListener('drop', (e) => {
-        e.preventDefault();
-        fileUploadBtn.style.borderColor = '#ddd';
-        fileUploadBtn.style.backgroundColor = 'transparent';
+    var fileUploadBtn = document.querySelector('.file-upload-btn');
+    if (fileUploadBtn) {
+        fileUploadBtn.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadBtn.style.borderColor = '#3a7bd5';
+            fileUploadBtn.style.backgroundColor = '#f8f9fa';
+        });
         
-        const fileInput = document.querySelector('.file-upload-input');
-        fileInput.files = e.dataTransfer.files;
+        fileUploadBtn.addEventListener('dragleave', () => {
+            fileUploadBtn.style.borderColor = '#ddd';
+            fileUploadBtn.style.backgroundColor = 'transparent';
+        });
         
-        // Trigger change event
-        const event = new Event('change');
-        fileInput.dispatchEvent(event);
-    });
+        fileUploadBtn.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadBtn.style.borderColor = '#ddd';
+            fileUploadBtn.style.backgroundColor = 'transparent';
+            
+            const fileInput = document.querySelector('.file-upload-input');
+            fileInput.files = e.dataTransfer.files;
+            
+            // Trigger change event
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+        });
+    }
+    <?php endif; ?>
     </script>
 </body>
 </html>
