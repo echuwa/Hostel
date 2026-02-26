@@ -61,7 +61,7 @@ popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status
 									<tbody>
 <?php	
 $aid=$_GET['regno'];
-	$ret="select * from registration where (regno	=?)";
+	$ret="SELECT r.*, u.fees_paid, u.accommodation_paid, u.registration_paid, u.fee_control_no, u.acc_control_no, u.reg_control_no FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE r.regno = ?";
 $stmt= $mysqli->prepare($ret) ;
 $stmt->bind_param('s',$aid);
 $stmt->execute() ;
@@ -178,11 +178,39 @@ echo "<span style='padding-left:2%; color:red;'>(You booked hostel without food)
 </td>
 <td><b>Permanent Address</b></td>
 <td colspan="2">
-<?php echo $row->pmntAddress;?><br />
- <?php echo $row->pmntCountry;?><br />, <!--<?php echo $row->pmntPincode;?> -->
-<?php echo $row->pmntState;?>	
+<?php echo $row->pmntAddress; ?><br />
+ <?php echo $row->pmntCountry; ?><br />, <!--<?php echo $row->pmntPincode; ?> -->
+<?php echo $row->pmntState; ?>	
 
 </td>
+</tr>
+
+<tr>
+<td colspan="6" style="color:green"><h4>Payment Information & Control Numbers</h4></td>
+</tr>
+<tr>
+    <th>Payment Type</th>
+    <th colspan="2">Control Number</th>
+    <th>Amount Paid</th>
+    <th colspan="2">Remaining Balance</th>
+</tr>
+<tr>
+    <td><b>School Fees:</b></td>
+    <td colspan="2" style="font-family:monospace; font-weight:bold; color:blue;"><?php echo $row->fee_control_no; ?></td>
+    <td>TSH <?php echo number_format($row->fees_paid); ?></td>
+    <td colspan="2">TSH <?php echo number_format(max(0, 1500000 - $row->fees_paid)); ?></td>
+</tr>
+<tr>
+    <td><b>Accommodation:</b></td>
+    <td colspan="2" style="font-family:monospace; font-weight:bold; color:blue;"><?php echo $row->acc_control_no; ?></td>
+    <td>TSH <?php echo number_format($row->accommodation_paid); ?></td>
+    <td colspan="2">TSH <?php echo number_format(max(0, 178500 - $row->accommodation_paid)); ?></td>
+</tr>
+<tr>
+    <td><b>Registration:</b></td>
+    <td colspan="2" style="font-family:monospace; font-weight:bold; color:blue;"><?php echo $row->reg_control_no; ?></td>
+    <td>TSH <?php echo number_format($row->registration_paid); ?></td>
+    <td colspan="2">TSH <?php echo number_format(max(0, 50000 - $row->registration_paid)); ?></td>
 </tr>
 
 

@@ -2,6 +2,10 @@
 session_start();
 include('includes/config.php');
 
+function generateControlNumber() {
+    return "99" . rand(10, 99) . date('md') . rand(100, 999) . rand(1000, 9999);
+}
+
 if(isset($_POST['submit'])) {
     // Generate registration number
     $year = date('y'); // Last two digits of current year
@@ -53,9 +57,20 @@ if(isset($_POST['submit'])) {
         if($count > 0) {
             $_SESSION['error'] = "Email already registered. Please use a different email.";
         } else {
-            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password) VALUES(?,?,?,?,?,?,?,?)";
+            // Get payment values
+            $fees_paid = isset($_POST['fees_paid']) ? floatval($_POST['fees_paid']) : 0;
+            $accommodation_paid = isset($_POST['accommodation_paid']) ? floatval($_POST['accommodation_paid']) : 0;
+            $registration_paid = isset($_POST['registration_paid']) ? floatval($_POST['registration_paid']) : 0;
+            
+            // Generate Control Numbers
+            $fee_ctrl = generateControlNumber();
+            $acc_ctrl = generateControlNumber();
+            $reg_ctrl = generateControlNumber();
+
+            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,fees_paid,accommodation_paid,registration_paid,payment_status,fee_status,fee_control_no,acc_control_no,reg_control_no) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $stmt = $mysqli->prepare($query);
-            $stmt->bind_param('sssssiss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password);
+            $fee_status = ($fees_paid >= 750000 && $accommodation_paid >= 178500) ? 1 : 0;
+            $stmt->bind_param('sssssissdddsisss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $fees_paid, $accommodation_paid, $registration_paid, $payment_status, $fee_status, $fee_ctrl, $acc_ctrl, $reg_ctrl);
             
             if($stmt->execute()) {
                 $room = isset($_POST['room']) ? htmlspecialchars(trim($_POST['room'])) : '';
@@ -398,8 +413,8 @@ foreach($rooms_by_block as $b => $s) {
     <div class="success-overlay" id="regSuccessOverlay">
         <div class="success-modal">
             <div class="success-check"><i class="fas fa-check"></i></div>
-            <h3>Registration Successful!</h3>
-            <p>The student account has been created and is ready to use.</p>
+            <h3>Usajili Umekamilika!</h3>
+            <p>Usajili wa mwanafunzi na upangaji wa chumba umekamilika kikamilifu.</p>
             <?php if(isset($_SESSION['reg_success']) && isset($_GET['registered'])):
                 $rs = $_SESSION['reg_success'];
                 unset($_SESSION['reg_success']);
@@ -417,15 +432,19 @@ foreach($rooms_by_block as $b => $s) {
                     <span class="key">Email (login)</span>
                     <span class="val"><?php echo htmlspecialchars($rs['email']); ?></span>
                 </div>
+                <div class="success-detail-row">
+                    <span class="key">Room Assignment</span>
+                    <span class="val text-success"><i class="fas fa-bed"></i> Room Occupancy Updated</span>
+                </div>
             </div>
             <?php endif; ?>
             <div>
                 <button class="btn-modal-primary" onclick="registerAnother()">
                     <i class="fas fa-user-plus me-1"></i> Register Another
                 </button>
-                <button class="btn-modal-secondary" onclick="goToLogin()">
-                    <i class="fas fa-sign-in-alt me-1"></i> Go to Login
-                </button>
+                <a href="../logout.php" class="btn btn-modal-secondary d-inline-flex align-items-center justify-content-center" style="text-decoration:none;">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout & Login as Student
+                </a>
             </div>
         </div>
     </div>
@@ -583,6 +602,28 @@ foreach($rooms_by_block as $b => $s) {
                                 <option value="5">📅 Semester 2 &nbsp;(5 months · Jul – Nov)</option>
                                 <option value="10">🎓 Full Academic Year &nbsp;(10 months · Feb – Nov)</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Payment Information -->
+                    <div class="row g-3 mt-1 mb-4 p-3 border rounded bg-light" style="border-left: 4px solid #06d6a0 !important;">
+                        <div class="col-md-12"><h5 class="mb-2" style="font-weight:800; color:#2d3748;"><i class="fas fa-money-check-alt me-2 text-success"></i> Payment Details (Tsh)</h5></div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label small fw-bold">Registration Fee Paid (Max: 50,000)</label>
+                            <input type="number" name="registration_paid" class="form-control" placeholder="0" value="0">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label small fw-bold">Fees Paid (Required: 750,000+)</label>
+                            <input type="number" name="fees_paid" class="form-control" placeholder="0" value="0">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label small fw-bold">Accommodation Paid (Required: 178,500)</label>
+                            <input type="number" name="accommodation_paid" class="form-control" placeholder="0" value="0">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i> Admin: Students must pay 100% of Accommodation and 50% of School Fees to get a room.
+                            </div>
                         </div>
                     </div>
                 </div>

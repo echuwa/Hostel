@@ -2,6 +2,10 @@
 session_start();
 include('includes/config.php');
 
+function generateControlNumber() {
+    return "99" . rand(10, 99) . date('md') . rand(100, 999) . rand(1000, 9999);
+}
+
 if(isset($_POST['submit'])) {
     // Generate registration number
     $year = date('y'); // Last two digits of current year
@@ -59,10 +63,16 @@ if(isset($_POST['submit'])) {
             $_SESSION['error'] = "Email already registered. Please use a different email.";
         } else {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            // Insert with Pending status
-            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,status) VALUES(?,?,?,?,?,?,?,?,'Pending')";
+            
+            // Generate Control Numbers for the new student
+            $fee_ctrl = generateControlNumber();
+            $acc_ctrl = generateControlNumber();
+            $reg_ctrl = generateControlNumber();
+
+            // Insert with Pending status and generated control numbers
+            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,status,fee_control_no,acc_control_no,reg_control_no) VALUES(?,?,?,?,?,?,?,?,'Pending',?,?,?)";
             $stmt = $mysqli->prepare($query);
-            $stmt->bind_param('ssssssss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $hashed_password);
+            $stmt->bind_param('sssssssssss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $hashed_password, $fee_ctrl, $acc_ctrl, $reg_ctrl);
             
             if($stmt->execute()) {
                 $registration_success = true;

@@ -8,10 +8,10 @@ $user_id = $_SESSION['user_id'] ?? $_SESSION['id'];
 $user_email = $_SESSION['login'];
 $user_name = $_SESSION['name'] ?? 'Student';
 
-// Fetch Registration Details
-$reg_query = "SELECT * FROM registration WHERE emailid = ? OR regno = ? ORDER BY id DESC LIMIT 1";
+// Fetch Registration Details by joining with userregistration to be more robust
+$reg_query = "SELECT r.* FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE u.email = ? ORDER BY r.id DESC LIMIT 1";
 $stmt = $mysqli->prepare($reg_query);
-$stmt->bind_param('ss', $user_email, $user_email);
+$stmt->bind_param('s', $user_email);
 $stmt->execute();
 $reg_res = $stmt->get_result();
 $registration = $reg_res->fetch_object();
@@ -59,6 +59,15 @@ $stmt->bind_param('i', $user_id);
 $stmt->execute();
 $alert_res = $stmt->get_result();
 $latest_reply = $alert_res->fetch_object();
+$stmt->close();
+
+// Fetch Payment Data for Student
+$pay_data = null;
+$pay_query = "SELECT fees_paid, accommodation_paid, registration_paid, payment_status, fee_control_no FROM userregistration WHERE id = ?";
+$stmt = $mysqli->prepare($pay_query);
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$pay_data = $stmt->get_result()->fetch_object();
 $stmt->close();
 ?>
 <!doctype html>
@@ -206,6 +215,20 @@ $stmt->close();
                     <p>Track your room status, manage complaints, and explore your dashboard.</p>
                 </div>
                 
+                <!-- NEW: Control Number Request Alert -->
+                <?php if ($pay_data && empty($pay_data->fee_control_no)): ?>
+                <div class="alert alert-warning animate__animated animate__pulse shadow-sm border-0 mb-4" style="border-radius: 12px; background-color: #fff9e6; border-left: 5px solid #ffb703 !important;">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-3 text-warning"><i class="fas fa-id-card"></i></div>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-0" style="color: #856404;">Payment Control Numbers Missing</h6>
+                            <p class="mb-0 small text-muted">You need to generate control numbers to proceed with payments for fees and room allocation.</p>
+                        </div>
+                        <a href="pay-fees.php" class="btn btn-warning btn-sm rounded-pill px-4 fw-bold">Request Control Numbers</a>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <?php if($latest_reply): ?>
                 <div class="alert alert-info alert-dismissible fade show" role="alert" style="background-color: #e8f4fd; border: 1px solid #b8daff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 25px;">
                     <div style="display: flex; gap: 15px; align-items: flex-start;">
@@ -311,6 +334,62 @@ $stmt->close();
                                         <h5 style="color: #2b3452;">No active complaints</h5>
                                         <p style="color: #8f9bb3; font-size: 0.9rem;">You haven't reported any issues yet.</p>
                                     </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- NEW: Payment Progress Widget -->
+                        <div class="activity-widget mt-4 animate__animated animate__fadeInUp">
+                            <div class="widget-header">
+                                <h4><i class="fas fa-money-bill-wave me-2 text-success"></i>My Payment Status</h4>
+                            </div>
+                            <div class="widget-content p-4">
+                                <?php if($pay_data): 
+                                    $fees_perc = ($pay_data->fees_paid / 1500000) * 100;
+                                    $acc_perc = ($pay_data->accommodation_paid / 178500) * 100;
+                                    $is_eligible = ($pay_data->fees_paid >= 750000 && $pay_data->accommodation_paid >= 178500);
+                                ?>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="small fw-bold">School Fees (TSH 1.5M)</span>
+                                                <span class="small"><?php echo number_format($pay_data->fees_paid); ?> /=</span>
+                                            </div>
+                                            <div class="progress" style="height: 10px; border-radius: 5px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo min(100, $fees_perc); ?>%"></div>
+                                            </div>
+                                            <small class="text-muted"><?php echo number_format($fees_perc, 1); ?>% Paid</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="small fw-bold">Accommodation (TSH 178.5K)</span>
+                                                <span class="small"><?php echo number_format($pay_data->accommodation_paid); ?> /=</span>
+                                            </div>
+                                            <div class="progress" style="height: 10px; border-radius: 5px;">
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo min(100, $acc_perc); ?>%"></div>
+                                            </div>
+                                            <small class="text-muted"><?php echo number_format($acc_perc, 1); ?>% Paid</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 mt-2">
+                                        <div class="alert <?php echo $is_eligible ? 'alert-success' : 'alert-warning'; ?> py-2 px-3 m-0" style="border-radius: 10px; font-size: 0.85rem;">
+                                            <i class="fas <?php echo $is_eligible ? 'fa-check-circle' : 'fa-exclamation-triangle'; ?> me-1"></i>
+                                            <?php if($is_eligible): ?>
+                                                <strong>Hooray!</strong> You have met the minimum payment threshold for room allocation.
+                                            <?php else: ?>
+                                                <strong>Notice:</strong> You must pay 100% Accommodation and at least 50% Fees to book a room.
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 text-end mt-2">
+                                        <a href="pay-fees.php" class="btn btn-sm btn-dark rounded-pill px-3 py-1 fw-bold">
+                                            <i class="fas fa-money-check-alt me-1"></i> Pay Fees / View Control Numbers
+                                        </a>
+                                    </div>
+                                </div>
                                 <?php endif; ?>
                             </div>
                         </div>

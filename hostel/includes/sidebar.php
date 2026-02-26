@@ -57,6 +57,17 @@
                     <span class="link-text">Dashboard</span>
                 </a>
             </li>
+
+            <!-- My Payments (Student Only) -->
+            <?php if(isset($_SESSION['user_id'])): ?>
+            <li>
+                <a href="pay-fees.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'pay-fees.php' ? 'active' : ''; ?>">
+                    <i class="fas fa-money-bill-wave text-success"></i>
+                    <span class="link-text">My Payments</span>
+                    <span class="badge bg-success ms-auto rounded-pill" style="font-size: 0.65rem;">ctrl no</span>
+                </a>
+            </li>
+            <?php endif; ?>
             
             <!-- Book Hostel -->
             <li>

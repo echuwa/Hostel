@@ -101,9 +101,10 @@ check_login();
                         
                         <?php
                         $aid = $_SESSION['login'];
-                        $ret = "SELECT * FROM registration WHERE (emailid=? || regno=?)";
+                        // Use join to ensure we match the correct registration via regNo
+                        $ret = "SELECT r.* FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE u.email = ? ORDER BY r.id DESC LIMIT 1";
                         $stmt = $mysqli->prepare($ret);
-                        $stmt->bind_param('ss', $aid, $aid);
+                        $stmt->bind_param('s', $aid);
                         $stmt->execute();
                         $res = $stmt->get_result();
                         

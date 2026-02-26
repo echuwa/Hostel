@@ -103,6 +103,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         if (empty($form_data['roomno'])) $errors[] = "Invalid room selection";
         if ($form_data['duration'] === false) $errors[] = "Invalid duration selection";
 
+        // Payment Logic Check
+        $user_id = $_SESSION['user_id'] ?? $_SESSION['id'];
+        $pay_check = $mysqli->prepare("SELECT fees_paid, accommodation_paid FROM userregistration WHERE id = ?");
+        $pay_check->bind_param('i', $user_id);
+        $pay_check->execute();
+        $pay_res = $pay_check->get_result()->fetch_object();
+        $pay_check->close();
+
+        if (!$pay_res || $pay_res->fees_paid < 750000 || $pay_res->accommodation_paid < 178500) {
+            $errors[] = "❌ Usajili wa chumba umekataliwa: Hujakamilisha malipo ya kutosha. Unatakiwa uwe umelipa angalau TSH 750,000 (Ada) na TSH 178,500 (Accommodation).";
+        }
+
         if (empty($errors)) {
             $room_check = $mysqli->prepare("SELECT (seater - (SELECT COUNT(*) FROM registration WHERE roomno = ?)) as available FROM rooms WHERE room_no = ? FOR UPDATE");
             if ($room_check === false) {
@@ -203,6 +215,12 @@ try {
     $stmt->store_result();
     $has_booking = $stmt->num_rows > 0;
     $stmt->close();
+
+    // Payment Eligibility Redirect for Students
+    if (!$has_booking && ($user->fees_paid < 750000 || $user->accommodation_paid < 178500)) {
+        header("Location: pay-fees.php?msg=eligibility");
+        exit();
+    }
 
     // Fetch ALL rooms with occupancy count (including full ones)
     $rooms = [];
