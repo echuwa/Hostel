@@ -148,7 +148,7 @@ if(isset($_GET['toggle_fee']))
                             </thead>
                             <tbody>
                                 <?php	
-                                $ret="SELECT u.regNo, u.firstName, u.middleName, u.lastName, u.contactNo, u.status, u.fee_status, r.roomno, r.seater, r.stayfrom FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno";
+                                $ret="SELECT u.regNo, u.firstName, u.middleName, u.lastName, u.contactNo, u.status, u.fee_status, u.payment_status, r.roomno, r.seater, r.stayfrom FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno";
                                 $stmt= $mysqli->prepare($ret) ;
                                 $stmt->execute() ;
                                 $res=$stmt->get_result();
@@ -168,10 +168,11 @@ if(isset($_GET['toggle_fee']))
                                     <td><?php echo $row->seater ? $row->seater : '<span style="opacity:0.5">-</span>';?></td>
                                     <td>
                                         <?php if($row->fee_status == 1): ?>
-                                            <span class="badge-status" style="background:var(--success-light); color:var(--success);">Completed</span>
+                                            <span class="badge-status" style="background:var(--success-light); color:var(--success);">Eligible</span>
                                         <?php else: ?>
-                                            <span class="badge-status" style="background:var(--danger-light); color:var(--danger);">Pending</span>
+                                            <span class="badge-status" style="background:var(--danger-light); color:var(--danger);">Ineligible</span>
                                         <?php endif; ?>
+                                        <div class="small" style="font-size: 0.7rem; margin-top: 3px;"><?php echo $row->payment_status; ?></div>
                                     </td>
                                     <td>
                                         <?php if(strtolower($row->status) == 'active'): ?>

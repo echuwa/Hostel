@@ -57,19 +57,20 @@ if(isset($_POST['submit'])) {
         if($count > 0) {
             $_SESSION['error'] = "Email already registered. Please use a different email.";
         } else {
-            // Get payment values
-            $fees_paid = isset($_POST['fees_paid']) ? floatval($_POST['fees_paid']) : 0;
-            $accommodation_paid = isset($_POST['accommodation_paid']) ? floatval($_POST['accommodation_paid']) : 0;
-            $registration_paid = isset($_POST['registration_paid']) ? floatval($_POST['registration_paid']) : 0;
-            
             // Generate Control Numbers
             $fee_ctrl = generateControlNumber();
             $acc_ctrl = generateControlNumber();
             $reg_ctrl = generateControlNumber();
 
+            // All new admin registrations start with 0 payment. Students pay via their account.
+            $fees_paid = 0;
+            $accommodation_paid = 0;
+            $registration_paid = 0;
+            $payment_status = "Pending";
+            $fee_status = 0;
+
             $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,fees_paid,accommodation_paid,registration_paid,payment_status,fee_status,fee_control_no,acc_control_no,reg_control_no) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $stmt = $mysqli->prepare($query);
-            $fee_status = ($fees_paid >= 750000 && $accommodation_paid >= 178500) ? 1 : 0;
             $stmt->bind_param('sssssissdddsisss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $fees_paid, $accommodation_paid, $registration_paid, $payment_status, $fee_status, $fee_ctrl, $acc_ctrl, $reg_ctrl);
             
             if($stmt->execute()) {
@@ -605,26 +606,6 @@ foreach($rooms_by_block as $b => $s) {
                         </div>
                     </div>
 
-                    <!-- Payment Information -->
-                    <div class="row g-3 mt-1 mb-4 p-3 border rounded bg-light" style="border-left: 4px solid #06d6a0 !important;">
-                        <div class="col-md-12"><h5 class="mb-2" style="font-weight:800; color:#2d3748;"><i class="fas fa-money-check-alt me-2 text-success"></i> Payment Details (Tsh)</h5></div>
-                        <div class="col-md-4 mb-2">
-                            <label class="form-label small fw-bold">Registration Fee Paid (Max: 50,000)</label>
-                            <input type="number" name="registration_paid" class="form-control" placeholder="0" value="0">
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label class="form-label small fw-bold">Fees Paid (Required: 750,000+)</label>
-                            <input type="number" name="fees_paid" class="form-control" placeholder="0" value="0">
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label class="form-label small fw-bold">Accommodation Paid (Required: 178,500)</label>
-                            <input type="number" name="accommodation_paid" class="form-control" placeholder="0" value="0">
-                        </div>
-                        <div class="col-md-12">
-                            <div class="form-text text-muted">
-                                <i class="fas fa-info-circle me-1"></i> Admin: Students must pay 100% of Accommodation and 50% of School Fees to get a room.
-                            </div>
-                        </div>
                     </div>
                 </div>
                 <!-- Registration Info -->

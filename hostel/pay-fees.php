@@ -290,16 +290,24 @@ if (empty($user->fee_control_no)) {
                                     </div>
                                 </div>
 
-                                <label class="small text-muted fw-bold">GePG Control Number:</label>
-                                <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->fee_control_no; ?>')">
-                                    <code><?php echo $user->fee_control_no; ?></code>
-                                </div>
+                                <?php if(1500000 - $user->fees_paid > 0): ?>
+                                    <label class="small text-muted fw-bold">GePG Control Number:</label>
+                                    <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->fee_control_no; ?>')">
+                                        <code><?php echo $user->fee_control_no; ?></code>
+                                    </div>
 
-                                <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
-                                        data-type="Fees" data-ctrl="<?php echo $user->fee_control_no; ?>" 
-                                        data-balance="<?php echo 1500000 - $user->fees_paid; ?>">
-                                    <i class="fas fa-money-check-alt me-2"></i> Pay Now (Simulate)
-                                </button>
+                                    <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
+                                            data-type="Fees" data-ctrl="<?php echo $user->fee_control_no; ?>" 
+                                            data-balance="<?php echo 1500000 - $user->fees_paid; ?>">
+                                        <i class="fas fa-money-check-alt me-2"></i> Pay Remaining Balance
+                                    </button>
+                                <?php else: ?>
+                                    <div class="text-center py-3">
+                                        <div class="badge bg-success-subtle text-success p-3 rounded-pill w-100">
+                                            <i class="fas fa-check-circle me-2"></i> FEE FULLY PAID
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -326,16 +334,24 @@ if (empty($user->fee_control_no)) {
                                     </div>
                                 </div>
 
-                                <label class="small text-muted fw-bold">GePG Control Number:</label>
-                                <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->acc_control_no; ?>')">
-                                    <code><?php echo $user->acc_control_no; ?></code>
-                                </div>
+                                <?php if(178500 - $user->accommodation_paid > 0): ?>
+                                    <label class="small text-muted fw-bold">GePG Control Number:</label>
+                                    <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->acc_control_no; ?>')">
+                                        <code><?php echo $user->acc_control_no; ?></code>
+                                    </div>
 
-                                <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
-                                        data-type="Accommodation" data-ctrl="<?php echo $user->acc_control_no; ?>" 
-                                        data-balance="<?php echo 178500 - $user->accommodation_paid; ?>">
-                                    <i class="fas fa-money-check-alt me-2"></i> Pay Now (Simulate)
-                                </button>
+                                    <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
+                                            data-type="Accommodation" data-ctrl="<?php echo $user->acc_control_no; ?>" 
+                                            data-balance="<?php echo 178500 - $user->accommodation_paid; ?>">
+                                        <i class="fas fa-money-check-alt me-2"></i> Pay Remaining Balance
+                                    </button>
+                                <?php else: ?>
+                                    <div class="text-center py-3">
+                                        <div class="badge bg-success-subtle text-success p-3 rounded-pill w-100">
+                                            <i class="fas fa-check-circle me-2"></i> FULLY PAID
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -344,7 +360,7 @@ if (empty($user->fee_control_no)) {
                     <div class="col-md-4">
                         <div class="payment-card">
                             <div class="card-header-custom" style="background: linear-gradient(135deg, #7209b7 0%, #560bad 100%);">
-                                <h5 class="mb-0 fw-bold"><i class="fas fa-id-card me-2"></i>Registration Fee</h5>
+                                <h5 class="mb-0 fw-bold"><i class="fas fa-id-card me-2"></i>Registration Fee <span class="badge bg-light text-dark small ms-2" style="font-size:0.6rem;">(Optional)</span></h5>
                                 <small class="opacity-75">Full Amount: TSH 50,000</small>
                             </div>
                             <div class="card-body p-4">
@@ -362,16 +378,24 @@ if (empty($user->fee_control_no)) {
                                     </div>
                                 </div>
 
-                                <label class="small text-muted fw-bold">GePG Control Number:</label>
-                                <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->reg_control_no; ?>')">
-                                    <code><?php echo $user->reg_control_no; ?></code>
-                                </div>
+                                <?php if(50000 - $user->registration_paid > 0): ?>
+                                    <label class="small text-muted fw-bold">GePG Control Number:</label>
+                                    <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->reg_control_no; ?>')">
+                                        <code><?php echo $user->reg_control_no; ?></code>
+                                    </div>
 
-                                <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
-                                        data-type="Registration" data-ctrl="<?php echo $user->reg_control_no; ?>" 
-                                        data-balance="<?php echo 50000 - $user->registration_paid; ?>">
-                                    <i class="fas fa-money-check-alt me-2"></i> Pay Now (Simulate)
-                                </button>
+                                    <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
+                                            data-type="Registration" data-ctrl="<?php echo $user->reg_control_no; ?>" 
+                                            data-balance="<?php echo 50000 - $user->registration_paid; ?>">
+                                        <i class="fas fa-money-check-alt me-2"></i> Pay Remaining Balance
+                                    </button>
+                                <?php else: ?>
+                                    <div class="text-center py-3">
+                                        <div class="badge bg-success-subtle text-success p-3 rounded-pill w-100">
+                                            <i class="fas fa-check-circle me-2"></i> FULLY PAID
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
