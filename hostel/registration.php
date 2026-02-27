@@ -92,332 +92,202 @@ if(isset($_POST['submit'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Registration | Hostel Management</title>
+    <title>Student Registration | HostelMS</title>
     
     <!-- Favicon -->
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
     
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    
-    <style>
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
-        .registration-container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 40px;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
-            animation: fadeInDown 0.8s;
-        }
-        .registration-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-        }
-        .registration-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .registration-header h2 {
-            font-weight: 800;
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-        .form-icon {
-            position: relative;
-        }
-        .form-icon i {
-            position: absolute;
-            left: 15px;
-            top: 12px;
-            color: #6c757d;
-        }
-        .form-icon input, .form-icon select {
-            padding-left: 40px;
-            border-radius: 8px;
-            transition: all 0.3s;
-            border: 1px solid #e1e5eb;
-            background: #f8f9fa;
-        }
-        .form-icon input:focus, .form-icon select:focus {
-            box-shadow: 0 0 0 0.25rem rgba(58, 123, 213, 0.25);
-            border-color: #3a7bd5;
-            background: #fff;
-        }
-        .password-strength {
-            height: 5px;
-            background: #ddd;
-            margin-top: 5px;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .password-strength span {
-            display: block;
-            height: 100%;
-            width: 0;
-            background: #28a745;
-            transition: width 0.3s;
-        }
-        .btn-register {
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-            border: none;
-            padding: 12px 30px;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 15px rgba(58, 123, 213, 0.3);
-        }
-        .btn-register:hover {
-            background: linear-gradient(135deg, #2c65b4, #00b7eb);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(58, 123, 213, 0.4);
-        }
-        .login-link {
-            color: #3a7bd5;
-            text-decoration: none;
-        }
-        .login-link:hover {
-            text-decoration: underline;
-        }
-        .regno-display {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .contact-format {
-            font-size: 0.8rem;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container py-5">
-        <div class="registration-container">
-            <div class="registration-header">
-                <h2><i class="fas fa-user-graduate me-2"></i> Student Registration</h2>
-                <p class="text-muted">Fill in your details to create an account</p>
-            </div>
-            
-            <!-- Display Errors -->
-            <?php if(isset($_SESSION['errors'])): ?>
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        <?php foreach($_SESSION['errors'] as $error): ?>
-                            <li><?php echo $error; ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-                <?php unset($_SESSION['errors']); ?>
-            <?php endif; ?>
-            
-            <!-- Display Success/Error Messages -->
-            <?php if(isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger">
-                    <?php echo $_SESSION['error']; ?>
-                </div>
-                <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
-            
-            <form method="post" action="" name="registration" class="needs-validation" novalidate>
-                <div class="regno-display">
-                    <i class="fas fa-id-card me-2"></i>
-                    Your registration number will be automatically generated
-                </div>
-                
-                <div class="row g-3">
-                    <!-- First Name -->
-                    <div class="col-md-6">
-                        <label for="fname" class="form-label">First Name</label>
-                        <div class="form-icon">
-                            <i class="fas fa-user"></i>
-                            <input type="text" class="form-control" id="fname" name="fname" required
-                                   value="<?php echo isset($_POST['fname']) ? htmlspecialchars($_POST['fname']) : ''; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Middle Name -->
-                    <div class="col-md-6">
-                        <label for="mname" class="form-label">Middle Name</label>
-                        <div class="form-icon">
-                            <i class="fas fa-user"></i>
-                            <input type="text" class="form-control" id="mname" name="mname"
-                                   value="<?php echo isset($_POST['mname']) ? htmlspecialchars($_POST['mname']) : ''; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Last Name -->
-                    <div class="col-md-6">
-                        <label for="lname" class="form-label">Last Name</label>
-                        <div class="form-icon">
-                            <i class="fas fa-user"></i>
-                            <input type="text" class="form-control" id="lname" name="lname" required
-                                   value="<?php echo isset($_POST['lname']) ? htmlspecialchars($_POST['lname']) : ''; ?>">
-                        </div>
-                    </div>
-                    
-                    <!-- Gender -->
-                    <div class="col-md-6">
-                        <label for="gender" class="form-label">Gender</label>
-                        <div class="form-icon">
-                            <i class="fas fa-venus-mars"></i>
-                            <select class="form-select" id="gender" name="gender" required>
-                                <option value="" disabled selected>Select Gender</option>
-                                <option value="male" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'male') ? 'selected' : ''; ?>>Male</option>
-                                <option value="female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'female') ? 'selected' : ''; ?>>Female</option>
-                                <option value="others" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'others') ? 'selected' : ''; ?>>Others</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Contact Number -->
-                    <div class="col-md-6">
-                        <label for="contact" class="form-label">Contact Number</label>
-                        <div class="form-icon">
-                            <i class="fas fa-phone"></i>
-                            <input type="tel" class="form-control" id="contact" name="contact" required
-                                   maxlength="12" placeholder="255XXXXXXXXX"
-                                   value="<?php echo isset($_POST['contact']) ? htmlspecialchars($_POST['contact']) : ''; ?>">
-                        </div>
-                        <div class="contact-format">Format: 255 followed by 9 digits (12 digits total)</div>
-                    </div>
-                    
-                    <!-- Email -->
-                    <div class="col-md-6">
-                        <label for="email" class="form-label">Email Address</label>
-                        <div class="form-icon">
-                            <i class="fas fa-envelope"></i>
-                            <input type="email" class="form-control" id="email" name="email" required
-                                    value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-                        </div>
-                        <div id="user-availability-status" class="small text-muted mt-1"></div>
-                    </div>
-                    
-                    <!-- Password -->
-                    <div class="col-md-6">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="form-icon">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" class="form-control" id="password" name="password" required
-                                   onkeyup="checkPasswordStrength()">
-                        </div>
-                        <div class="password-strength">
-                            <span id="password-strength-bar"></span>
-                        </div>
-                        <small class="text-muted">Minimum 6 characters</small>
-                    </div>
-                    
-                    <!-- Confirm Password -->
-                    <div class="col-md-6">
-                        <label for="cpassword" class="form-label">Confirm Password</label>
-                        <div class="form-icon">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" class="form-control" id="cpassword" name="cpassword" required
-                                   onkeyup="checkPasswordMatch()">
-                        </div>
-                        <div id="password-match" class="small mt-1"></div>
-                    </div>
-                </div>
-                
-                <!-- Form Buttons -->
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div>
-                        Already have an account? <a href="index.php" class="login-link">Login here</a>
-                    </div>
-                    <div>
-                        <button type="reset" class="btn btn-outline-secondary me-2">
-                            <i class="fas fa-redo me-1"></i> Reset
-                        </button>
-                        <button type="submit" name="submit" class="btn btn-register text-white">
-                            <i class="fas fa-user-plus me-1"></i> Register
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery -->
-    <script src="js/jquery.min.js"></script>
+    <!-- Custom Auth Modern CSS -->
+    <link rel="stylesheet" href="css/auth-modern.css">
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <!-- Custom Scripts -->
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+
+    <div class="auth_wrapper">
+        <div class="auth_card" data-aos="fade-up" data-aos-duration="1000">
+            <!-- Left Panel - Hero Section -->
+            <div class="auth_hero">
+                <div class="auth_hero_content" data-aos="fade-right" data-aos-delay="200">
+                    <h2>Join Our Community</h2>
+                    <p>Experience a new way of living. Secure your room and start your academic journey with us today.</p>
+                    <img src="assets/img/registration_hero.png" alt="Registration Hero">
+                </div>
+            </div>
+
+            <!-- Right Panel - Form Section -->
+            <div class="auth_content">
+                <div class="auth_header" data-aos="fade-up" data-aos-delay="300">
+                    <h1 class="auth_title">Student Registration</h1>
+                    <p class="auth_subtitle">Create your digital profile to get started.</p>
+                </div>
+
+                <!-- Display Errors -->
+                <?php if(isset($_SESSION['errors'])): ?>
+                    <div class="alert-modern alert-danger-modern" data-aos="fade-in">
+                        <ul class="mb-0 p-0" style="list-style: none;">
+                            <?php foreach($_SESSION['errors'] as $error): ?>
+                                <li><i class="fas fa-circle-exclamation me-2"></i> <?php echo $error; ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php unset($_SESSION['errors']); ?>
+                <?php endif; ?>
+                
+                <?php if(isset($_SESSION['error'])): ?>
+                    <div class="alert-modern alert-danger-modern" data-aos="fade-in">
+                        <i class="fas fa-circle-exclamation me-2"></i> <?php echo $_SESSION['error']; ?>
+                    </div>
+                    <?php unset($_SESSION['error']); ?>
+                <?php endif; ?>
+
+                <form method="post" action="" name="registration" id="registrationForm">
+                    <div class="regno-note" data-aos="fade-up" data-aos-delay="400">
+                        <i class="fas fa-sparkles"></i>
+                        <span>Your registration ID will be automatically generated upon submission.</span>
+                    </div>
+
+                    <div class="auth_row">
+                        <!-- First Name -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="450">
+                            <label class="form-label">First Name</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-id-card-clip"></i>
+                                <input type="text" name="fname" placeholder="First Name" required
+                                       value="<?php echo isset($_POST['fname']) ? htmlspecialchars($_POST['fname']) : ''; ?>">
+                            </div>
+                        </div>
+
+                        <!-- Middle Name -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="475">
+                            <label class="form-label">Middle Name</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-id-card-clip"></i>
+                                <input type="text" name="mname" placeholder="Middle Name (Optional)"
+                                       value="<?php echo isset($_POST['mname']) ? htmlspecialchars($_POST['mname']) : ''; ?>">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth_row">
+                        <!-- Last Name -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="500">
+                            <label class="form-label">Last Name</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-id-card"></i>
+                                <input type="text" name="lname" placeholder="Last Name" required
+                                       value="<?php echo isset($_POST['lname']) ? htmlspecialchars($_POST['lname']) : ''; ?>">
+                            </div>
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="550">
+                            <label class="form-label">Gender</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-venus-mars"></i>
+                                <select name="gender" required>
+                                    <option value="" disabled selected>Select Gender</option>
+                                    <option value="male" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'male') ? 'selected' : ''; ?>>Male</option>
+                                    <option value="female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'female') ? 'selected' : ''; ?>>Female</option>
+                                    <option value="others" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'others') ? 'selected' : ''; ?>>Others</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth_row">
+                        <!-- Contact -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="600">
+                            <label class="form-label">Contact Number</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-phone-volume"></i>
+                                <input type="tel" id="contact" name="contact" maxlength="12" placeholder="255XXXXXXXXX" required
+                                       value="<?php echo isset($_POST['contact']) ? htmlspecialchars($_POST['contact']) : ''; ?>">
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="650">
+                            <label class="form-label">Email Address</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-envelope-open-text"></i>
+                                <input type="email" id="email" name="email" placeholder="example@domain.com" required
+                                       value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth_row">
+                        <!-- Password -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="700">
+                            <label class="form-label">Create Password</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-fingerprint"></i>
+                                <input type="password" id="password" name="password" placeholder="••••••••" required
+                                       onkeyup="checkPasswordStrength()">
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="input_container" data-aos="fade-up" data-aos-delay="750">
+                            <label class="form-label">Verify Password</label>
+                            <div class="input-group-modern">
+                                <i class="fas fa-shield-halved"></i>
+                                <input type="password" id="cpassword" name="cpassword" placeholder="••••••••" required
+                                       onkeyup="checkPasswordMatch()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="password-strength" data-aos="fade-up" data-aos-delay="700">
+                        <div id="password-strength-bar" class="strength-bar"></div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="auth_actions mt-4" data-aos="fade-up" data-aos-delay="800">
+                        <button type="submit" name="submit" class="btn-primary-modern">
+                            <span>Register Account</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="auth_footer" data-aos="fade-up" data-aos-delay="850">
+                        Already have an account? <a href="index.php">Log in</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
     <script>
+    AOS.init({ duration: 800, once: true });
+
     <?php if(isset($registration_success) && $registration_success): ?>
     Swal.fire({
-        title: 'Registration Completed!',
-        text: 'Your account has been created successfully. Note: It is currently pending admin approval. You will be able to login once approved.',
+        title: 'Registration Protocol Successful!',
+        text: 'Your account has been created. Access is currently pending administrative verification.',
         icon: 'success',
-        confirmButtonColor: '#3a7bd5',
-        confirmButtonText: 'Go to Login'
+        confirmButtonColor: '#4361ee',
+        confirmButtonText: 'Enter Terminal'
     }).then((result) => {
         window.location.href = 'index.php';
     });
     <?php endif; ?>
 
-    // Form validation
-    (function() {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function(form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-    
-    // Check email availability
-    function checkAvailability() {
-        $("#loaderIcon").show();
-        jQuery.ajax({
-            url: "check_availability.php",
-            data: 'emailid='+$("#email").val(),
-            type: "POST",
-            success:function(data){
-                $("#user-availability-status").html(data);
-                $("#loaderIcon").hide();
-            },
-            error:function () {
-                alert('Error checking email availability');
-            }
-        });
-    }
-    
     // Check password strength
     function checkPasswordStrength() {
         var password = $("#password").val();
@@ -429,63 +299,42 @@ if(isset($_POST['submit'])) {
         if (password.match(/([!,%,&,@,#,$,^,*,?,_,~])/)) strength += 1;
         
         var width = (strength / 4) * 100;
-        $("#password-strength-bar").css("width", width + "%");
+        var bar = $("#password-strength-bar");
+        bar.css("width", width + "%");
         
-        if (strength < 2) {
-            $("#password-strength-bar").css("background-color", "#dc3545");
-        } else if (strength == 2) {
-            $("#password-strength-bar").css("background-color", "#ffc107");
-        } else {
-            $("#password-strength-bar").css("background-color", "#28a745");
-        }
+        if (strength < 2) bar.css("background", "#ef4444");
+        else if (strength == 2) bar.css("background", "#f59e0b");
+        else bar.css("background", "#10b981");
     }
     
     // Check password match
     function checkPasswordMatch() {
         var password = $("#password").val();
         var confirmPassword = $("#cpassword").val();
+        var group = $("#cpassword").closest(".input-group-modern");
         
-        if (password != confirmPassword) {
-            $("#password-match").html("<span style='color:#dc3545'>Passwords do not match!</span>");
-            return false;
+        if (password != confirmPassword && confirmPassword != "") {
+            group.find("input").css("border-color", "#ef4444");
+            group.find("i").css("color", "#ef4444");
+        } else if (password == confirmPassword && confirmPassword != "") {
+            group.find("input").css("border-color", "#10b981");
+            group.find("i").css("color", "#10b981");
         } else {
-            $("#password-match").html("<span style='color:#28a745'>Passwords match.</span>");
-            return true;
+            group.find("input").css("border-color", "transparent");
+            group.find("i").css("color", "#64748b");
         }
     }
     
-    // Contact number validation and formatting
+    // Contact number validation
     document.getElementById('contact').addEventListener('input', function(e) {
-        // Remove any non-digit characters
         this.value = this.value.replace(/[^0-9]/g, '');
-        
-        // Ensure it starts with 255
         if (!this.value.startsWith('255') && this.value.length > 0) {
-            this.value = '255' + this.value.replace(/^255/, '');
+            this.value = '255' + this.value;
         }
-        
-        // Limit to 12 characters (255 + 9 digits)
         if (this.value.length > 12) {
             this.value = this.value.substring(0, 12);
         }
     });
-    
-    // Validate form submission
-    function validateForm() {
-        if (!checkPasswordMatch()) {
-            alert("Passwords do not match!");
-            return false;
-        }
-        
-        // Validate contact number format
-        var contact = document.getElementById('contact').value;
-        if (!/^255\d{9}$/.test(contact)) {
-            alert("Contact number must be 12 digits starting with 255 (255XXXXXXXXX)");
-            return false;
-        }
-        
-        return true;
-    }
     </script>
 </body>
 </html>

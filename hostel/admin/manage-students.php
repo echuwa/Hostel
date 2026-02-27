@@ -21,7 +21,7 @@ if(isset($_GET['approve']))
 	$stmt= $mysqli->prepare($adn);
 	$stmt->bind_param('s',$id);
     if($stmt->execute()) {
-        echo "<script>alert('Student account activated successfully');</script>";
+        $_SESSION['success_msg'] = "Student account activated successfully";
     }
     $stmt->close();	   
 }
@@ -33,7 +33,7 @@ if(isset($_GET['toggle_fee']))
 	$stmt= $mysqli->prepare($adn);
     $stmt->bind_param('s',$id);
     if($stmt->execute()) {
-        echo "<script>alert('Fee status updated successfully');</script>";
+        $_SESSION['success_msg'] = "Fee status updated successfully";
         echo "<script>window.location.href='manage-students.php';</script>";
     }
     $stmt->close();	   
@@ -220,6 +220,11 @@ if(isset($_GET['toggle_fee']))
                     </div>
 
                     <div class="d-grid gap-2">
+                        <!-- Verify Button (Conditional) -->
+                        <button id="m-verify-btn" onclick="verifyStudent()" class="btn btn-modern btn-modern-success py-3 fw-800 mb-2">
+                            <i class="fas fa-check-circle me-2"></i> VERIFY ACCOUNT
+                        </button>
+
                         <a id="m-detail-link" href="#" class="btn btn-modern btn-modern-primary py-3 fw-800">
                             <i class="fas fa-user-gear me-2"></i> COMMAND PROFILE
                         </a>
@@ -268,9 +273,33 @@ if(isset($_GET['toggle_fee']))
         statEl.innerText = data.status.toUpperCase();
         statEl.className = `fw-800 ${data.status.toLowerCase() === 'active' ? 'text-success' : 'text-warning'}`;
         
+        // Handle Verify Button Visibility
+        const verifyBtn = document.getElementById('m-verify-btn');
+        if (data.status.toLowerCase() === 'pending') {
+            verifyBtn.style.display = 'block';
+        } else {
+            verifyBtn.style.display = 'none';
+        }
+
         document.getElementById('m-detail-link').href = `student-details.php?id=${data.id}`;
         
         modal.show();
+    }
+
+    function verifyStudent() {
+        if(!currentStudent) return;
+        Swal.fire({
+            title: 'Verify Student?',
+            text: `Are you sure you want to activate the account for ${currentStudent.firstName}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#06d6a0',
+            confirmButtonText: 'Yes, Verify Student'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = `manage-students.php?approve=${currentStudent.regNo}`;
+            }
+        });
     }
 
     function toggleFee() {
@@ -321,6 +350,21 @@ if(isset($_GET['toggle_fee']))
         });
     });
     </script>
+
+    <?php if(isset($_SESSION['success_msg'])): ?>
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: '<?php echo $_SESSION['success_msg']; ?>',
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+    </script>
+    <?php unset($_SESSION['success_msg']); endif; ?>
 </body>
 </html>
 

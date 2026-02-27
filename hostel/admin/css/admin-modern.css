@@ -125,6 +125,13 @@ body {
     text-align: center;
 }
 
+/* Dropdown z-index fix */
+.dropdown-menu {
+    border: none;
+    box-shadow: var(--shadow-lg);
+    z-index: 10000 !important;
+}
+
 /* Cards */
 .card-modern {
     background: #fff;
@@ -196,6 +203,17 @@ body {
     color: #fff;
 }
 
+.btn-modern-success {
+    background: var(--gradient-success);
+    color: #fff;
+}
+
+.btn-modern-success:hover {
+    box-shadow: 0 8px 20px rgba(6, 214, 160, 0.3);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
 /* Modal */
 .modal-modern .modal-content {
     border-radius: 24px;
@@ -238,9 +256,11 @@ body {
     .sidebar {
         transform: translateX(-100%);
     }
+
     .sidebar.mobile-open {
         transform: translateX(0);
     }
+
     .main-content {
         margin-left: 0 !important;
         padding: 20px;

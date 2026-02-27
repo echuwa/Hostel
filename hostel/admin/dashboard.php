@@ -168,7 +168,7 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
             <div class="content-wrapper">
                 
                 <!-- TOP HEADER -->
-                <div class="d-flex justify-content-between align-items-center mb-4" data-aos="fade-down">
+                <div class="d-flex justify-content-between align-items-center mb-4" data-aos="fade-down" style="position: relative; z-index: 1050;">
                     <div>
                         <h4 class="fw-800 mb-1">Administrative Overview</h4>
                         <p class="text-muted small fw-600 mb-0"><i class="fas fa-calendar-alt me-2"></i>Status updated as of <?php echo date('F d, Y - H:i'); ?></p>
@@ -181,7 +181,7 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                                     <span class="notif-dot"></span>
                                 <?php endif; ?>
                             </button>
-                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3" style="width: 320px;">
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3" style="width: 320px; z-index: 9999 !important; position: absolute !important;">
                                 <h6 class="fw-800 mb-3 px-2">Recent Notifications</h6>
                                 <?php if ($counts['pending_students'] > 0): ?>
                                     <a href="manage-students.php" class="dropdown-item p-3 bg-light rounded-3 mb-2 d-flex align-items-center gap-3">
