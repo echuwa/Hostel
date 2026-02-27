@@ -50,6 +50,8 @@ if (!$data) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Unified Admin CSS -->
     <link rel="stylesheet" href="css/admin-modern.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         .profile-hero {
@@ -121,9 +123,9 @@ if (!$data) {
                         <button onclick="window.print()" class="btn btn-modern btn-light fw-800">
                             <i class="fas fa-print me-2"></i> Print Archive
                         </button>
-                        <a href="manage-students.php?del=<?php echo $data->regNo; ?>" onclick="return confirm('Purge student from system?')" class="btn btn-modern btn-danger fw-800">
+                        <button onclick="terminateStudent('<?php echo $data->regNo; ?>', '<?php echo addslashes($data->firstName . ' ' . $data->lastName); ?>')" class="btn btn-modern btn-danger fw-800">
                             <i class="fas fa-trash-alt me-2"></i> Terminate
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -258,6 +260,27 @@ if (!$data) {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>AOS.init();</script>
+    <script>
+        AOS.init();
+
+        function terminateStudent(regNo, name) {
+            Swal.fire({
+                title: 'Confirm Termination?',
+                html: `You are about to permanently purge <b>${name}</b> from the system registry. This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Terminate',
+                cancelButtonText: 'Cancel',
+                background: '#fff',
+                borderRadius: '24px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `manage-students.php?del=${regNo}&token=<?php echo generate_csrf_token(); ?>`;
+                }
+            });
+        }
+    </script>
 </body>
 </html>

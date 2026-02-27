@@ -8,7 +8,7 @@ require_once('includes/auth.php');
 
 // Redirect to dashboard if already logged in
 if (isset($_SESSION['id'])) {
-    header("Location: " . (isSuperAdmin() ? 'superadmin-dashboard.php' : 'dashboard.php'));
+    header("Location: dashboard.php");
     exit();
 }
 
@@ -17,10 +17,14 @@ $success = '';
 
 // Process registration form
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
-    $confirm_password = trim($_POST['confirm_password']);
+    // CSRF PROTECTION
+    if(!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $error = "Security token mismatch. Please try again.";
+    } else {
+        $username = trim($_POST['username']);
+        $email = trim($_POST['email']);
+        $password = trim($_POST['password']);
+        $confirm_password = trim($_POST['confirm_password']);
 
     // Validate inputs
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
@@ -32,12 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     } elseif ($password !== $confirm_password) {
         $error = "Passwords do not match";
     } else {
-        // Check if username or email already exists
-        $username = $mysqli->real_escape_string($username);
-        $email = $mysqli->real_escape_string($email);
-        
-        $query = "SELECT id FROM users WHERE username = '$username' OR email = '$email' LIMIT 1";
-        $result = $mysqli->query($query);
+        $query = "SELECT id FROM admins WHERE username = ? OR email = ? LIMIT 1";
+        $check_stmt = $mysqli->prepare($query);
+        $check_stmt->bind_param("ss", $username, $email);
+        $check_stmt->execute();
+        $result = $check_stmt->get_result();
         
         if ($result && $result->num_rows > 0) {
             $error = "Username or email already exists";
@@ -46,21 +49,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
             // Insert new admin (status will be 'pending' by default)
-            $query = "INSERT INTO users (username, email, password, reg_date, is_superadmin, status) 
+            $query = "INSERT INTO admins (username, email, password, reg_date, is_superadmin, status) 
                       VALUES (?, ?, ?, NOW(), 0, 'pending')";
             $stmt = $mysqli->prepare($query);
             $stmt->bind_param("sss", $username, $email, $password_hash);
             
             if ($stmt->execute()) {
                 $success = "Registration successful! Your account is pending approval by the super administrator.";
-                $_POST = array(); // Clear form
+                unset($_POST);
             } else {
-                $error = "Registration failed: " . $mysqli->error;
+                $error = "Registration failed: Internal System Error";
             }
             
             $stmt->close();
         }
+        $check_stmt->close();
     }
+}
 }
 ?>
 
@@ -623,6 +628,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                 
                 <!-- Registration Form -->
                 <form action="" method="post" autocomplete="off" id="registrationForm">
+                    <?php csrf_field(); ?>
                     <!-- Username Field -->
                     <div class="form-group">
                         <div class="input-group-custom">
@@ -704,8 +710,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                 
                 <!-- Footer Links -->
                 <div class="register-footer">
-                    <p>Already have an account? <a href="admin-login.php">Login here</a></p>
-                    <p>Super admin? <a href="superadmin-login.php">Switch to super admin portal</a></p>
+                    <p>Back to <a href="../index.php">Main Portal</a></p>
                 </div>
             </div>
         </div>

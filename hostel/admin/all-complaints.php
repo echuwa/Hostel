@@ -167,9 +167,14 @@ check_login();
                                         </td>
                                         <td><?php echo date('M d, Y', strtotime($row->registrationDate));?></td>
                                         <td>
-                                            <a href="complaint-details.php?cid=<?php echo $row->id;?>" class="btn btn-sm btn-view" title="View Details">
-                                                <i class="fas fa-desktop"></i>
-                                            </a>
+                                            <div class="d-flex gap-2">
+                                                <a href="complaint-details.php?cid=<?php echo $row->id;?>" class="btn btn-sm btn-view" title="View Details">
+                                                    <i class="fas fa-desktop"></i>
+                                                </a>
+                                                <button onclick="deleteComplaint(<?php echo $row->id;?>)" class="btn btn-sm btn-outline-danger" title="Delete Complaint" style="border-radius: 6px;">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php
@@ -190,6 +195,7 @@ check_login();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         $(document).ready(function() {
@@ -208,6 +214,52 @@ check_login();
                 }
             });
         });
+
+        function deleteComplaint(cid) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This complaint and its history will be permanently deleted!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef233c',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete it!',
+                padding: '2em',
+                customClass: {
+                    container: 'modern-swal-container',
+                    popup: 'modern-swal-popup'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'ajax/complaint-actions.php',
+                        type: 'POST',
+                        data: {
+                            action: 'delete_complaint',
+                            cid: cid
+                        },
+                        success: function(response) {
+                            const res = JSON.parse(response);
+                            if(res.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: 'The complaint has been removed.',
+                                    timer: 2000,
+                                    showConfirmButton: false,
+                                    toast: true,
+                                    position: 'top-end'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error!', res.msg || 'Failed to delete complaint.', 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>

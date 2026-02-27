@@ -1,0 +1,41 @@
+# Hostel Management System Security Configuration
+
+# 1. Prevent Directory Listing
+Options -Indexes
+
+# 2. Protect Sensitive Files
+<FilesMatch "^\.|\.(bak|config|sql|log|ini|sh|dist|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. Protect includes directory
+<Directory "includes">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+# 4. Protect admin/includes directory
+<Directory "admin/includes">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+# 5. Protect backups directory
+<Directory "backups">
+    Order allow,deny
+    Deny from all
+</Directory>
+
+# 6. Security Headers
+<IfModule mod_headers.c>
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# 7. Disable PHP execution in uploads directory (if possible)
+<Directory "comnplaintdoc">
+    php_flag engine off
+</Directory>

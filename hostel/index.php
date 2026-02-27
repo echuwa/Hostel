@@ -198,11 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             </div>
         </div>
 
-        <!-- Hidden links for direct access (admins) -->
-        <div style="text-align: center; margin-top: 20px; opacity: 0.5;">
-            <a href="admin-register.php" style="font-size: 0.75rem; color: #64748b; text-decoration: none; margin: 0 10px;">Admin Access</a>
-            <a href="superadmin-login.php" style="font-size: 0.75rem; color: #64748b; text-decoration: none; margin: 0 10px;">Super Console</a>
-        </div>
+
     </div>
 
     <!-- Scripts -->

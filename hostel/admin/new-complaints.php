@@ -135,9 +135,14 @@ $stmt->close();
                                 <small class="text-muted">Room <?php echo $row->roomno ?: 'N/A'; ?> • <?php echo $row->complaintType; ?></small>
                             </div>
                         </div>
-                        <div class="text-end">
-                            <div class="fw-bold small text-primary mb-1">#<?php echo $row->ComplainNumber; ?></div>
-                            <small class="text-muted" style="font-size:0.7rem;"><?php echo date('d-m-Y', strtotime($row->registrationDate)); ?></small>
+                        <div class="text-end d-flex align-items-center gap-3">
+                            <div>
+                                <div class="fw-bold small text-primary mb-1">#<?php echo $row->ComplainNumber; ?></div>
+                                <small class="text-muted" style="font-size:0.7rem;"><?php echo date('d-m-Y', strtotime($row->registrationDate)); ?></small>
+                            </div>
+                            <button onclick="event.stopPropagation(); deleteComplaint(<?php echo $row->id; ?>)" class="btn btn-sm btn-outline-danger border-0" title="Delete Complaint">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
                     </div>
                     <?php 
@@ -295,6 +300,41 @@ $stmt->close();
                 });
             } else {
                 Swal.fire('Error', 'Failed to update: ' + data.msg, 'error');
+            }
+        });
+    }
+
+    function deleteComplaint(cid) {
+        Swal.fire({
+            title: 'Delete Complaint?',
+            text: "This record will be permanently removed from the system.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Yes, Delete it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('ajax/complaint-actions.php', {
+                    action: 'delete_complaint',
+                    cid: cid
+                }, function(res) {
+                    const data = JSON.parse(res);
+                    if(data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted',
+                            text: 'Complaint removed successfully',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', 'Delete failed', 'error');
+                    }
+                });
             }
         });
     }

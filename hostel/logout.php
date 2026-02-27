@@ -104,98 +104,139 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     exit();
 }
 
-// Regular request - redirect with SweetAlert message
+// Regular request - redirect with Modern UI
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logging out...</title>
+    <title>Logged Out | Hostel Management System</title>
     
-    <!-- SweetAlert2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AOS Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="css/auth-modern.css">
     
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-        }
-        
-        .logout-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            width: 90%;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
+        .logout_status_circle {
+            width: 80px;
+            height: 80px;
+            background: #f0fdf4;
+            color: #16a34a;
             border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 25px;
+            box-shadow: 0 10px 20px rgba(22, 163, 74, 0.1);
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .countdown_bar {
+            height: 4px;
+            background: var(--gray-light);
+            border-radius: 2px;
+            margin-top: 30px;
+            overflow: hidden;
+            width: 100%;
         }
         
-        h2 {
-            margin-bottom: 10px;
-            font-weight: 600;
+        .countdown_progress {
+            height: 100%;
+            background: var(--gradient-primary);
+            width: 100%;
+            transition: width 5s linear;
         }
-        
-        p {
-            opacity: 0.9;
-            font-size: 14px;
+
+        .farewell_text {
+            font-size: 1.1rem;
+            color: var(--gray);
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .auth_hero p {
+            max-width: 350px !important;
         }
     </style>
 </head>
 <body>
-    <div class="logout-container">
-        <div class="spinner"></div>
-        <h2>Logging out...</h2>
-        <p>Please wait while we securely log you out.</p>
+    <!-- Background Decorations -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+
+    <div class="auth_wrapper">
+        <div class="auth_card" data-aos="zoom-in" data-aos-duration="800">
+            <!-- Left Panel (Hero) -->
+            <div class="auth_hero">
+                <div data-aos="fade-up" data-aos-delay="200">
+                    <h2>See you soon!</h2>
+                    <p>Your session has been securely closed. We've ensured all your data is saved and protected.</p>
+                </div>
+                <img src="assets/img/login_hero.png" alt="Logout Illustration" data-aos="fade-up" data-aos-delay="400">
+            </div>
+
+            <!-- Right Panel (Content) -->
+            <div class="auth_content">
+                <div class="auth_header text-center" data-aos="fade-down" data-aos-delay="300">
+                    <div class="logout_status_circle">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h1 class="auth_title">Logged Out Securely</h1>
+                    <p class="auth_subtitle">Thank you for using HostelMS</p>
+                </div>
+
+                <div class="text-center" data-aos="fade-up" data-aos-delay="500">
+                    <p class="farewell_text">
+                        You have been successfully signed out of your account. To maintain security, please close this browser tab if you are on a public computer.
+                    </p>
+
+                    <a href="index.php" class="btn-primary-modern">
+                        <i class="fas fa-sign-in-alt"></i> Login Again
+                    </a>
+
+                    <div class="countdown_bar">
+                        <div class="countdown_progress" id="progressBar"></div>
+                    </div>
+                    <p class="mt-2 small text-muted">Redirecting to home in <span id="timer">5</span> seconds...</p>
+                </div>
+
+                <div class="auth_footer" data-aos="fade-up" data-aos-delay="700">
+                    &copy; <?php echo date('Y'); ?> <span class="text-primary fw-800">HostelMS</span>. All rights reserved.
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                title: 'Logged Out!',
-                text: 'You have been successfully logged out.',
-                icon: 'success',
-                timer: 2000,
-                timerProgressBar: true,
-                showConfirmButton: false,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                background: 'rgba(255, 255, 255, 0.95)',
-                backdrop: `
-                    rgba(0,0,0,0.4)
-                    left top
-                    no-repeat
-                `,
-                willClose: () => {
-                    window.location.href = 'index.php';
-                }
-            });
-        });
+        AOS.init({ once: true });
+
+        // Countdown logic
+        let count = 5;
+        const timerText = document.getElementById('timer');
+        const progressBar = document.getElementById('progressBar');
+
+        // Start progress bar animation after small delay
+        setTimeout(() => {
+            progressBar.style.width = '0%';
+        }, 100);
+
+        const countdown = setInterval(() => {
+            count--;
+            timerText.innerText = count;
+            if (count <= 0) {
+                clearInterval(countdown);
+                window.location.href = 'index.php';
+            }
+        }, 1000);
     </script>
 </body>
 </html>

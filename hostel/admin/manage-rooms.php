@@ -6,26 +6,36 @@ check_login();
 
 // Delete room functionality
 if(isset($_GET['del'])) {
-    $id = intval($_GET['del']);
-    $adn = "DELETE FROM rooms WHERE id=?";
-    $stmt = $mysqli->prepare($adn);
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $stmt->close();   
-    $_SESSION['success'] = "Room deleted successfully";
+    // CSRF PROTECTION
+    if(!isset($_GET['token']) || !verify_csrf_token($_GET['token'])) {
+        $_SESSION['error'] = "Security token mismatch. Action aborted.";
+    } else {
+        $id = intval($_GET['del']);
+        $adn = "DELETE FROM rooms WHERE id=?";
+        $stmt = $mysqli->prepare($adn);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $stmt->close();   
+        $_SESSION['success'] = "Room deleted successfully";
+    }
     header("Location: manage-rooms.php");
     exit();
 }
 
 // Unallocate student from room
 if(isset($_GET['unallocate'])) {
-    $reg = $_GET['unallocate'];
-    $adn = "DELETE FROM registration WHERE regno=?";
-    $stmt = $mysqli->prepare($adn);
-    $stmt->bind_param('s', $reg);
-    $stmt->execute();
-    $stmt->close();   
-    $_SESSION['success'] = "Student unallocated from room successfully";
+    // CSRF PROTECTION
+    if(!isset($_GET['token']) || !verify_csrf_token($_GET['token'])) {
+        $_SESSION['error'] = "Security token mismatch. Action aborted.";
+    } else {
+        $reg = $_GET['unallocate'];
+        $adn = "DELETE FROM registration WHERE regno=?";
+        $stmt = $mysqli->prepare($adn);
+        $stmt->bind_param('s', $reg);
+        $stmt->execute();
+        $stmt->close();   
+        $_SESSION['success'] = "Student unallocated from room successfully";
+    }
     header("Location: manage-rooms.php");
     exit();
 }
@@ -137,6 +147,12 @@ $stmt->close();
                     </div>
                 <?php endif; ?>
 
+                <?php if(isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger rounded-4 border-0 shadow-sm p-3 mb-5 fw-600 animate__animated animate__fadeInDown">
+                        <i class="fas fa-exclamation-triangle me-2"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    </div>
+                <?php endif; ?>
+
                 <!-- BLOCK TABS -->
                 <ul class="nav nav-tabs nav-tabs-custom" id="blockTabs" role="tablist">
                     <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
@@ -182,7 +198,7 @@ $stmt->close();
                                                         <a href="edit-room.php?id=<?php echo $rm->id; ?>" class="btn btn-light btn-sm rounded-circle p-0" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation();">
                                                             <i class="fas fa-edit text-primary x-small"></i>
                                                         </a>
-                                                        <a href="manage-rooms.php?del=<?php echo $rm->id; ?>" class="btn btn-light btn-sm rounded-circle p-0" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); return confirm('Delete room confirmation');">
+                                                        <a href="manage-rooms.php?del=<?php echo $rm->id; ?>&token=<?php echo generate_csrf_token(); ?>" class="btn btn-light btn-sm rounded-circle p-0" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); return confirm('Delete room confirmation');">
                                                             <i class="fas fa-trash-alt text-danger x-small"></i>
                                                         </a>
                                                     </div>

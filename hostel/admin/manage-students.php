@@ -6,37 +6,63 @@ check_login();
 
 if(isset($_GET['del']))
 {
-	$id=$_GET['del'];
-	$adn="delete from userregistration where regNo=?";
-		$stmt= $mysqli->prepare($adn);
-		$stmt->bind_param('s',$id);
+    // CSRF PROTECTION
+    if(!isset($_GET['token']) || !verify_csrf_token($_GET['token'])) {
+        $_SESSION['error_msg'] = "Security token mismatch. Action aborted.";
+    } else {
+        $id=$_GET['del'];
+        
+        // 1. Delete room allocation to free up bed
+        $del_reg = "DELETE FROM registration WHERE regno=?";
+        $stmt1 = $mysqli->prepare($del_reg);
+        $stmt1->bind_param('s', $id);
+        $stmt1->execute();
+        $stmt1->close();
+
+        // 2. Delete main account
+        $adn="delete from userregistration where regNo=?";
+        $stmt= $mysqli->prepare($adn);
+        $stmt->bind_param('s',$id);
         $stmt->execute();
         $stmt->close();	   
+        
+        $_SESSION['success_msg'] = "Student and associated records purged successfully";
+    }
 }
 
 if(isset($_GET['approve']))
 {
-	$id=$_GET['approve'];
-	$adn="UPDATE userregistration SET status='Active' WHERE regNo=?";
-	$stmt= $mysqli->prepare($adn);
-	$stmt->bind_param('s',$id);
-    if($stmt->execute()) {
-        $_SESSION['success_msg'] = "Student account activated successfully";
+    // CSRF PROTECTION
+    if(!isset($_GET['token']) || !verify_csrf_token($_GET['token'])) {
+        $_SESSION['error_msg'] = "Security token mismatch. Action aborted.";
+    } else {
+        $id=$_GET['approve'];
+        $adn="UPDATE userregistration SET status='Active' WHERE regNo=?";
+        $stmt= $mysqli->prepare($adn);
+        $stmt->bind_param('s',$id);
+        if($stmt->execute()) {
+            $_SESSION['success_msg'] = "Student account activated successfully";
+        }
+        $stmt->close();	   
     }
-    $stmt->close();	   
 }
 
 if(isset($_GET['toggle_fee']))
 {
-	$id=$_GET['toggle_fee'];
-	$adn="UPDATE userregistration SET fee_status = NOT fee_status WHERE regNo=?";
-	$stmt= $mysqli->prepare($adn);
-    $stmt->bind_param('s',$id);
-    if($stmt->execute()) {
-        $_SESSION['success_msg'] = "Fee status updated successfully";
-        echo "<script>window.location.href='manage-students.php';</script>";
+    // CSRF PROTECTION
+    if(!isset($_GET['token']) || !verify_csrf_token($_GET['token'])) {
+        $_SESSION['error_msg'] = "Security token mismatch. Action aborted.";
+    } else {
+        $id=$_GET['toggle_fee'];
+        $adn="UPDATE userregistration SET fee_status = NOT fee_status WHERE regNo=?";
+        $stmt= $mysqli->prepare($adn);
+        $stmt->bind_param('s',$id);
+        if($stmt->execute()) {
+            $_SESSION['success_msg'] = "Fee status updated successfully";
+            echo "<script>window.location.href='manage-students.php';</script>";
+        }
+        $stmt->close();	   
     }
-    $stmt->close();	   
 }
 ?>
 <!DOCTYPE html>
@@ -297,14 +323,14 @@ if(isset($_GET['toggle_fee']))
             confirmButtonText: 'Yes, Verify Student'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = `manage-students.php?approve=${currentStudent.regNo}`;
+                window.location.href = `manage-students.php?approve=${currentStudent.regNo}&token=<?php echo generate_csrf_token(); ?>`;
             }
         });
     }
 
     function toggleFee() {
         if(!currentStudent) return;
-        window.location.href = `manage-students.php?toggle_fee=${currentStudent.regNo}`;
+        window.location.href = `manage-students.php?toggle_fee=${currentStudent.regNo}&token=<?php echo generate_csrf_token(); ?>`;
     }
 
     function deleteStudent() {
@@ -318,7 +344,7 @@ if(isset($_GET['toggle_fee']))
             confirmButtonText: 'Yes, Purge Data'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = `manage-students.php?del=${currentStudent.regNo}`;
+                window.location.href = `manage-students.php?del=${currentStudent.regNo}&token=<?php echo generate_csrf_token(); ?>`;
             }
         });
     }
@@ -365,6 +391,18 @@ if(isset($_GET['toggle_fee']))
         });
     </script>
     <?php unset($_SESSION['success_msg']); endif; ?>
+
+    <?php if(isset($_SESSION['error_msg'])): ?>
+    <script>
+        Swal.fire({
+            icon: 'error',
+            title: 'Security Alert',
+            text: '<?php echo $_SESSION['error_msg']; ?>',
+            timer: 4000,
+            showConfirmButton: true
+        });
+    </script>
+    <?php unset($_SESSION['error_msg']); endif; ?>
 </body>
 </html>
 

@@ -1,4 +1,17 @@
 <?php
+// Initialize Security
+require_once(__DIR__ . '/security.php');
+set_security_headers();
+
+// Session security
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_strict_mode', 1);
+    // ini_set('session.cookie_secure', 1); // Enable if HTTPS
+    session_start();
+}
+secure_session();
+
 // Database configuration
 $dbhost = "localhost";  // or "127.0.0.1" if having connection issues
 $dbuser = "official_chuwa";      // Your actual database username

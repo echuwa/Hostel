@@ -1,12 +1,18 @@
 <?php
-// Set session configuration - must be before any session_start() happens
+// Initialize Security
+require_once(__DIR__ . '/../../includes/security.php');
+set_security_headers();
+
+// Session security
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', 1); // Enable only if using HTTPS
     ini_set('session.use_strict_mode', 1);
+    // ini_set('session.cookie_secure', 1); // Enable if HTTPS
+    session_start();
 }
+secure_session();
 
-// Database connection
+// Database configuration
 $dbhost = "localhost";  // Host/IP
 $dbuser = "official_chuwa";      // Username
 $dbpass = "chuwa123";   // Password

@@ -156,7 +156,15 @@ check_login();
                                     </div>
                                     <div class="col-md-4">
                                         <div class="detail-label">Course Applied</div>
-                                        <div class="detail-value"><?php echo $row->course; ?></div>
+                                        <div class="detail-value">
+                                            <?php 
+                                            if (empty($row->course) || $row->course == '0') {
+                                                echo '<span class="text-muted italic">Not Specified</span>';
+                                            } else {
+                                                echo htmlspecialchars($row->course); 
+                                            }
+                                            ?>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -216,13 +224,13 @@ check_login();
                                     <div class="row g-4">
                                         <div class="col-md-6">
                                             <div class="detail-label">Permanent Address</div>
-                                            <div class="fw-700 text-dark"><?php echo $row->pmntAddress; ?></div>
-                                            <div class="small text-muted mt-1"><?php echo $row->pmntCity; ?>, <?php echo $row->pmnatetState; ?> - <?php echo $row->pmntPincode; ?></div>
+                                            <div class="fw-700 text-dark"><?php echo $row->pmntAddress ?: 'Not Provided'; ?></div>
+                                            <div class="small text-muted mt-1"><?php echo htmlspecialchars($row->pmntState); ?> <?php echo $row->pmntCountry ? '('.$row->pmntCountry.')' : ''; ?></div>
                                         </div>
                                         <div class="col-md-6 border-start-md">
                                             <div class="detail-label">Correspondence Address</div>
-                                            <div class="fw-700 text-dark"><?php echo $row->corresAddress; ?></div>
-                                            <div class="small text-muted mt-1"><?php echo $row->corresCIty; ?>, <?php echo $row->corresState; ?> - <?php echo $row->corresPincode; ?></div>
+                                            <div class="fw-700 text-dark"><?php echo $row->corresAddress ?: 'Not Provided'; ?></div>
+                                            <div class="small text-muted mt-1"><?php echo htmlspecialchars($row->corresState); ?> <?php echo $row->corresCountry ? '('.$row->corresCountry.')' : ''; ?></div>
                                         </div>
                                     </div>
                                 </div>

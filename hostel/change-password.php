@@ -10,31 +10,40 @@ $message = '';
 
 // Change password logic
 if(isset($_POST['changepwd'])) {
-    $old_password = $_POST['oldpassword'];
-    $new_password = $_POST['newpassword'];
-    $update_date = date('Y-m-d H:i:s');
-    
-    // Verify old password
-    $stmt = $mysqli->prepare("SELECT password FROM userregistration WHERE id = ? AND password = ?");
-    $stmt->bind_param('is', $user_id, $old_password);
-    $stmt->execute();
-    $stmt->store_result();
-    
-    if($stmt->num_rows > 0) {
-        // Update password
-        $update = $mysqli->prepare("UPDATE userregistration SET password = ?, passUdateDate = ? WHERE id = ?");
-        $update->bind_param('ssi', $new_password, $update_date, $user_id);
-        
-        if($update->execute()) {
-            $message = '<div class="alert alert-success">Password changed successfully!</div>';
-        } else {
-            $message = '<div class="alert alert-danger">Error updating password. Please try again.</div>';
-        }
-        $update->close();
+    // CSRF PROTECTION
+    if(!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = '<div class="alert alert-danger">Invalid request security token. Please refresh and try again.</div>';
     } else {
-        $message = '<div class="alert alert-danger">Old password is incorrect</div>';
+        $old_password = $_POST['oldpassword'];
+        $new_password = $_POST['newpassword'];
+        $update_date = date('Y-m-d H:i:s');
+        
+        // Get current hash
+        $stmt = $mysqli->prepare("SELECT password FROM userregistration WHERE id = ?");
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $userData = $res->fetch_assoc();
+        $stmt->close();
+        
+        if($userData && password_verify($old_password, $userData['password'])) {
+            // Update password with new hash
+            $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $update = $mysqli->prepare("UPDATE userregistration SET password = ?, passUdateDate = ? WHERE id = ?");
+            $update->bind_param('ssi', $new_hash, $update_date, $user_id);
+            
+            if($update->execute()) {
+                $message = '<div class="alert alert-success">Password updated successfully! For your security, your session has been protected.</div>';
+                // Success - regenerate session ID to prevent fixation
+                session_regenerate_id(true);
+            } else {
+                $message = '<div class="alert alert-danger">Internal system error. Please contact admin.</div>';
+            }
+            $update->close();
+        } else {
+            $message = '<div class="alert alert-danger">The current password you entered is incorrect.</div>';
+        }
     }
-    $stmt->close();
 }
 
 // Get last update date
@@ -122,6 +131,7 @@ $stmt->close();
                         </div>
 
                         <form method="post" id="change-pwd" onsubmit="return validatePassword()">
+                            <?php csrf_field(); ?>
                             <div class="row g-4">
                                 <!-- Current Password -->
                                 <div class="col-12">

@@ -8,9 +8,13 @@ $error = '';
 $success = '';
 
 if (isset($_POST['change_pwd'])) {
-    $current = trim($_POST['current_password']);
-    $new = trim($_POST['new_password']);
-    $confirm = trim($_POST['confirm_password']);
+    // CSRF PROTECTION
+    if(!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $error = "Security token mismatch. Please try again.";
+    } else {
+        $current = trim($_POST['current_password']);
+        $new = trim($_POST['new_password']);
+        $confirm = trim($_POST['confirm_password']);
     
     if (empty($current) || empty($new) || empty($confirm)) {
         $error = "All fields are required";
@@ -41,6 +45,7 @@ if (isset($_POST['change_pwd'])) {
         }
         $stmt->close();
     }
+}
 }
 ?>
 <!DOCTYPE html>
@@ -127,6 +132,7 @@ if (isset($_POST['change_pwd'])) {
                                 <?php endif; ?>
 
                                 <form method="POST">
+                                    <?php csrf_field(); ?>
                                     <div class="mb-3">
                                         <label class="form-label fw-bold text-secondary">Current Password</label>
                                         <input type="password" name="current_password" class="form-control" placeholder="Enter current password" required>

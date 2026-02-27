@@ -45,5 +45,19 @@ if(isset($_POST['action'])) {
             echo json_encode(['status' => 'error', 'msg' => $mysqli->error]);
         }
     }
+
+    if($_POST['action'] == 'delete_complaint') {
+        // Log auditing would be good here, but for now simple delete
+        // First delete from history to maintain integrity
+        $mysqli->query("DELETE FROM complainthistory WHERE complaintid=$cid");
+        
+        $stmt = $mysqli->prepare("DELETE FROM complaints WHERE id=?");
+        $stmt->bind_param('i', $cid);
+        if($stmt->execute()) {
+            echo json_encode(['status' => 'success']);
+        } else {
+            echo json_encode(['status' => 'error', 'msg' => $mysqli->error]);
+        }
+    }
 }
 ?>

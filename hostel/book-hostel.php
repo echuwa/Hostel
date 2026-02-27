@@ -91,7 +91,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                     try {
                         $query = "INSERT INTO registration(roomno, seater, feespm, foodstatus, stayfrom, duration, course, regno, firstName, middleName, lastName, gender, contactno, emailid, egycontactno, guardianName, guardianRelation, guardianContactno, corresAddress, corresCountry, corresState, pmntAddress, pmntCountry, pmntState) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                         $stmt = $mysqli->prepare($query);
-                        $stmt->bind_param('siidssisssssisssisssisss', $form_data['roomno'], $form_data['seater'], $form_data['feespm'], $form_data['foodstatus'], $form_data['stayfrom'], $form_data['duration'], $form_data['course'], $form_data['regno'], $form_data['firstName'], $form_data['middleName'], $form_data['lastName'], $form_data['gender'], $form_data['contactno'], $form_data['emailid'], $form_data['egycontactno'], $form_data['guardianName'], $form_data['guardianRelation'], $form_data['guardianContactno'], $form_data['corresAddress'], $form_data['corresCountry'], $form_data['corresState'], $form_data['pmntAddress'], $form_data['pmntCountry'], $form_data['pmntState']);
+                        // Corrected parameter types: 
+                        // roomno(s), seater(i), feespm(d), foodstatus(i), stayfrom(s), duration(i), 
+                        // course(s), regno(s), firstName(s), middleName(s), lastName(s), gender(s), 
+                        // contactno(s), emailid(s), egycontactno(s), guardianName(s), guardianRelation(s), 
+                        // guardianContactno(s), corresAddress(s), corresCountry(s), corresState(s), 
+                        // pmntAddress(s), pmntCountry(s), pmntState(s)
+                        $types = "sidisiss ssss ssss ssss sss"; // Simplified grouping for counting: 5+4+4+4+4+3 = 24
+                        // Actually let's just write them clearly:
+                        $stmt->bind_param('sidisi' . 'ssssss' . 'ssssss' . 'ssssss', 
+                            $form_data['roomno'], 
+                            $form_data['seater'], 
+                            $form_data['feespm'], 
+                            $form_data['foodstatus'], 
+                            $form_data['stayfrom'], 
+                            $form_data['duration'], 
+                            $form_data['course'], 
+                            $form_data['regno'], 
+                            $form_data['firstName'], 
+                            $form_data['middleName'], 
+                            $form_data['lastName'], 
+                            $form_data['gender'], 
+                            $form_data['contactno'], 
+                            $form_data['emailid'], 
+                            $form_data['egycontactno'], 
+                            $form_data['guardianName'], 
+                            $form_data['guardianRelation'], 
+                            $form_data['guardianContactno'], 
+                            $form_data['corresAddress'], 
+                            $form_data['corresCountry'], 
+                            $form_data['corresState'], 
+                            $form_data['pmntAddress'], 
+                            $form_data['pmntCountry'], 
+                            $form_data['pmntState']
+                        );
                         $stmt->execute();
                         $stmt->close();
                         $mysqli->commit();
