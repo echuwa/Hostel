@@ -2,8 +2,10 @@
 // Determine current page for active state
 $current_page = basename($_SERVER['PHP_SELF']);
 
-// Count pending students for badge
+// Global Metric Calculations
+$pending_sidebar_count = 0;
 if(isset($mysqli)) {
+    // 1. Pending Students for Super Admin
     $stmt = $mysqli->prepare("SELECT count(*) FROM userregistration WHERE status='Pending'");
     if($stmt) {
         $stmt->execute();
@@ -12,10 +14,53 @@ if(isset($mysqli)) {
         $stmt->close();
     }
 }
-$pending_sidebar_count = $pending_sidebar_count ?? 0;
+
+// Global Notification Logic
+$notif_title = "";
+$notif_text = "";
+$notif_icon = "info";
+$show_notif = false;
+
+if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
+    // Super Admin Notifications: Pending Reports
+    $new_reports = $mysqli->query("SELECT COUNT(*) FROM debtor_reports WHERE status='pending' AND deleted_by_admin = 0")->fetch_row()[0];
+    
+    if ($new_reports > 0 && (!isset($_SESSION['last_notif_count_reports']) || $_SESSION['last_notif_count_reports'] != $new_reports)) {
+        $notif_title = "Command Update";
+        $notif_text = "You have $new_reports pending debtor reports requiring your directive.";
+        $notif_icon = "warning";
+        $show_notif = true;
+        $_SESSION['last_notif_count_reports'] = $new_reports;
+    }
+} else {
+    // Debtor Notifications: New Replies
+    $unread_debtor_count = 0;
+    if(isset($mysqli) && isset($_SESSION['id'])) {
+        $stmt = $mysqli->prepare("SELECT count(*) FROM debtor_reports WHERE debtor_id=? AND debtor_read=0 AND admin_reply IS NOT NULL AND deleted_by_debtor=0");
+        if($stmt) {
+            $stmt->bind_param("i", $_SESSION['id']);
+            $stmt->execute();
+            $stmt->bind_result($unread_debtor_count);
+            $stmt->fetch();
+            $stmt->close();
+        }
+    }
+
+    if ($unread_debtor_count > 0 && (!isset($_SESSION['last_notif_count_replies']) || $_SESSION['last_notif_count_replies'] != $unread_debtor_count)) {
+        $notif_title = "Directive Received";
+        $notif_text = "Super Admin has responded to your block reports. Check the feedback center.";
+        $notif_icon = "success";
+        $show_notif = true;
+        $_SESSION['last_notif_count_replies'] = $unread_debtor_count;
+    }
+}
 
 $dn = $_SESSION['username'] ?? 'Admin';
 ?>
+<!-- Include Global Assets -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-area" style="display: flex; align-items: center; gap: 12px;">
@@ -89,6 +134,32 @@ $dn = $_SESSION['username'] ?? 'Admin';
             </a>
         </li>
         
+        <li class="menu-header" style="font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1px; padding: 24px 16px 12px;">Reports & Communication</li>
+
+        <?php if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1): ?>
+        <li>
+            <a href="manage-reports.php" class="<?php echo $current_page == 'manage-reports.php' ? 'active' : ''; ?>">
+                <i class="fas fa-file-signature"></i>
+                <span>Debtor Reports</span>
+                <?php 
+                $pending_reports = $mysqli->query("SELECT COUNT(*) FROM debtor_reports WHERE status='pending' AND deleted_by_admin = 0")->fetch_row()[0];
+                if($pending_reports > 0): ?>
+                    <span class="badge rounded-pill bg-warning text-dark ms-auto" style="font-size: 0.65rem; padding: 4px 8px;"><?php echo $pending_reports; ?></span>
+                <?php endif; ?>
+            </a>
+        </li>
+        <?php else: ?>
+        <li>
+            <a href="prepare-report.php" class="<?php echo $current_page == 'prepare-report.php' ? 'active' : ''; ?>">
+                <i class="fas fa-file-export"></i>
+                <span>Prepare Report</span>
+                <?php if(isset($unread_debtor_count) && $unread_debtor_count > 0): ?>
+                    <span class="badge rounded-pill bg-danger ms-auto shadow-sm" style="font-size: 0.6rem; padding: 4px 6px; animation: pulse 2s infinite;"><i class="fas fa-circle me-1" style="font-size: 0.4rem;"></i>NEW</span>
+                <?php endif; ?>
+            </a>
+        </li>
+        <?php endif; ?>
+
         <li class="menu-header" style="font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1px; padding: 24px 16px 12px;">Support & Logs</li>
 
         <li class="has-submenu <?php echo in_array($current_page, ['new-complaints.php', 'inprocess-complaints.php', 'closed-complaints.php', 'all-complaints.php']) ? 'active' : ''; ?>">
@@ -219,11 +290,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const submenu = parent.querySelector('.submenu');
             const chevron = this.querySelector('.fa-chevron-down');
             
-            if(submenu.style.display === 'block') {
+            if(submenu && submenu.style.display === 'block') {
                 submenu.style.display = 'none';
                 parent.classList.remove('active');
                 if(chevron) chevron.style.transform = 'rotate(0deg)';
-            } else {
+            } else if(submenu) {
                 // Close others
                 document.querySelectorAll('.has-submenu').forEach(other => {
                     if(other !== parent) {
@@ -242,5 +313,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-</script>
 
+// Professional Global Notifications Trigger
+<?php if (isset($show_notif) && $show_notif): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    Swal.fire({
+        title: '<?php echo addslashes($notif_title); ?>',
+        text: '<?php echo addslashes($notif_text); ?>',
+        icon: '<?php echo $notif_icon; ?>',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 8000,
+        timerProgressBar: true,
+        showClass: { popup: 'animate__animated animate__fadeInRight' },
+        hideClass: { popup: 'animate__animated animate__fadeOutRight' },
+        background: '#fff',
+        color: '#1e293b',
+        iconColor: '<?php echo $notif_icon == "success" ? "#10b981" : ($notif_icon == "warning" ? "#f59e0b" : "#4361ee"); ?>',
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+            toast.addEventListener('click', () => {
+                window.location.href = '<?php echo isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1 ? "manage-reports.php" : "prepare-report.php"; ?>';
+            });
+        }
+    });
+});
+<?php endif; ?>
+</script>

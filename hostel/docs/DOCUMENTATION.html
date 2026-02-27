@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HostelMS - Technical Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #06d6a0;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--dark);
+            background-color: #fff;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            padding: 50px 20px;
+        }
+
+        .doc-header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 30px;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+
+        .doc-header h1 {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            border-left: 5px solid var(--primary);
+            padding-left: 15px;
+        }
+
+        .section-title i {
+            margin-right: 15px;
+            color: var(--primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th {
+            background-color: var(--light);
+            font-weight: 700;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge-custom {
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            background: var(--light);
+            color: var(--primary);
+            border: 1px solid var(--border);
+            margin-right: 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        code {
+            background-color: #f1f5f9;
+            color: var(--secondary);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 20px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .security-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .security-card h4 {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--secondary);
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .container {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="no-print mb-4 text-end">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-file-pdf me-2"></i> Save as PDF
+            </button>
+        </div>
+
+        <header class="doc-header">
+            <h1>Hostel Management System</h1>
+            <p class="text-muted fw-600">Comprehensive Technical Documentation for Developers</p>
+            <div class="mt-3">
+                <span class="badge bg-primary">Version 2.0</span>
+                <span class="badge bg-dark">PHP / MySQL</span>
+                <span class="badge bg-success">Security Hardened</span>
+            </div>
+        </header>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-info-circle"></i> Project Overview</h2>
+            <p>
+                The <strong>Hostel Management System (HostelMS)</strong> is a robust enterprise-grade solution for
+                managing student accommodations.
+                The system handles everything from student registration and room allocation to complaint tracking and
+                fee management,
+                providing a seamless experience for both students and hostel administrators.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-microchip"></i> Technology Stack</h2>
+            <div class="d-flex flex-wrap">
+                <span class="badge-custom"><i class="fab fa-php me-2"></i> PHP 7.4+</span>
+                <span class="badge-custom"><i class="fas fa-database me-2"></i> MySQL 8.0</span>
+                <span class="badge-custom"><i class="fab fa-bootstrap me-2"></i> Bootstrap 5.3</span>
+                <span class="badge-custom"><i class="fab fa-js me-2"></i> JavaScript ES6+</span>
+                <span class="badge-custom"><i class="fas fa-font me-2"></i> FontAwesome 6</span>
+                <span class="badge-custom"><i class="fas fa-paint-brush me-2"></i> Custom Modern CSS</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-folder-tree"></i> System Architecture</h2>
+            <p>The project is structured logically to separate administration from student access:</p>
+            <ul>
+                <li><strong>root/</strong>: Student-facing pages (Login, Registration, Dashboard, Room Booking).</li>
+                <li><strong>admin/</strong>: Full administrative control panel for management.</li>
+                <li><strong>includes/</strong>: Core configuration, session management, and security libraries.</li>
+                <li><strong>css/ & js/</strong>: Centralized styling and frontend interactive components.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-table"></i> Database Schema</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Table Name</th>
+                        <th>Core Responsibility</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>userregistration</code></td>
+                        <td>Primary student records, gender, and validation status.</td>
+                    </tr>
+                    <tr>
+                        <td><code>admin</code></td>
+                        <td>Privileged access accounts for hostel administrators.</td>
+                    </tr>
+                    <tr>
+                        <td><code>rooms</code></td>
+                        <td>Room inventory, seater capacity, and fees.</td>
+                    </tr>
+                    <tr>
+                        <td><code>registration</code></td>
+                        <td>Transactional data linking students to specific room allocations.</td>
+                    </tr>
+                    <tr>
+                        <td><code>complaints</code></td>
+                        <td>Student grievance repository and administrative response logs.</td>
+                    </tr>
+                    <tr>
+                        <td><code>debtor_reports</code></td>
+                        <td>Reporting system for Block Debtors to communicate with Super Admin.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-shield-halved"></i> Security Framework</h2>
+
+            <div class="security-card">
+                <h4><i class="fas fa-key me-2"></i> CSRF Protection</h4>
+                <p>Every state-changing action (Update, Delete) is protected by a cryptographically secure 256-bit token
+                    stored in the session and verified upon request.</p>
+            </div>
+
+            <div class="security-card">
+                <h4><i class="fas fa-user-shield me-2"></i> Session Binding</h4>
+                <p>Sessions are bound to the user's IP Address and User Agent. If either changes during a session, the
+                    system automatically terminates the session for security.</p>
+            </div>
+
+            <div class="security-card">
+                <h4><i class="fas fa-database me-2"></i> Data Integrity</h4>
+                <p>The system prevents SQL Injection via <strong>Prepared Statements</strong> across all modules and
+                    prevents XSS via aggressive output encoding.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-star"></i> Core Features</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="fw-800"><i class="fas fa-user-tie me-2"></i> Admin Modules</h5>
+                    <ul class="small">
+                        <li>Dynamic Student Verification</li>
+                        <li>Room & Course Management</li>
+                        <li>Debtor Reporting & Directives</li>
+                        <li>Audit Logs & Access History</li>
+                        <li>Automated Backup Settings</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="fw-800"><i class="fas fa-user-graduate me-2"></i> Student Modules</h5>
+                    <ul class="small">
+                        <li>Online Room Application</li>
+                        <li>Complaint Submission System</li>
+                        <li>Real-time Status Tracking</li>
+                        <li>Profile & Account Security</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title"><i class="fas fa-terminal"></i> Quick Setup</h2>
+            <p>Initialize the environment with these three steps:</p>
+
+            <div class="code-block">
+                // 1. Configure Database in includes/config.php<br>
+                $mysqli = new mysqli("localhost", "db_user", "db_pass", "Hostel");<br><br>
+
+                // 2. Ensure Write Permissions on backups/<br>
+                chmod -R 755 backups/
+            </div>
+        </div>
+
+        <footer class="text-center pt-5 border-top mt-5 mb-5">
+            <p class="text-muted fw-600 small">Generated by Antigravity AI for Hostel Management System</p>
+        </footer>
+    </div>
+
+</body>
+
+</html>
