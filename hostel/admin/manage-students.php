@@ -146,7 +146,7 @@ if(isset($_GET['toggle_fee']))
                 <!-- Simple List -->
                 <div id="studentList">
                     <?php	
-                    $ret="SELECT u.regNo, u.firstName, u.middleName, u.lastName, u.contactNo, u.status, u.gender, u.fee_status, u.payment_status, r.roomno, r.seater 
+                    $ret="SELECT u.id, u.regNo, u.firstName, u.middleName, u.lastName, u.contactNo, u.status, u.gender, u.fee_status, u.payment_status, r.roomno, r.seater 
                           FROM userregistration u 
                           LEFT JOIN registration r ON u.regNo = r.regno 
                           ORDER BY u.id DESC";
@@ -232,7 +232,7 @@ if(isset($_GET['toggle_fee']))
         statEl.className = `info-val text-${isActive ? 'success' : 'warning'}`;
         
         const actionHtml = `
-            <a href="student-details.php?regno=${data.regNo}" class="btn btn-primary w-100 rounded-4 py-2 fw-bold mb-2 shadow-sm">View Full Profile</a>
+            <a href="student-details.php?id=${data.id}" class="btn btn-primary w-100 rounded-4 py-2 fw-bold mb-2 shadow-sm">View Full Profile</a>
             <div class="d-flex gap-2 mb-2">
                 <a href="manage-students.php?toggle_fee=${data.regNo}" class="btn btn-light border w-50 rounded-4 py-2 small fw-bold">Toggle Fee</a>
                 <a href="manage-students.php?del=${data.regNo}" onclick="return confirm('Delete Student?')" class="btn btn-outline-danger w-50 rounded-4 py-2 small fw-bold">Delete</a>

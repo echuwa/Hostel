@@ -76,7 +76,7 @@ check_login();
 
                 <div id="complaintList">
                     <?php  
-                    $ret="SELECT c.*, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno, (SELECT seater FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as seater FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus IN ('Closed', 'Resolved') ORDER BY c.registrationDate DESC";
+                    $ret="SELECT c.*, u.id as studentId, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno, (SELECT seater FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as seater FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus IN ('Closed', 'Resolved') ORDER BY c.registrationDate DESC";
                     $res=$mysqli->query($ret);
                     if($res->num_rows > 0):
                         while($row=$res->fetch_object()):
@@ -89,6 +89,7 @@ check_login();
                             <div>
                                 <h6 class="mb-0 fw-bold">
                                     <span class="text-primary cursor-pointer" onclick="event.stopPropagation(); openStudentInfo(<?php echo htmlspecialchars(json_encode([
+                                        'id' => $row->studentId,
                                         'firstName' => $row->firstName,
                                         'lastName' => $row->lastName,
                                         'regNo' => $row->regNo,
@@ -250,7 +251,7 @@ check_login();
         statEl.innerText = isActive ? 'Active' : (data.status || 'Pending');
         statEl.className = `info-val fw-bold text-${isActive ? 'success' : 'warning'}`;
         
-        document.getElementById('viewProfileBtn').href = `student-details.php?regno=${data.regNo}`;
+        document.getElementById('viewProfileBtn').href = `student-details.php?id=${data.id}`;
         
         modal.show();
     }

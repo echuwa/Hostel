@@ -3,254 +3,242 @@ session_start();
 include('includes/config.php');
 include('includes/checklogin.php');
 check_login();
+
+// Fetch student ID from URL
+$student_id = $_GET['id'] ?? null;
+
+if (!$student_id) {
+    header("Location: manage-students.php");
+    exit();
+}
+
+// Fetch student data
+$query = "SELECT u.*, r.*, u.id as studentId 
+          FROM userregistration u 
+          LEFT JOIN registration r ON u.regNo = r.regno 
+          WHERE u.id = ?";
+$stmt = $mysqli->prepare($query);
+$stmt->bind_param('i', $student_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$data = $result->fetch_object();
+$stmt->close();
+
+if (!$data) {
+    header("Location: manage-students.php");
+    exit();
+}
 ?>
-<!doctype html>
-<html lang="en" class="no-js">
 
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-	<meta name="description" content="">
-	<meta name="author" content="">
-	<meta name="theme-color" content="#3e454c">
-	<title>Room Details</title>
-	<link rel="stylesheet" href="css/font-awesome.min.css">
-	<link rel="stylesheet" href="css/bootstrap.min.css">
-	<link rel="stylesheet" href="css/dataTables.bootstrap.min.css">
-	<link rel="stylesheet" href="css/bootstrap-social.css">
-	<link rel="stylesheet" href="css/bootstrap-select.css">
-	<link rel="stylesheet" href="css/fileinput.min.css">
-	<link rel="stylesheet" href="css/awesome-bootstrap-checkbox.css">
-	<link rel="stylesheet" href="css/style.css">
-	<link rel="stylesheet" href="css/font-awesome.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>Student Details | Hostel Management</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Modern Styling -->
+    <link rel="stylesheet" href="css/modern.css">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4361ee 0%, #7b2ff7 100%);
+        }
+        .profile-header {
+            background: var(--primary-gradient);
+            border-radius: 24px;
+            padding: 40px;
+            color: white;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(67, 97, 238, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-header::after {
+            content: ''; position: absolute; top: -50px; right: -50px;
+            width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;
+        }
+        .info-section-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            height: 100%;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+        .section-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; margin-bottom: 15px;
+        }
+        .bg-p-light { background: #eff6ff; color: #3b82f6; }
+        .bg-s-light { background: #ecfdf5; color: #10b981; }
+        .bg-w-light { background: #fffbeb; color: #f59e0b; }
+        .bg-v-light { background: #f5f3ff; color: #8b5cf6; }
 
-<script language="javascript" type="text/javascript">
-var popUpWin=0;
-function popUpWindow(URLStr, left, top, width, height)
-{
- if(popUpWin)
-{
-if(!popUpWin.closed) popUpWin.close();
-}
-popUpWin = open(URLStr,'popUpWin', 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=no,copyhistory=yes,width='+510+',height='+430+',left='+left+', top='+top+',screenX='+left+',screenY='+top+'');
-}
+        .detail-label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .detail-value { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 15px; word-break: break-all; }
 
-</script>
+        .avatar-lg {
+            width: 100px; height: 100px; border-radius: 24px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: 800; border: 2px solid rgba(255,255,255,0.3);
+        }
 
+        .payment-pill {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 15px;
+        }
+
+        @media print {
+            .app-container .sidebar, .app-container .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; }
+            .profile-header { background: #f8fafc !important; color: #000 !important; box-shadow: none !important; border: 1px solid #ddd !important; }
+            .profile-header::after { display: none; }
+            .avatar-lg { border: 2px solid #ddd !important; color: #000 !important; }
+        }
+    </style>
 </head>
-
 <body>
-	<?php include('includes/header.php');?>
+    <div class="app-container">
+        <!-- SIDEBAR (No-Print) -->
+        <div class="no-print">
+            <?php include('includes/sidebar_modern.php'); ?>
+        </div>
 
-	<div class="ts-main-content">
-			<?php include('includes/sidebar.php');?>
-		<div class="content-wrapper">
-			<div class="container-fluid">
-				<div class="row" id="print">
+        <div class="main-content">
+            <div class="content-wrapper">
+                
+                <!-- Simple Breadcrumb/Back -->
+                <div class="no-print mb-4 d-flex justify-content-between align-items-center">
+                    <a href="manage-students.php" class="btn border-0 fw-bold text-muted p-0"><i class="fas fa-arrow-left me-2"></i> Back to Directory</a>
+                    <button onclick="window.print()" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm"><i class="fas fa-print me-2"></i> Print Report</button>
+                </div>
 
+                <div id="printArea">
+                    <!-- Profile Header -->
+                    <div class="profile-header animate__animated animate__fadeInDown">
+                        <div class="row align-items-center g-4">
+                            <div class="col-auto">
+                                <div class="avatar-lg">
+                                    <?php echo strtoupper(substr($data->firstName, 0, 1) . substr($data->lastName, 0, 1)); ?>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <span class="badge bg-white text-primary mb-2 px-3 rounded-pill fw-bold">Student Identity Card</span>
+                                <h1 class="fw-800 mb-1"><?php echo htmlspecialchars($data->firstName . ' ' . ($data->middleName ? $data->middleName . ' ' : '') . $data->lastName); ?></h1>
+                                <div class="d-flex flex-wrap gap-3 opacity-90 fw-600">
+                                    <span><i class="fas fa-id-card me-1"></i> <?php echo $data->regNo; ?></span>
+                                    <span><i class="fas fa-calendar-alt me-1"></i> Registered: <?php echo date('M d, Y', strtotime($data->regDate)); ?></span>
+                                    <span><i class="fas fa-user-check me-1"></i> Status: <?php echo ucfirst($data->status); ?></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-					<div class="col-md-12">
-						<h2 class="page-title" style="margin-top:4%">Rooms Details</h2>
-						<div class="panel panel-default">
-							<div class="panel-heading">All Room Details</div>
-							<div class="panel-body">
-			<table id="zctb" class="table table-bordered " cellspacing="0" width="100%" border="1">
-									
-						 <span style="float:left" ><i class="fa fa-print fa-2x" aria-hidden="true" OnClick="CallPrint(this.value)" style="cursor:pointer" title="Print the Report"></i></span>			
-									<tbody>
-<?php	
-$aid=$_GET['regno'];
-	$ret="SELECT r.*, u.fees_paid, u.accommodation_paid, u.registration_paid, u.fee_control_no, u.acc_control_no, u.reg_control_no FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE r.regno = ?";
-$stmt= $mysqli->prepare($ret) ;
-$stmt->bind_param('s',$aid);
-$stmt->execute() ;
-$res=$stmt->get_result();
-$cnt=1;
-while($row=$res->fetch_object())
-	  {
-	  	?>
+                    <div class="row g-4">
+                        <!-- Personal Info -->
+                        <div class="col-lg-4 col-md-6">
+                            <div class="info-section-card animate__animated animate__fadeInUp">
+                                <div class="section-icon bg-p-light"><i class="fas fa-user"></i></div>
+                                <h5 class="fw-800 text-dark mb-4">Personal Details</h5>
+                                
+                                <div class="detail-label">Email Address</div>
+                                <div class="detail-value"><?php echo $data->email; ?></div>
 
-<tr>
-<td colspan="6" style="text-align:center; color:blue"><h3>Room Realted Info</h3></td>
-</tr>
-<tr>
-	<th>Registration Number :</th>
-<td><?php echo $row->regno;?></td>
-<th>Apply Date :</th>
-<td colspan="3"><?php echo $row->postingDate;?></td>
-</tr>
+                                <div class="detail-label">Contact Number</div>
+                                <div class="detail-value"><?php echo $data->contactNo; ?></div>
 
+                                <div class="detail-label">Gender / Course</div>
+                                <div class="detail-value"><?php echo ucfirst($data->gender); ?> • <?php echo $data->course ?: 'N/A'; ?></div>
 
+                                <div class="detail-label">Guardian Name</div>
+                                <div class="detail-value"><?php echo $data->guardianName ?: 'N/A'; ?> (<?php echo $data->guardianRelation ?: 'Unknown'; ?>)</div>
 
-<tr>
-<td><b>Room no :</b></td>
-<td><?php echo $row->roomno;?></td>
-<td><b>Seater :</b></td>
-<td><?php echo $row->seater;?></td>
-<td><b>Fees PM :</b></td>
-<td><?php echo $fpm=$row->feespm;?></td>
-</tr>
+                                <div class="detail-label">Guardian Contact</div>
+                                <div class="detail-value"><?php echo $data->guardianContactno ?: 'N/A'; ?></div>
+                            </div>
+                        </div>
 
-<tr>
-<td><b>Food Status:</b></td>
-<td>
-<?php if($row->foodstatus==0)
-{
-echo "Without Food";
-}
-else
-{
-echo "With Food";
-}
-;?></td>
-<td><b>Stay From :</b></td>
-<td><?php echo $row->stayfrom;?></td>
-<td><b>Duration:</b></td>
-<td><?php echo $dr=$row->duration;?> Months</td>
-</tr>
+                        <!-- Room Info -->
+                        <div class="col-lg-4 col-md-6">
+                            <div class="info-section-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
+                                <div class="section-icon bg-s-light"><i class="fas fa-bed"></i></div>
+                                <h5 class="fw-800 text-dark mb-4">Hostel Allocation</h5>
 
-<tr><th>Hostel Fee:</th>
-<td><?php echo $hf=$dr*$fpm?></td>
-<th>Food Fee:</th>
-<td colspan="3"><?php 
-if($row->foodstatus==1)
-{ 
-echo $ff=(2000*$dr);
-} else { 
-echo $ff=0;
-echo "<span style='padding-left:2%; color:red;'>(You booked hostel without food).<span>";
-}?></td>
-</tr>
-<tr>
-<th>Total Fee :</th>
-<th colspan="5"><?php echo $hf+$ff;?></th>
-</tr>
-<tr>
-<td colspan="6" style="color:red"><h4>Personal Info</h4></td>
-</tr>
+                                <?php if($data->roomno): ?>
+                                    <div class="detail-label">Room Details</div>
+                                    <div class="detail-value">No. <?php echo $data->roomno; ?> (<?php echo $data->seater; ?> Seater)</div>
 
-<tr>
-<td><b>Reg No. :</b></td>
-<td><?php echo $row->regno;?></td>
-<td><b>Full Name :</b></td>
-<td><?php echo $row->firstName;?><?php echo $row->middleName;?><?php echo $row->lastName;?></td>
-<td><b>Email :</b></td>
-<td><?php echo $row->emailid;?></td>
-</tr>
+                                    <div class="detail-label">Fees Per Month</div>
+                                    <div class="detail-value text-success">TSH <?php echo number_format($data->feespm); ?></div>
 
+                                    <div class="detail-label">Stay From / Duration</div>
+                                    <div class="detail-value"><?php echo date('M d, Y', strtotime($data->stayfrom)); ?> • <?php echo $data->duration; ?> Months</div>
 
-<tr>
-<td><b>Contact No. :</b></td>
-<td><?php echo $row->contactno;?></td>
-<td><b>Gender :</b></td>
-<td><?php echo $row->gender;?></td>
-<td><b>Course :</b></td>
-<td><?php echo $row->course;?></td>
-</tr>
+                                    <div class="detail-label">Food Status</div>
+                                    <div class="detail-value"><?php echo $data->foodstatus == 1 ? 'With Food Management' : 'Without Food'; ?></div>
+                                <?php else: ?>
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-hotel fa-3x text-light mb-3"></i>
+                                        <p class="text-muted fw-bold">No Room Assigned Yet</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
 
+                    <!-- Address & Payments -->
+                    <div class="col-lg-4 col-md-12">
+                        <div class="row g-4">
+                            <!-- Address -->
+                            <div class="col-12">
+                                <div class="info-section-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                                    <div class="section-icon bg-w-light"><i class="fas fa-map-marker-alt"></i></div>
+                                    <h5 class="fw-800 text-dark mb-4">Address Info</h5>
+                                    
+                                    <div class="detail-label">Correspondence Address</div>
+                                    <div class="detail-value small lh-sm"><?php echo $data->corresAddress; ?>, <?php echo $data->corresState; ?>, <?php echo $data->corresCountry; ?></div>
 
-<tr>
-<td><b>Emergency Contact No. :</b></td>
-<td><?php echo $row->egycontactno;?></td>
-<td><b>Guardian Name :</b></td>
-<td><?php echo $row->guardianName;?></td>
-<td><b>Guardian Relation :</b></td>
-<td><?php echo $row->guardianRelation;?></td>
-</tr>
+                                    <div class="detail-label">Permanent Address</div>
+                                    <div class="detail-value small lh-sm"><?php echo $data->pmntAddress; ?>, <?php echo $data->pmntState; ?>, <?php echo $data->pmntCountry; ?></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Payments Summary -->
+                            <div class="col-12">
+                                <div class="info-section-card animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
+                                    <div class="section-icon bg-v-light"><i class="fas fa-wallet"></i></div>
+                                    <h5 class="fw-800 text-dark mb-4">Payment Control Numbers</h5>
+                                    
+                                    <div class="payment-pill">
+                                        <div class="detail-label">School Fees (TSH <?php echo number_format($data->fees_paid); ?> Paid)</div>
+                                        <div class="detail-value mb-0 text-primary font-monospace"><?php echo $data->fee_control_no ?: 'GEN_PENDING'; ?></div>
+                                    </div>
 
-<tr>
-<td><b>Guardian Contact No. :</b></td>
-<td colspan="6"><?php echo $row->guardianContactno;?></td>
-</tr>
-
-<tr>
-<td colspan="6" style="color:blue"><h4>Addresses</h4></td>
-</tr>
-<tr>
-<td><b>Correspondense Address</b></td>
-<td colspan="2">
-<?php echo $row->corresAddress;?><br />
-<?php echo $row->corresCountry;?><br />, <!--<?php echo $row->corresPincode;?>-->
-<?php echo $row->corresState;?>
-
-
-</td>
-<td><b>Permanent Address</b></td>
-<td colspan="2">
-<?php echo $row->pmntAddress; ?><br />
- <?php echo $row->pmntCountry; ?><br />, <!--<?php echo $row->pmntPincode; ?> -->
-<?php echo $row->pmntState; ?>	
-
-</td>
-</tr>
-
-<tr>
-<td colspan="6" style="color:green"><h4>Payment Information & Control Numbers</h4></td>
-</tr>
-<tr>
-    <th>Payment Type</th>
-    <th colspan="2">Control Number</th>
-    <th>Amount Paid</th>
-    <th colspan="2">Remaining Balance</th>
-</tr>
-<tr>
-    <td><b>School Fees:</b></td>
-    <td colspan="2" style="font-family:monospace; font-weight:bold; color:blue;"><?php echo $row->fee_control_no; ?></td>
-    <td>TSH <?php echo number_format($row->fees_paid); ?></td>
-    <td colspan="2">TSH <?php echo number_format(max(0, 1500000 - $row->fees_paid)); ?></td>
-</tr>
-<tr>
-    <td><b>Accommodation:</b></td>
-    <td colspan="2" style="font-family:monospace; font-weight:bold; color:blue;"><?php echo $row->acc_control_no; ?></td>
-    <td>TSH <?php echo number_format($row->accommodation_paid); ?></td>
-    <td colspan="2">TSH <?php echo number_format(max(0, 178500 - $row->accommodation_paid)); ?></td>
-</tr>
-<tr>
-    <td><b>Registration:</b></td>
-    <td colspan="2" style="font-family:monospace; font-weight:bold; color:blue;"><?php echo $row->reg_control_no; ?></td>
-    <td>TSH <?php echo number_format($row->registration_paid); ?></td>
-    <td colspan="2">TSH <?php echo number_format(max(0, 50000 - $row->registration_paid)); ?></td>
-</tr>
-
-
-<?php
-$cnt=$cnt+1;
-} ?>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-
-	<!-- Loading Scripts -->
-	<script src="js/jquery.min.js"></script>
-	<script src="js/bootstrap-select.min.js"></script>
-	<script src="js/bootstrap.min.js"></script>
-	<script src="js/jquery.dataTables.min.js"></script>
-	<script src="js/dataTables.bootstrap.min.js"></script>
-	<script src="js/Chart.min.js"></script>
-	<script src="js/fileinput.js"></script>
-	<script src="js/chartData.js"></script>
-	<script src="js/main.js"></script>
- <script>
-$(function () {
-$("[data-toggle=tooltip]").tooltip();
-    });
-function CallPrint(strid) {
-var prtContent = document.getElementById("print");
-var WinPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
-WinPrint.document.write(prtContent.innerHTML);
-WinPrint.document.close();
-WinPrint.focus();
-WinPrint.print();
-WinPrint.close();
-}
-</script>
+                                    <div class="payment-pill">
+                                        <div class="detail-label">Accommodation (TSH <?php echo number_format($data->accommodation_paid); ?> Paid)</div>
+                                        <div class="detail-value mb-0 text-primary font-monospace"><?php echo $data->acc_control_no ?: 'GEN_PENDING'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>

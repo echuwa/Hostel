@@ -247,13 +247,53 @@ if(isset($_POST['update'])) {
                             <div class="card-body-modern p-4">
                                 <h6 class="fw-800 mb-3"><i class="fas fa-info-circle text-info me-2"></i>Need Help?</h6>
                                 <p class="small opacity-50 mb-4">If you need to change your registered Email or Registration Number, please contact the IT helpdesk.</p>
-                                <a href="register-complaint.php" class="btn btn-primary w-100 rounded-pill py-2">Contact Support</a>
+                                <button type="button" class="btn btn-primary w-100 rounded-pill py-2" data-bs-toggle="modal" data-bs-target="#supportModal">Contact Support</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Support Contact Modal -->
+    <div class="modal fade" id="supportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
+                <div class="modal-header border-0 bg-primary text-white p-4">
+                    <h5 class="modal-title fw-800"><i class="fas fa-headset me-2"></i>Technical Support</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="mb-4">
+                         <div class="bg-primary bg-opacity-10 text-primary mx-auto rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-user-cog fa-2x"></i>
+                         </div>
+                         <h4 class="fw-800 mb-1">Emmanuel Chuwa</h4>
+                         <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-700">Engineer</span>
+                    </div>
+                    
+                    <div class="bg-light p-3 rounded-4 mb-3">
+                        <div class="small fw-700 text-muted opacity-75 mb-2">WHATSAPP / CALL</div>
+                        <div class="d-flex flex-column gap-3">
+                            <a href="tel:+255788020014" class="text-decoration-none text-dark fw-800 h5 mb-0">
+                                <i class="fas fa-phone-alt me-2 text-primary"></i>+255 788 020 014
+                            </a>
+                            <a href="tel:+255748230014" class="text-decoration-none text-dark fw-800 h5 mb-0">
+                                <i class="fas fa-phone-alt me-2 text-primary"></i>+255 748 230 014
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info border-0 rounded-4 small mb-0">
+                        <i class="fas fa-info-circle me-1"></i> For any inquiries regarding system access or technical issues, please reach out via the numbers above.
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0 text-center">
+                    <button type="button" class="btn btn-primary w-100 rounded-pill py-3 fw-800 shadow-sm" data-bs-dismiss="modal">Understood</button>
+                </div>
             </div>
         </div>
     </div>

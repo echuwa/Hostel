@@ -90,7 +90,7 @@ if(isset($_GET['del']))
 
                 <div id="feedbackList">
                     <?php  
-                    $ret="SELECT f.*, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, r.roomno, r.seater 
+                    $ret="SELECT f.*, u.id as studentId, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, r.roomno, r.seater 
                           FROM feedback f 
                           JOIN userregistration u ON f.userId = u.id 
                           LEFT JOIN registration r ON u.regNo = r.regno 
@@ -107,6 +107,7 @@ if(isset($_GET['del']))
                             <div>
                                 <h6 class="mb-0 fw-bold">
                                     <span class="text-primary cursor-pointer" onclick="event.stopPropagation(); openStudentInfo(<?php echo htmlspecialchars(json_encode([
+                                        'id' => $row->studentId,
                                         'firstName' => $row->firstName,
                                         'lastName' => $row->lastName,
                                         'regNo' => $row->regNo,
@@ -281,7 +282,7 @@ if(isset($_GET['del']))
         statEl.innerText = isActive ? 'Active' : (data.status || 'Pending');
         statEl.className = `info-val fw-bold text-${isActive ? 'success' : 'warning'}`;
         
-        document.getElementById('viewProfileBtn').href = `student-details.php?regno=${data.regNo}`;
+        document.getElementById('viewProfileBtn').href = `student-details.php?id=${data.id}`;
         
         modal.show();
     }

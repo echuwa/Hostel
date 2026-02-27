@@ -419,7 +419,7 @@ $stmt->close();
                                 </div>
                             </div>
                             <div class="d-flex gap-2">
-                                <a href="student-details.php?regno=${student.regNo}" class="btn-action btn-edit" title="View Profile"><i class="fas fa-user"></i></a>
+                                <a href="student-details.php?id=${student.id}" class="btn-action btn-edit" title="View Profile"><i class="fas fa-user"></i></a>
                                 <button onclick="removeStudent('${student.regNo}', '${roomNo}')" class="btn-remove-stud" title="Unallocate Room"><i class="fas fa-user-minus"></i></button>
                             </div>
                         </div>`;
