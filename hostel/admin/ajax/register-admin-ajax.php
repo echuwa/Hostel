@@ -20,6 +20,9 @@ $username = trim($_POST['username'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm_password = $_POST['confirm_password'] ?? '';
+$assigned_block = $_POST['assigned_block'] ?? null;
+
+if ($assigned_block === 'none' || empty($assigned_block)) $assigned_block = null;
 
 // Validation
 if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
@@ -59,15 +62,15 @@ $password_hash = password_hash($password, PASSWORD_DEFAULT);
 $reg_date = date('Y-m-d H:i:s');
 
 // Insert new admin (pending by default)
-$insertStmt = $mysqli->prepare("INSERT INTO admins (username, email, password, reg_date, is_superadmin, status) VALUES (?, ?, ?, ?, 0, 'pending')");
-$insertStmt->bind_param("ssss", $username, $email, $password_hash, $reg_date);
+$insertStmt = $mysqli->prepare("INSERT INTO admins (username, email, password, reg_date, is_superadmin, status, assigned_block) VALUES (?, ?, ?, ?, 0, 'pending', ?)");
+$insertStmt->bind_param("sssss", $username, $email, $password_hash, $reg_date, $assigned_block);
 
 if ($insertStmt->execute()) {
     $newAdminId = $insertStmt->insert_id;
     
     // Log the activity
     $logStmt = $mysqli->prepare("INSERT INTO audit_logs (user_id, action_type, description, ip_address, status) VALUES (?, 'admin_registered', ?, ?, 'success')");
-    $details = "Registered new admin: $username (ID: $newAdminId, Email: $email)";
+    $details = "Registered new admin: $username (ID: $newAdminId, Email: $email, Block: " . ($assigned_block ?: 'Full System') . ")";
     $ip = $_SERVER['REMOTE_ADDR'];
     $logStmt->bind_param("iss", $_SESSION['id'], $details, $ip);
     $logStmt->execute();

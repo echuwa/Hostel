@@ -6,19 +6,24 @@ check_login();
 
 // Fetch student ID from URL
 $student_id = $_GET['id'] ?? null;
+$regno = $_GET['regno'] ?? null;
 
-if (!$student_id) {
+if (!$student_id && !$regno) {
     header("Location: manage-students.php");
     exit();
 }
 
-// Fetch student data
-$query = "SELECT u.*, r.*, u.id as studentId 
-          FROM userregistration u 
-          LEFT JOIN registration r ON u.regNo = r.regno 
-          WHERE u.id = ?";
-$stmt = $mysqli->prepare($query);
-$stmt->bind_param('i', $student_id);
+// Fetch student data - support both id and legacy regno
+if ($student_id) {
+    $query = "SELECT u.*, r.*, u.id as studentId FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno WHERE u.id = ?";
+    $stmt = $mysqli->prepare($query);
+    $stmt->bind_param('i', $student_id);
+} else {
+    $query = "SELECT u.*, r.*, u.id as studentId FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno WHERE u.regNo = ?";
+    $stmt = $mysqli->prepare($query);
+    $stmt->bind_param('s', $regno);
+}
+
 $stmt->execute();
 $result = $stmt->get_result();
 $data = $result->fetch_object();
@@ -35,7 +40,7 @@ if (!$data) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-    <title>Student Details | Hostel Management</title>
+    <title>Intelligence Brief | <?php echo $data->firstName; ?> | HostelMS</title>
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -43,76 +48,64 @@ if (!$data) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Modern Styling -->
-    <link rel="stylesheet" href="css/modern.css">
+    <!-- Unified Admin CSS -->
+    <link rel="stylesheet" href="css/admin-modern.css">
     
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #4361ee 0%, #7b2ff7 100%);
-        }
-        .profile-header {
-            background: var(--primary-gradient);
-            border-radius: 24px;
-            padding: 40px;
+        .profile-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 30px;
+            padding: 60px 40px;
             color: white;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(67, 97, 238, 0.2);
+            margin-bottom: 40px;
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        .profile-header::after {
-            content: ''; position: absolute; top: -50px; right: -50px;
-            width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;
+        .profile-hero::after {
+            content: ''; position: absolute; bottom: -50px; right: -50px;
+            width: 300px; height: 300px; background: radial-gradient(circle, rgba(67, 97, 238, 0.15) 0%, transparent 70%);
         }
-        .info-section-card {
-            background: #fff;
-            border-radius: 20px;
-            padding: 25px;
-            height: 100%;
-            border: 1px solid #f1f5f9;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        .data-card {
+            background: #fff; border-radius: 24px; padding: 30px;
+            border: 1px solid #f1f5f9; height: 100%; transition: 0.3s;
         }
-        .section-icon {
-            width: 40px; height: 40px; border-radius: 10px;
+        .data-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        
+        .metric-item { margin-bottom: 20px; }
+        .metric-label { font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .metric-value { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
+        
+        .avatar-brief {
+            width: 120px; height: 120px; border-radius: 35px;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; margin-bottom: 15px;
+            font-size: 3rem; font-weight: 800; color: #fff;
         }
-        .bg-p-light { background: #eff6ff; color: #3b82f6; }
-        .bg-s-light { background: #ecfdf5; color: #10b981; }
-        .bg-w-light { background: #fffbeb; color: #f59e0b; }
-        .bg-v-light { background: #f5f3ff; color: #8b5cf6; }
-
-        .detail-label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .detail-value { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 15px; word-break: break-all; }
-
-        .avatar-lg {
-            width: 100px; height: 100px; border-radius: 24px;
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2.5rem; font-weight: 800; border: 2px solid rgba(255,255,255,0.3);
+        
+        .section-tag {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 50px; font-size: 0.75rem; font-weight: 800;
+            background: #eff6ff; color: #3b82f6; margin-bottom: 25px;
         }
-
-        .payment-pill {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 15px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 15px;
+        
+        .control-pill {
+            background: #f8fafc; border-radius: 18px; padding: 20px;
+            border: 1.5px dashed #e2e8f0; margin-bottom: 15px;
         }
 
         @media print {
-            .app-container .sidebar, .app-container .no-print { display: none !important; }
-            .main-content { margin-left: 0 !important; padding: 0 !important; }
-            .profile-header { background: #f8fafc !important; color: #000 !important; box-shadow: none !important; border: 1px solid #ddd !important; }
-            .profile-header::after { display: none; }
-            .avatar-lg { border: 2px solid #ddd !important; color: #000 !important; }
+            .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+            .profile-hero { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
+            .avatar-brief { color: #000 !important; border: 2px solid #000 !important; }
         }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- SIDEBAR (No-Print) -->
+        <!-- SIDEBAR -->
         <div class="no-print">
             <?php include('includes/sidebar_modern.php'); ?>
         </div>
@@ -120,125 +113,151 @@ if (!$data) {
         <div class="main-content">
             <div class="content-wrapper">
                 
-                <!-- Simple Breadcrumb/Back -->
-                <div class="no-print mb-4 d-flex justify-content-between align-items-center">
-                    <a href="manage-students.php" class="btn border-0 fw-bold text-muted p-0"><i class="fas fa-arrow-left me-2"></i> Back to Directory</a>
-                    <button onclick="window.print()" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm"><i class="fas fa-print me-2"></i> Print Report</button>
+                <div class="no-print d-flex justify-content-between align-items-center mb-5">
+                    <a href="manage-students.php" class="btn btn-modern btn-light text-dark fw-800">
+                        <i class="fas fa-chevron-left me-2"></i> Registry
+                    </a>
+                    <div class="d-flex gap-2">
+                        <button onclick="window.print()" class="btn btn-modern btn-light fw-800">
+                            <i class="fas fa-print me-2"></i> Print Archive
+                        </button>
+                        <a href="manage-students.php?del=<?php echo $data->regNo; ?>" onclick="return confirm('Purge student from system?')" class="btn btn-modern btn-danger fw-800">
+                            <i class="fas fa-trash-alt me-2"></i> Terminate
+                        </a>
+                    </div>
                 </div>
 
-                <div id="printArea">
-                    <!-- Profile Header -->
-                    <div class="profile-header animate__animated animate__fadeInDown">
-                        <div class="row align-items-center g-4">
-                            <div class="col-auto">
-                                <div class="avatar-lg">
-                                    <?php echo strtoupper(substr($data->firstName, 0, 1) . substr($data->lastName, 0, 1)); ?>
-                                </div>
+                <!-- HERO BRIEF -->
+                <div class="profile-hero">
+                    <div class="row align-items-center g-5">
+                        <div class="col-md-auto">
+                            <div class="avatar-brief">
+                                <?php echo strtoupper(substr($data->firstName, 0, 1) . substr($data->lastName, 0, 1)); ?>
                             </div>
-                            <div class="col">
-                                <span class="badge bg-white text-primary mb-2 px-3 rounded-pill fw-bold">Student Identity Card</span>
-                                <h1 class="fw-800 mb-1"><?php echo htmlspecialchars($data->firstName . ' ' . ($data->middleName ? $data->middleName . ' ' : '') . $data->lastName); ?></h1>
-                                <div class="d-flex flex-wrap gap-3 opacity-90 fw-600">
-                                    <span><i class="fas fa-id-card me-1"></i> <?php echo $data->regNo; ?></span>
-                                    <span><i class="fas fa-calendar-alt me-1"></i> Registered: <?php echo date('M d, Y', strtotime($data->regDate)); ?></span>
-                                    <span><i class="fas fa-user-check me-1"></i> Status: <?php echo ucfirst($data->status); ?></span>
-                                </div>
+                        </div>
+                        <div class="col-md">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <span class="badge bg-primary px-3 py-2 rounded-pill fw-800">SYSTEM RESIDENT ID: <?php echo $data->studentId; ?></span>
+                                <span class="badge bg-<?php echo strtolower($data->status) == 'active' ? 'success' : 'warning'; ?> px-3 py-2 rounded-pill fw-800"><?php echo strtoupper($data->status); ?></span>
+                            </div>
+                            <h1 class="fw-800 mb-2" style="font-size: 3rem;"><?php echo htmlspecialchars($data->firstName . ' ' . $data->lastName); ?></h1>
+                            <p class="opacity-75 h5 fw-500 mb-0">
+                                Registration: <span class="fw-800 text-white"><?php echo $data->regNo; ?></span> 
+                                <span class="mx-3">|</span> 
+                                Course: <span class="fw-800 text-white"><?php echo $data->course ?: 'Not Assigned'; ?></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Column 1: Core Identity -->
+                    <div class="col-lg-4">
+                        <div class="data-card">
+                            <div class="section-tag"><i class="fas fa-id-card"></i> BIOMETRIC & IDENTITY</div>
+                            <div class="metric-item">
+                                <div class="metric-label">Full Legal Name</div>
+                                <div class="metric-value"><?php echo $data->firstName . ' ' . $data->middleName . ' ' . $data->lastName; ?></div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Email Signature</div>
+                                <div class="metric-value font-monospace"><?php echo $data->email; ?></div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Direct Communication</div>
+                                <div class="metric-value"><?php echo $data->contactNo; ?></div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Biological Gender</div>
+                                <div class="metric-value"><?php echo ucfirst($data->gender); ?></div>
+                            </div>
+                            <hr class="my-4 opacity-50">
+                            <div class="metric-item">
+                                <div class="metric-label">Primary Guardian</div>
+                                <div class="metric-value"><?php echo $data->guardianName ?: 'N/A'; ?></div>
+                                <div class="small text-muted fw-700 mt-1"><?php echo $data->guardianRelation; ?> • <?php echo $data->guardianContactno; ?></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row g-4">
-                        <!-- Personal Info -->
-                        <div class="col-lg-4 col-md-6">
-                            <div class="info-section-card animate__animated animate__fadeInUp">
-                                <div class="section-icon bg-p-light"><i class="fas fa-user"></i></div>
-                                <h5 class="fw-800 text-dark mb-4">Personal Details</h5>
-                                
-                                <div class="detail-label">Email Address</div>
-                                <div class="detail-value"><?php echo $data->email; ?></div>
-
-                                <div class="detail-label">Contact Number</div>
-                                <div class="detail-value"><?php echo $data->contactNo; ?></div>
-
-                                <div class="detail-label">Gender / Course</div>
-                                <div class="detail-value"><?php echo ucfirst($data->gender); ?> • <?php echo $data->course ?: 'N/A'; ?></div>
-
-                                <div class="detail-label">Guardian Name</div>
-                                <div class="detail-value"><?php echo $data->guardianName ?: 'N/A'; ?> (<?php echo $data->guardianRelation ?: 'Unknown'; ?>)</div>
-
-                                <div class="detail-label">Guardian Contact</div>
-                                <div class="detail-value"><?php echo $data->guardianContactno ?: 'N/A'; ?></div>
+                    <!-- Column 2: Logistics & Operations -->
+                    <div class="col-lg-4">
+                        <div class="data-card">
+                            <div class="section-tag" style="background: #ecfdf5; color: #10b981;"><i class="fas fa-shield-halved"></i> LOGISTICS DEPLOYMENT</div>
+                            <?php if($data->roomno): ?>
+                                <div class="metric-item">
+                                    <div class="metric-label">Assigned Sector</div>
+                                    <div class="metric-value">Room <?php echo $data->roomno; ?></div>
+                                    <div class="small text-muted fw-700 mt-1"><?php echo $data->seater; ?>-Seater Configuration</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-label">Financial commitment (PM)</div>
+                                    <div class="metric-value text-success">TSH <?php echo number_format($data->feespm); ?></div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-label">Deployment Term</div>
+                                    <div class="metric-value"><?php echo $data->duration; ?> Academic Months</div>
+                                    <div class="small text-muted fw-700 mt-1">Commenced: <?php echo date('d M, Y', strtotime($data->stayfrom)); ?></div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-label">Nutrition Service</div>
+                                    <div class="metric-value"><?php echo $data->foodstatus == 1 ? 'ACTIVE ENROLLMENT' : 'NULL (External Sourcing)'; ?></div>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center py-5">
+                                    <i class="fas fa-satellite-dish fa-3x text-light mb-3"></i>
+                                    <p class="h6 fw-800 text-muted">Awaiting Logistics Allocation</p>
+                                </div>
+                            <?php endif; ?>
+                            <hr class="my-4 opacity-50">
+                            <div class="metric-item">
+                                <div class="metric-label">Last Known Location</div>
+                                <div class="metric-value small lh-base"><?php echo $data->corresAddress; ?>, <?php echo $data->corresState; ?></div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Room Info -->
-                        <div class="col-lg-4 col-md-6">
-                            <div class="info-section-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
-                                <div class="section-icon bg-s-light"><i class="fas fa-bed"></i></div>
-                                <h5 class="fw-800 text-dark mb-4">Hostel Allocation</h5>
-
-                                <?php if($data->roomno): ?>
-                                    <div class="detail-label">Room Details</div>
-                                    <div class="detail-value">No. <?php echo $data->roomno; ?> (<?php echo $data->seater; ?> Seater)</div>
-
-                                    <div class="detail-label">Fees Per Month</div>
-                                    <div class="detail-value text-success">TSH <?php echo number_format($data->feespm); ?></div>
-
-                                    <div class="detail-label">Stay From / Duration</div>
-                                    <div class="detail-value"><?php echo date('M d, Y', strtotime($data->stayfrom)); ?> • <?php echo $data->duration; ?> Months</div>
-
-                                    <div class="detail-label">Food Status</div>
-                                    <div class="detail-value"><?php echo $data->foodstatus == 1 ? 'With Food Management' : 'Without Food'; ?></div>
-                                <?php else: ?>
-                                    <div class="text-center py-5">
-                                        <i class="fas fa-hotel fa-3x text-light mb-3"></i>
-                                        <p class="text-muted fw-bold">No Room Assigned Yet</p>
-                                    </div>
-                                <?php endif; ?>
+                    <!-- Column 3: Financial Oversight -->
+                    <div class="col-lg-4">
+                        <div class="data-card">
+                            <div class="section-tag" style="background: #faf5ff; color: #a855f7;"><i class="fas fa-vault"></i> REVENUE OVERSIGHT</div>
+                            <div class="control-pill">
+                                <div class="metric-label">Academic Tuition Vault</div>
+                                <div class="d-flex justify-content-between align-items-end mt-2">
+                                    <div class="metric-value text-primary font-monospace"><?php echo $data->fee_control_no ?: 'PENDING_GEN'; ?></div>
+                                    <div class="small fw-800 text-muted">TSH <?php echo number_format($data->fees_paid); ?> PAID</div>
+                                </div>
                             </div>
-                        </div>
-
-                    <!-- Address & Payments -->
-                    <div class="col-lg-4 col-md-12">
-                        <div class="row g-4">
-                            <!-- Address -->
-                            <div class="col-12">
-                                <div class="info-section-card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
-                                    <div class="section-icon bg-w-light"><i class="fas fa-map-marker-alt"></i></div>
-                                    <h5 class="fw-800 text-dark mb-4">Address Info</h5>
-                                    
-                                    <div class="detail-label">Correspondence Address</div>
-                                    <div class="detail-value small lh-sm"><?php echo $data->corresAddress; ?>, <?php echo $data->corresState; ?>, <?php echo $data->corresCountry; ?></div>
-
-                                    <div class="detail-label">Permanent Address</div>
-                                    <div class="detail-value small lh-sm"><?php echo $data->pmntAddress; ?>, <?php echo $data->pmntState; ?>, <?php echo $data->pmntCountry; ?></div>
+                            <div class="control-pill">
+                                <div class="metric-label">Accommodation Ledger</div>
+                                <div class="d-flex justify-content-between align-items-end mt-2">
+                                    <div class="metric-value text-primary font-monospace"><?php echo $data->acc_control_no ?: 'PENDING_GEN'; ?></div>
+                                    <div class="small fw-800 text-muted">TSH <?php echo number_format($data->accommodation_paid); ?> PAID</div>
                                 </div>
                             </div>
                             
-                            <!-- Payments Summary -->
-                            <div class="col-12">
-                                <div class="info-section-card animate__animated animate__fadeInUp" style="animation-delay: 0.3s;">
-                                    <div class="section-icon bg-v-light"><i class="fas fa-wallet"></i></div>
-                                    <h5 class="fw-800 text-dark mb-4">Payment Control Numbers</h5>
-                                    
-                                    <div class="payment-pill">
-                                        <div class="detail-label">School Fees (TSH <?php echo number_format($data->fees_paid); ?> Paid)</div>
-                                        <div class="detail-value mb-0 text-primary font-monospace"><?php echo $data->fee_control_no ?: 'GEN_PENDING'; ?></div>
-                                    </div>
-
-                                    <div class="payment-pill">
-                                        <div class="detail-label">Accommodation (TSH <?php echo number_format($data->accommodation_paid); ?> Paid)</div>
-                                        <div class="detail-value mb-0 text-primary font-monospace"><?php echo $data->acc_control_no ?: 'GEN_PENDING'; ?></div>
-                                    </div>
+                            <div class="mt-4 p-4 rounded-4 bg-light">
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    <div class="bg-white p-2 rounded-circle"><i class="fas fa-history text-muted"></i></div>
+                                    <h6 class="fw-800 mb-0">Audit Timeline</h6>
+                                </div>
+                                <div class="small fw-700 text-muted border-start border-2 ps-3 py-1 mb-2">
+                                    Registry Entry Created: <?php echo date('d M, Y', strtotime($data->regDate)); ?>
+                                </div>
+                                <div class="small fw-700 text-muted border-start border-2 ps-3 py-1">
+                                    Last Profile Sync: <?php echo $data->updationDate ?: 'Initial Setup'; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init();</script>
 </body>
 </html>

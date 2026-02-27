@@ -33,8 +33,14 @@ if(isset($_GET['unallocate'])) {
 // Fetch rooms with occupancy
 $room_query = "SELECT r.*, 
                 (SELECT COUNT(*) FROM registration reg WHERE reg.roomno = r.room_no) AS occupied
-               FROM rooms r
-               ORDER BY r.room_no";
+               FROM rooms r";
+
+if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
+    $block = $_SESSION['assigned_block'];
+    $room_query .= " WHERE r.room_no LIKE '$block%'";
+}
+
+$room_query .= " ORDER BY r.room_no";
 $stmt = $mysqli->prepare($room_query);
 $stmt->execute();
 $res = $stmt->get_result();
@@ -60,302 +66,136 @@ foreach($rooms_by_block as $b => $s) {
 }
 $stmt->close();
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-	<meta name="theme-color" content="#f5f6fa">
-	<title>Manage Rooms | HostelMS</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Room Inventory | HostelMS</title>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-	<!-- Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Modern CSS -->
-	<link rel="stylesheet" href="css/modern.css">
+    <!-- Unified Admin CSS -->
+    <link rel="stylesheet" href="css/admin-modern.css">
     
     <style>
-        /* Table overrides for light theme */
-        .dataTables_wrapper .dataTables_length, 
-        .dataTables_wrapper .dataTables_filter, 
-        .dataTables_wrapper .dataTables_info, 
-        .dataTables_wrapper .dataTables_processing, 
-        .dataTables_wrapper .dataTables_paginate {
-            color: var(--text-muted);
-            margin-bottom: 20px;
+        .room-card-modern {
+            background: #fff; border-radius: 18px; padding: 20px;
+            border: 1px solid #f1f5f9; position: relative;
+            transition: all 0.3s; cursor: pointer; height: 100%;
         }
+        .room-card-modern:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 25px rgba(67, 97, 238, 0.08); }
         
-        .dataTables_wrapper .dataTables_length select,
-        .dataTables_wrapper .dataTables_filter input {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            color: var(--text-main);
-            border-radius: 8px;
-            padding: 5px 10px;
-        }
+        .room-num { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 5px; }
+        .room-stat { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 15px; }
         
-        .dataTables_wrapper .dataTables_filter input:focus {
-            border-color: var(--primary);
-            outline: none;
-        }
+        .occupancy-bar { height: 8px; border-radius: 10px; background: #f1f5f9; overflow: hidden; margin-bottom: 15px; }
+        .occupancy-fill { height: 100%; border-radius: 10px; transition: width 0.5s; }
         
-        .page-item.active .page-link {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
+        .room-tag {
+            position: absolute; top: 15px; right: 15px;
+            padding: 4px 10px; border-radius: 50px; font-size: 0.65rem; font-weight: 800;
         }
+        .tag-available { background: #dcfce7; color: #16a34a; }
+        .tag-full { background: #fee2e2; color: #ef4444; }
         
-        .page-link {
-            background-color: #fff;
-            border-color: #e0e0e0;
-            color: var(--text-muted);
+        .nav-tabs-custom { gap: 10px; border: none; margin-bottom: 30px; }
+        .nav-tabs-custom .nav-link { 
+            border: none; border-radius: 12px; font-weight: 700; 
+            padding: 12px 25px; color: var(--gray); background: #f8fafc;
         }
-        
-        .page-link:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .badge-seater {
-            background-color: rgba(67, 97, 238, 0.1);
-            color: var(--primary);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* Room Grid matching Student Reg */
-        .room-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 10px;
-            padding: 14px;
-            background: #fafbff;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-        }
-        .room-card {
-            border-radius: 10px;
-            padding: 12px 10px;
-            text-align: center;
-            border: 2px solid #e2e8f0;
-            background: #fff;
-            position: relative;
-            transition: all 0.2s ease;
-        }
-        /* Room Card Interactivity */
-        .room-card:hover { border-color: #4361ee; box-shadow: 0 4px 15px rgba(67,97,238,0.2); transform: translateY(-2px); cursor: pointer; }
-        .room-card.room-full { background: #f8fafc; border-color: #cbd5e1; }
-        
-        .room-card .room-number {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #1e293b;
-            margin-bottom: 6px;
-        }
-        
-        /* Modal Style */
-        .modal-content { border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-        .modal-header { background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); color: white; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px 30px; }
-        .student-item {
-            display: flex; align-items: center; justify-content: space-between;
-            background: #f8fafc; border-radius: 12px; padding: 15px; margin-bottom: 10px;
-            border: 1px solid #e2e8f0;
-        }
-        .student-name { font-weight: 700; color: #1e293b; }
-        .student-reg { font-size: 0.8rem; color: #64748b; font-family: monospace; }
-        .btn-remove-stud { color: #ef4444; background: #fee2e2; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border:none; transition: all 0.2s; }
-        .btn-remove-stud:hover { background: #ef4444; color: #fff; }
-
-        .room-card .room-meta {
-            font-size: 0.72rem;
-            color: #718096;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            margin-bottom: 8px;
-        }
-        .room-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        .avail-badge {
-            background: #c6f6d5;
-            color: #276749;
-        }
-        .full-badge {
-            background: #fed7d7;
-            color: #c53030;
-        }
-        
-        .room-actions {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 5px;
-            border-top: 1px solid #f1f5f9;
-            padding-top: 10px;
-        }
-        .btn-action {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            text-decoration: none;
-            transition: all 0.2s;
-            font-size: 0.8rem;
-        }
-        .btn-edit { background: #eff6ff; color: #3b82f6; }
-        .btn-edit:hover { background: #3b82f6; color: #fff; }
-        .btn-delete { background: #fef2f2; color: #ef4444; }
-        .btn-delete:hover { background: #ef4444; color: #fff; }
-
-        /* Custom Tabs & Pills Styling */
-        .custom-nav-tabs { border-bottom: 2px solid #e2e8f0; gap: 8px; margin-bottom: 20px; }
-        .custom-nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; border-radius: 10px 10px 0 0; padding: 12px 24px; transition: all 0.3s ease; font-size: 1.05rem; }
-        .custom-nav-tabs .nav-link:hover { color: #4361ee; background: #f8fafc; }
-        .custom-nav-tabs .nav-link.active { color: #4361ee; background: transparent; border-bottom: 3px solid #4361ee; }
-        
-        .custom-nav-pills { gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 14px; display: inline-flex; flex-wrap: wrap; margin-bottom: 25px; }
-        .custom-nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; font-size: 0.95rem; }
-        .custom-nav-pills .nav-link:hover { background: #e2e8f0; color: #1e293b; }
-        .custom-nav-pills .nav-link.active { background: #4361ee; color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
+        .nav-tabs-custom .nav-link.active { background: var(--primary); color: #fff; }
     </style>
 </head>
-
 <body>
     <div class="app-container">
         <!-- SIDEBAR -->
         <?php include('includes/sidebar_modern.php'); ?>
 
-        <!-- MAIN CONTENT -->
-        <div class="main-content" id="mainContent">
+        <div class="main-content">
             <div class="content-wrapper">
                 
-                <!-- Header -->
-                <div class="content-header">
-                    <div class="header-left">
-                        <h1 class="page-title">
-                            <i class="fas fa-layer-group"></i>
-                            Manage Rooms
-                        </h1>
+                <div class="d-flex justify-content-between align-items-end mb-5">
+                    <div>
+                        <h2 class="fw-800 mb-1">Room Inventory Management</h2>
+                        <p class="text-muted fw-600 mb-0">Monitor workspace allocation, maintenance states, and occupancy metrics.</p>
                     </div>
-                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
-                        <a href="create-room.php" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #7b2ff7); border: none; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 4px 15px rgba(67,97,238,0.2); color: white;">
-                            <i class="fas fa-layer-group"></i> Generate Block Rooms
+                    <div>
+                        <a href="create-room.php" class="btn btn-modern btn-modern-primary">
+                            <i class="fas fa-plus-circle"></i> Create New Room
                         </a>
-                        <div class="date-filter" style="background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px; color: #4a5568; font-weight: 500;">
-                            <i class="fas fa-calendar-alt" style="color: #4361ee;"></i>
-                            <span><?php echo date('F d, Y'); ?></span>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Table Panel -->
-                <div class="card-panel">
-                    <div class="card-header" style="border-bottom: 2px solid #f0f2f5; padding-bottom: 15px;">
-                        <div class="card-title" style="font-size: 1.1rem; font-weight: 700; color: #2d3748;">All Rooms Details</div>
+                <?php if(isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success rounded-4 border-0 shadow-sm p-3 mb-5 fw-600 animate__animated animate__fadeInDown">
+                        <i class="fas fa-check-circle me-2"></i> <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
                     </div>
-                    
-                    <div class="card-body">
-                        <?php if(isset($_SESSION['success'])): ?>
-                            <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius:10px;">
-                                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <?php if (empty($rooms_by_block)): ?>
-                            <div class="alert alert-info" style="border-radius:10px;"><i class="fas fa-info-circle me-2"></i>No rooms found. Get started by generating a block.</div>
-                        <?php else: ?>
+                <?php endif; ?>
+
+                <!-- BLOCK TABS -->
+                <ul class="nav nav-tabs nav-tabs-custom" id="blockTabs" role="tablist">
+                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                        <li class="nav-item">
+                            <button class="nav-link <?php echo $i===0?'active':''; ?>" id="t-<?php echo preg_replace('/[^A-Za-z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#p-<?php echo preg_replace('/[^A-Za-z0-9]/','',$block_name); ?>"><?php echo $block_name; ?></button>
+                        </li>
+                    <?php $i++; endforeach; ?>
+                </ul>
+
+                <div class="tab-content" id="blockTabsContent">
+                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
+                        <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="p-<?php echo preg_replace('/[^A-Za-z0-9]/','',$block_name); ?>">
                             
-                            <!-- Blocks Tabs -->
-                            <ul class="nav nav-tabs custom-nav-tabs mb-4" id="blockTabs" role="tablist">
-                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link <?php echo $i===0?'active':''; ?>" style="font-weight: 600;" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
-                                    </li>
-                                <?php $i++; endforeach; ?>
-                            </ul>
-
-                            <!-- Blocks Content -->
-                            <div class="tab-content" id="blockTabsContent">
-                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
-                                    <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
-                                        
-                                        <!-- Sides Pills -->
-                                        <ul class="nav nav-pills custom-nav-pills mb-4 mt-2" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
-                                            <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
-                                                </li>
-                                            <?php $j++; endforeach; ?>
-                                        </ul>
-                                        
-                                        <!-- Sides Content -->
-                                        <div class="tab-content" id="pills-Content-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>">
-                                            <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
-                                                <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
-                                                    
-                                                    <div class="room-grid border rounded p-3 bg-light">
-                                                            <?php foreach ($side_rooms as $rm): ?>
-                                                            <?php
-                                                            $is_full = ($rm->occupied >= $rm->seater);
-                                                            $remaining = $rm->seater - $rm->occupied;
-                                                            $status_class = $is_full ? 'room-full' : 'room-available';
-                                                            ?>
-                                                            <div class="room-card <?php echo $status_class; ?>" onclick="showRoomDetails('<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>)">
-                                                                <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
-                                                                
-                                                                <div class="room-meta">
-                                                                    <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
-                                                                    <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
-                                                                </div>
-
-                                                                <?php if ($is_full): ?>
-                                                                    <div class="room-badge full-badge"><i class="fas fa-ban"></i> FULL</div>
-                                                                <?php else: ?>
-                                                                    <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> <?php echo $remaining; ?> Left</div>
-                                                                <?php endif; ?>
-
-                                                                <div class="room-actions">
-                                                                    <a href="edit-room.php?id=<?php echo $rm->id; ?>" class="btn-action btn-edit" title="Edit Room">
-                                                                        <i class="fas fa-edit"></i>
-                                                                    </a>
-                                                                    <a href="manage-rooms.php?del=<?php echo $rm->id; ?>" class="btn-action btn-delete" title="Delete Room" onclick="return confirm('Are you sure you want to delete room <?php echo htmlspecialchars($rm->room_no, ENT_QUOTES); ?>?');">
-                                                                        <i class="fas fa-trash-alt"></i>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                            <?php endforeach; ?>
-                                                        </div>
-
+                            <?php foreach ($block_wings as $side_name => $side_rooms): ?>
+                                <div class="mb-5">
+                                    <h5 class="fw-800 text-dark mb-4 ms-2"><i class="fas fa-caret-right text-primary me-2"></i><?php echo $side_name; ?></h5>
+                                    
+                                    <div class="row g-4">
+                                        <?php foreach ($side_rooms as $rm): 
+                                            $perc = ($rm->occupied / $rm->seater) * 100;
+                                            $color = $perc >= 100 ? 'bg-danger' : ($perc >= 50 ? 'bg-warning' : 'bg-success');
+                                        ?>
+                                        <div class="col-xl-3 col-lg-4 col-md-6">
+                                            <div class="room-card-modern" onclick="showRoomDetails('<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>)">
+                                                <span class="room-tag <?php echo $rm->is_full ? 'tag-full' : 'tag-available'; ?>">
+                                                    <?php echo $rm->is_full ? 'CAPACITY REACHED' : ($rm->seater - $rm->occupied) . ' VACANCY'; ?>
+                                                </span>
+                                                
+                                                <div class="room-num"><?php echo $rm->room_no; ?></div>
+                                                <div class="room-stat"><?php echo $rm->seater; ?> Seater Unit</div>
+                                                
+                                                <div class="d-flex justify-content-between small fw-800 text-muted mb-2">
+                                                    <span>Occupancy</span>
+                                                    <span><?php echo $rm->occupied; ?>/<?php echo $rm->seater; ?></span>
                                                 </div>
-                                            <?php $j++; endforeach; ?>
+                                                <div class="occupancy-bar">
+                                                    <div class="occupancy-fill <?php echo $color; ?>" style="width: <?php echo $perc; ?>%"></div>
+                                                </div>
+                                                
+                                                <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
+                                                    <div class="fw-800 text-success small">TSH <?php echo number_format($rm->fees); ?>/mo</div>
+                                                    <div class="d-flex gap-2">
+                                                        <a href="edit-room.php?id=<?php echo $rm->id; ?>" class="btn btn-light btn-sm rounded-circle p-0" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation();">
+                                                            <i class="fas fa-edit text-primary x-small"></i>
+                                                        </a>
+                                                        <a href="manage-rooms.php?del=<?php echo $rm->id; ?>" class="btn btn-light btn-sm rounded-circle p-0" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation(); return confirm('Delete room confirmation');">
+                                                            <i class="fas fa-trash-alt text-danger x-small"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        
+                                        <?php endforeach; ?>
                                     </div>
-                                <?php $i++; endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                            
+                        </div>
+                    <?php $i++; endforeach; ?>
                 </div>
 
             </div>
@@ -363,36 +203,28 @@ $stmt->close();
     </div>
 
     <!-- Room Details Modal -->
-    <div class="modal fade" id="roomModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="roomModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title FW-BOLD"><i class="fas fa-door-open me-2"></i> Room <span id="m-room-no"></span></h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-primary text-white p-4 border-0">
+                    <h5 class="modal-title fw-800"><i class="fas fa-door-open me-2"></i> Room Control Console</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="d-flex justify-content-between mb-3">
-                        <span class="text-muted fw-bold">Occupancy:</span>
-                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3" id="m-occupancy"></span>
-                    </div>
-                    <div id="m-student-list">
-                        <!-- Loaded via AJAX -->
-                    </div>
+                <div class="modal-body p-4" id="m-student-list">
+                    <!-- Loaded via AJAX -->
                 </div>
             </div>
         </div>
     </div>
 
-	<!-- Scripts -->
-	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
     function showRoomDetails(roomNo, seater) {
-        document.getElementById('m-room-no').textContent = roomNo;
         const listDiv = document.getElementById('m-student-list');
-        listDiv.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+        listDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
         
         const myModal = new bootstrap.Modal(document.getElementById('roomModal'));
         myModal.show();
@@ -400,28 +232,23 @@ $stmt->close();
         fetch('get_room_students.php?room_no=' + roomNo)
             .then(response => response.json())
             .then(data => {
-                document.getElementById('m-occupancy').textContent = data.length + ' / ' + seater + ' Occupied';
-                
                 if (data.length === 0) {
-                    listDiv.innerHTML = '<div class="alert alert-light text-center py-4 border-dashed rounded-4"><i class="fas fa-ghost fa-2x mb-3 text-muted opacity-25"></i><p class="mb-0 text-muted">This room is currently empty</p></div>';
+                    listDiv.innerHTML = '<div class="text-center py-5"><i class="fas fa-inbox fa-3x text-light mb-3"></i><p class="text-muted fw-600">This unit is currently vacant</p></div>';
                 } else {
-                    let html = '';
+                    let html = `<h6 class="fw-800 mb-4 px-2">Assigned Residents (${data.length}/${seater})</h6>`;
                     data.forEach(student => {
                         html += `
-                        <div class="student-item animate__animated animate__fadeInUp">
+                        <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-4 mb-2">
                             <div class="d-flex align-items-center">
-                                <div class="avatar-small me-3" style="width:40px; height:40px; background: #e0e7ff; color:#4361ee; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-800 me-3" style="width:36px; height:36px;">
                                     ${student.firstName.charAt(0)}
                                 </div>
                                 <div>
-                                    <div class="student-name">${student.firstName} ${student.lastName}</div>
-                                    <div class="student-reg">${student.regNo}</div>
+                                    <div class="fw-800 text-dark small">${student.firstName} ${student.lastName}</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">${student.regNo}</div>
                                 </div>
                             </div>
-                            <div class="d-flex gap-2">
-                                <a href="student-details.php?id=${student.id}" class="btn-action btn-edit" title="View Profile"><i class="fas fa-user"></i></a>
-                                <button onclick="removeStudent('${student.regNo}', '${roomNo}')" class="btn-remove-stud" title="Unallocate Room"><i class="fas fa-user-minus"></i></button>
-                            </div>
+                            <a href="student-details.php?id=${student.id}" class="btn btn-white btn-sm rounded-pill fw-800 px-3">View</a>
                         </div>`;
                     });
                     listDiv.innerHTML = html;

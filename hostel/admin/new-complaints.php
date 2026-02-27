@@ -5,7 +5,14 @@ include('includes/checklogin.php');
 check_login();
 
 // Get count of new complaints for the badge
-$new_complaints_query = "SELECT count(*) FROM complaints WHERE complaintStatus IS NULL";
+$new_complaints_query = "SELECT count(*) FROM complaints c";
+if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
+    $block = $_SESSION['assigned_block'];
+    $new_complaints_query .= " JOIN userregistration u ON c.userId = u.id JOIN registration r ON u.regNo = r.regno WHERE c.complaintStatus IS NULL AND r.roomno LIKE '$block%'";
+} else {
+    $new_complaints_query .= " WHERE complaintStatus IS NULL";
+}
+
 $stmt = $mysqli->prepare($new_complaints_query);
 $stmt->execute();
 $stmt->bind_result($new_complaints_count);
@@ -88,7 +95,18 @@ $stmt->close();
                 <!-- List -->
                 <div id="complaintList">
                     <?php  
-                    $ret="SELECT c.*, u.id as studentId, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno, (SELECT seater FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as seater FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus is null || c.complaintStatus='New' ORDER BY c.registrationDate DESC";
+                    if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
+                        $block = $_SESSION['assigned_block'];
+                        $ret = "SELECT c.*, u.id as studentId, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, r.roomno, r.seater 
+                                FROM complaints c 
+                                JOIN userregistration u ON c.userId = u.id 
+                                JOIN registration r ON u.regNo = r.regno 
+                                WHERE (c.complaintStatus is null || c.complaintStatus='New') 
+                                AND r.roomno LIKE '$block%' 
+                                ORDER BY c.registrationDate DESC";
+                    } else {
+                        $ret="SELECT c.*, u.id as studentId, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, (SELECT roomno FROM registration WHERE regno = u.regNo ORDER BY id DESC LIMIT 1) as roomno, (SELECT seater FROM registration WHERE regno = u.regNo ORDER BY id DESC LIMIT 1) as seater FROM complaints c JOIN userregistration u ON c.userId = u.id WHERE c.complaintStatus is null || c.complaintStatus='New' ORDER BY c.registrationDate DESC";
+                    }
                     $res=$mysqli->query($ret);
                     if($res->num_rows > 0):
                         while($row=$res->fetch_object()):

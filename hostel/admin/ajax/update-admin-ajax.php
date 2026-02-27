@@ -19,6 +19,9 @@ $adminId = intval($_POST['id'] ?? 0);
 $username = trim($_POST['username'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $status = $_POST['status'] ?? '';
+$assigned_block = $_POST['assigned_block'] ?? null;
+if ($assigned_block === 'none' || empty($assigned_block)) $assigned_block = null;
+
 $changePassword = isset($_POST['change_password']);
 $newPassword = $_POST['new_password'] ?? '';
 
@@ -56,8 +59,8 @@ $mysqli->begin_transaction();
 
 try {
     // Update admin details
-    $updateStmt = $mysqli->prepare("UPDATE admins SET username = ?, email = ?, status = ? WHERE id = ?");
-    $updateStmt->bind_param("sssi", $username, $email, $status, $adminId);
+    $updateStmt = $mysqli->prepare("UPDATE admins SET username = ?, email = ?, status = ?, assigned_block = ? WHERE id = ?");
+    $updateStmt->bind_param("ssssi", $username, $email, $status, $assigned_block, $adminId);
     $updateStmt->execute();
     $updateStmt->close();
     

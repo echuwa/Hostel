@@ -122,7 +122,17 @@ check_login();
                                 <tbody>
                                     <?php	
                                     $aid=$_SESSION['id'];
-                                    $ret="SELECT c.*, u.firstName, u.lastName, (SELECT roomno FROM registration WHERE emailid = u.email ORDER BY id DESC LIMIT 1) as roomno FROM complaints c LEFT JOIN userregistration u ON c.userId = u.id ORDER BY c.registrationDate DESC";
+                                    if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
+                                        $block = $_SESSION['assigned_block'];
+                                        $ret = "SELECT c.*, u.firstName, u.lastName, r.roomno 
+                                                FROM complaints c 
+                                                LEFT JOIN userregistration u ON c.userId = u.id 
+                                                JOIN registration r ON u.regNo = r.regno 
+                                                WHERE r.roomno LIKE '$block%' 
+                                                ORDER BY c.registrationDate DESC";
+                                    } else {
+                                        $ret="SELECT c.*, u.firstName, u.lastName, (SELECT roomno FROM registration WHERE regno = u.regNo ORDER BY id DESC LIMIT 1) as roomno FROM complaints c LEFT JOIN userregistration u ON c.userId = u.id ORDER BY c.registrationDate DESC";
+                                    }
                                     $stmt= $mysqli->prepare($ret);
                                     $stmt->execute();
                                     $res=$stmt->get_result();

@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $error = "Username/Email and password are required";
     } else {
         // FIRST: Check in admins table (for superadmin and admin)
-        $adminStmt = $mysqli->prepare("SELECT id, username, email, password, is_superadmin, status FROM admins WHERE (username = ? OR email = ?)");
+        $adminStmt = $mysqli->prepare("SELECT id, username, email, password, is_superadmin, status, assigned_block FROM admins WHERE (username = ? OR email = ?)");
         $adminStmt->bind_param("ss", $username, $username);
         $adminStmt->execute();
         $adminResult = $adminStmt->get_result();
@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                     $_SESSION['username'] = $adminRow['username'];
                     $_SESSION['email'] = $adminRow['email'];
                     $_SESSION['is_superadmin'] = $adminRow['is_superadmin'];
+                    $_SESSION['assigned_block'] = $adminRow['assigned_block']; // STORE ASSIGNED BLOCK
                     $_SESSION['last_login'] = time();
                     
                     // Update last login

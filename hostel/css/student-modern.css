@@ -177,3 +177,47 @@ body.sidebar-collapsed .content-wrapper {
     background: rgba(255, 183, 3, 0.1);
     color: #b58300;
 }
+
+.badge-modern-primary {
+    background: rgba(67, 97, 238, 0.1);
+    color: var(--primary);
+}
+
+.badge-modern-danger {
+    background: rgba(239, 35, 60, 0.1);
+    color: var(--danger);
+}
+
+/* Custom Tabs & Pills */
+.custom-nav-tabs { border-bottom: 2px solid #e2e8f0; gap: 8px; }
+.custom-nav-tabs .nav-link { border: none; color: #64748b; font-weight: 700; border-radius: 12px 12px 0 0; padding: 12px 24px; transition: all 0.3s ease; }
+.custom-nav-tabs .nav-link:hover { color: var(--primary); background: #f8fafc; }
+.custom-nav-tabs .nav-link.active { color: var(--primary); background: transparent; border-bottom: 3px solid var(--primary); }
+
+.custom-nav-pills { gap: 10px; background: #f1f5f9; padding: 8px; border-radius: 16px; display: inline-flex; }
+.custom-nav-pills .nav-link { border-radius: 12px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; border: none; }
+.custom-nav-pills .nav-link.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
+
+/* Additional Button Styles */
+.btn-modern-outline {
+    background: transparent;
+    border: 2px solid var(--gray-light);
+    color: var(--gray-dark);
+}
+
+.btn-modern-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+/* Custom Check/Radio */
+.custom-check .form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.15);
+}
+
+.fw-800 { font-weight: 800; }
+.fw-700 { font-weight: 700; }
+.fw-600 { font-weight: 600; }

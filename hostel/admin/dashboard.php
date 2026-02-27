@@ -12,31 +12,58 @@ check_login();
 
 // Get counts for dashboard cards
 $counts = [];
+
+$block_cond_rooms = "";
+$block_cond_reg = "";
+$block_join_complaints = "";
+$block_cond_complaints = "";
+
+if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
+    $block = $_SESSION['assigned_block'];
+    $block_cond_rooms = " WHERE room_no LIKE '$block%'";
+    $block_cond_reg = " WHERE roomno LIKE '$block%'";
+    $block_join_complaints = " JOIN registration r ON complaints.userId = r.id"; // Assuming userId is registration.id, let's check
+    // Wait, let's verify if userId in complaints is userregistration.id or registration.id
+    $block_join_complaints = " JOIN userregistration u ON complaints.userId = u.id JOIN registration r ON u.regNo = r.regno";
+    $block_cond_complaints = " AND r.roomno LIKE '$block%'";
+}
+
 $queries = [
-    'students' => "SELECT count(*) FROM registration",
-    'rooms' => "SELECT count(*) FROM rooms",
+    'students' => "SELECT count(*) FROM registration $block_cond_reg",
+    'rooms' => "SELECT count(*) FROM rooms $block_cond_rooms",
     'courses' => "SELECT count(*) FROM courses",
-    'all_complaints' => "SELECT count(*) FROM complaints",
-    'new_complaints' => "SELECT count(*) FROM complaints WHERE complaintStatus IS NULL",
-    'inprocess_complaints' => "SELECT count(*) FROM complaints WHERE complaintStatus='In Process'",
-    'closed_complaints' => "SELECT count(*) FROM complaints WHERE complaintStatus='Closed'",
+    'all_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE 1=1 $block_cond_complaints",
+    'new_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE complaintStatus IS NULL $block_cond_complaints",
+    'inprocess_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE complaintStatus='In Process' $block_cond_complaints",
+    'closed_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE complaintStatus='Closed' $block_cond_complaints",
     'feedbacks' => "SELECT count(*) FROM feedback",
     'pending_students' => "SELECT count(*) FROM userregistration WHERE status='Pending'"
 ];
 
 foreach ($queries as $key => $query) {
-    $stmt = $mysqli->prepare($query);
-    $stmt->execute();
-    $stmt->bind_result($count);
-    $stmt->fetch();
-    $counts[$key] = $count;
-    $stmt->close();
+    if ($stmt = $mysqli->prepare($query)) {
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $counts[$key] = $count;
+        $stmt->close();
+    } else {
+        $counts[$key] = 0;
+    }
 }
 
 // Get monthly data for chart
 $monthly_data = [];
 $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 $current_month = date('m');
+
+$block_join = "";
+$block_cond = "";
+if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
+    $block = $_SESSION['assigned_block'];
+    $block_join = " JOIN userregistration u ON c.userId = u.id JOIN registration r ON u.regNo = r.regno";
+    $block_cond = " AND r.roomno LIKE '$block%'";
+}
 
 for ($i = 0; $i < 6; $i++) {
     $month_num = $current_month - $i;
@@ -47,7 +74,8 @@ for ($i = 0; $i < 6; $i++) {
     }
     $month_name = $months[$month_num - 1];
     
-    $stmt = $mysqli->prepare("SELECT COUNT(*) FROM complaints WHERE MONTH(registrationDate) = ? AND YEAR(registrationDate) = ?");
+    $chartQ = "SELECT COUNT(*) FROM complaints c $block_join WHERE MONTH(c.registrationDate) = ? AND YEAR(c.registrationDate) = ? $block_cond";
+    $stmt = $mysqli->prepare($chartQ);
     $stmt->bind_param("ii", $month_num, $year);
     $stmt->execute();
     $stmt->bind_result($count);
@@ -58,17 +86,19 @@ for ($i = 0; $i < 6; $i++) {
 
 // Get recent activities
 $recent_activities = [];
-$stmt = $mysqli->prepare("SELECT 
+$recentQ = "SELECT 
     'complaint' as type, 
-    id, 
-    complaintType as title,
-    complaintDetails as message,
-    registrationDate as date, 
-    complaintStatus as status 
-FROM complaints 
-ORDER BY registrationDate DESC 
-LIMIT 5");
+    c.id, 
+    c.complaintType as title,
+    c.complaintDetails as message,
+    c.registrationDate as date, 
+    c.complaintStatus as status 
+FROM complaints c $block_join 
+WHERE 1=1 $block_cond
+ORDER BY c.registrationDate DESC 
+LIMIT 5";
 
+$stmt = $mysqli->prepare($recentQ);
 $stmt->execute();
 $result = $stmt->get_result();
 while ($row = $result->fetch_assoc()) {
@@ -85,31 +115,48 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-    <meta name="description" content="Hostel Management System Dashboard">
-    <meta name="author" content="">
-    <meta name="theme-color" content="#f5f6fa">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Admin Dashboard | Hostel Management System</title>
     
-    <title>Dashboard | Hostel Management System</title>
-    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap 5 CDN -->
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
-    <!-- AOS Animation CDN -->
+    <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Unified Admin CSS -->
+    <link rel="stylesheet" href="css/admin-modern.css">
     
-    <!-- CSS from modern.css -->
-    <link rel="stylesheet" href="css/modern.css">
+    <style>
+        .header-action-btn {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: #fff; border: 1px solid var(--gray-light);
+            color: var(--gray); transition: all 0.3s; position: relative;
+        }
+        .header-action-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+        .notif-dot { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background: var(--danger); border: 2px solid #fff; border-radius: 50%; }
+        
+        .activity-item {
+            padding: 16px; border-radius: 16px; background: #f8fafc;
+            border-left: 4px solid var(--primary); margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        .activity-item:hover { transform: translateX(5px); background: #f1f5f9; }
+        
+        .chart-card { min-height: 400px; padding: 30px; }
+        .greeting-card {
+            background: var(--gradient-primary); color: #fff;
+            padding: 40px; border-radius: 24px; margin-bottom: 30px;
+            position: relative; overflow: hidden;
+        }
+        .greeting-card::after {
+            content: ''; position: absolute; top: -50px; right: -50px;
+            width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -120,224 +167,177 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
         <div class="main-content" id="mainContent">
             <div class="content-wrapper">
                 
-                <!-- Header -->
-                <div class="content-header" data-aos="fade-down">
-                    <div class="header-left">
-                        <h1 class="page-title">
-                            <i class="fas fa-chart-pie"></i>
-                            Dashboard
-                        </h1>
+                <!-- TOP HEADER -->
+                <div class="d-flex justify-content-between align-items-center mb-4" data-aos="fade-down">
+                    <div>
+                        <h4 class="fw-800 mb-1">Administrative Overview</h4>
+                        <p class="text-muted small fw-600 mb-0"><i class="fas fa-calendar-alt me-2"></i>Status updated as of <?php echo date('F d, Y - H:i'); ?></p>
                     </div>
-                    <div class="header-right">
-                        <div class="date-filter">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span><?php echo date('F d, Y'); ?></span>
-                        </div>
-                        
+                    <div class="d-flex align-items-center gap-3">
                         <div class="dropdown">
-                            <div class="header-icon dropdown-toggle" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                            <button class="header-action-btn" data-bs-toggle="dropdown">
                                 <i class="fas fa-bell"></i>
                                 <?php if(($counts['new_complaints'] + $counts['pending_students']) > 0): ?>
-                                <span class="notification-badge"><?php echo $counts['new_complaints'] + $counts['pending_students']; ?></span>
+                                    <span class="notif-dot"></span>
                                 <?php endif; ?>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3" style="width: 320px;">
+                                <h6 class="fw-800 mb-3 px-2">Recent Notifications</h6>
+                                <?php if ($counts['pending_students'] > 0): ?>
+                                    <a href="manage-students.php" class="dropdown-item p-3 bg-light rounded-3 mb-2 d-flex align-items-center gap-3">
+                                        <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-user-clock"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-800 small text-dark"><?php echo $counts['pending_students']; ?> Pending Approvals</div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">Action required for registration</div>
+                                        </div>
+                                    </a>
+                                <?php endif; ?>
+                                <?php if ($counts['new_complaints'] > 0): ?>
+                                    <a href="new-complaints.php" class="dropdown-item p-3 bg-light rounded-3 mb-2 d-flex align-items-center gap-3">
+                                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-800 small text-dark"><?php echo $counts['new_complaints']; ?> New Complaints</div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">New support tickets reported</div>
+                                        </div>
+                                    </a>
+                                <?php endif; ?>
+                                <a href="all-complaints.php" class="dropdown-item text-center fw-700 text-primary small py-2">See Master Console</a>
                             </div>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="notifDropdown" style="width: 300px; border: none; border-radius: 12px; padding: 0;">
-                                <li class="p-3 border-bottom" style="background: #f8f9ff; border-radius: 12px 12px 0 0;">
-                                    <h6 class="mb-0 fw-bold" style="color: #4361ee;"><i class="fas fa-bell me-2"></i>Notifications</h6>
-                                </li>
-                                <?php if (count($recent_activities) > 0): ?>
-                                    <?php foreach ($recent_activities as $notif): ?>
-                                        <li>
-                                            <a class="dropdown-item py-3 border-bottom text-wrap" href="complaint-details.php?cid=<?php echo $notif['id']; ?>">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-light text-primary rounded-circle p-2 me-3">
-                                                        <i class="fas fa-comment-alt"></i>
-                                                    </div>
-                                                    <div>
-                                                        <span class="d-block fw-bold text-dark" style="font-size: 0.85rem; padding-bottom: 2px;"><?php echo htmlspecialchars($notif['title']); ?></span>
-                                                        <span class="d-block text-secondary text-truncate" style="font-size: 0.8rem; max-width: 200px;"><?php echo htmlspecialchars($notif['message'] ?? 'No message provided'); ?></span>
-                                                        <span class="d-block text-muted mt-1" style="font-size: 0.7rem;"><i class="far fa-clock me-1"></i><?php echo date('M d, Y', strtotime($notif['date'])); ?></span>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        </li>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <li class="p-4 text-center text-muted">No new notifications</li>
-                                <?php endif; ?>
-                                <li><a class="dropdown-item text-center text-primary py-2 fw-bold" href="all-complaints.php" style="border-radius: 0 0 12px 12px;">View All</a></li>
-                            </ul>
                         </div>
-                        
-                        <?php if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1): ?>
-                        <a href="superadmin-dashboard.php" class="super-admin-btn">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Super Admin</span>
+                    </div>
+                </div>
+
+                <!-- GREETING -->
+                <div class="greeting-card shadow-lg" data-aos="fade-up">
+                    <div class="row align-items-center">
+                        <div class="col-lg-8">
+                            <h2 class="fw-800 mb-2">Welcome back, <?php echo $display_name; ?>! 👋</h2>
+                            <p class="opacity-75 fw-600 mb-0">System performance is optimal today. You have <strong><?php echo $counts['new_complaints']; ?></strong> new complaints waiting for your attention and <strong><?php echo $counts['pending_students']; ?></strong> pending accounts to verify.</p>
+                        </div>
+                        <div class="col-lg-4 text-end d-none d-lg-block">
+                            <a href="manage-students.php" class="btn btn-light rounded-pill px-4 fw-800 text-primary shadow-sm">Review Students</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
+                        <a href="manage-students.php" class="text-decoration-none">
+                            <div class="card-modern stat-card clickable-card">
+                                <div>
+                                    <div class="stat-label">Verified Residents</div>
+                                    <div class="stat-value counter"><?php echo $counts['students']; ?></div>
+                                    <div class="text-success small fw-700"><i class="fas fa-arrow-up me-1"></i>Active accounts</div>
+                                </div>
+                                <div class="stat-icon bg-primary text-white">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                            </div>
                         </a>
-                        <?php endif; ?>
-                        
-                        <div class="dropdown">
-                            <div class="profile-dropdown dropdown-toggle" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; display: flex; align-items: center; gap: 10px; background: white; padding: 8px 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
-                                <div class="profile-image" style="width: 35px; height: 35px; background: linear-gradient(135deg, #4361ee, #7b2ff7); color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700;">
-                                    <?php echo strtoupper(substr($display_name, 0, 1)); ?>
+                    </div>
+                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="200">
+                        <a href="manage-rooms.php" class="text-decoration-none">
+                            <div class="card-modern stat-card clickable-card">
+                                <div>
+                                    <div class="stat-label">Total Inventory</div>
+                                    <div class="stat-value counter"><?php echo $counts['rooms']; ?></div>
+                                    <div class="text-primary small fw-700"><i class="fas fa-bed me-1"></i>Dormitory units</div>
                                 </div>
-                                <div class="profile-info d-none d-md-block">
-                                    <span class="profile-name d-block fw-bold text-dark" style="font-size: 0.9rem;"><?php echo $display_name; ?></span>
-                                    <span class="profile-role d-block text-muted" style="font-size: 0.75rem;">
-                                        <?php echo isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] ? 'Super Admin' : 'Admin'; ?>
-                                    </span>
+                                <div class="stat-icon bg-info text-white">
+                                    <i class="fas fa-door-open"></i>
                                 </div>
-                                <i class="fas fa-chevron-down ms-1" style="font-size: 10px; color: #a0aec0;"></i>
                             </div>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="profileDropdown" style="border: none; border-radius: 12px; margin-top: 10px; min-width: 200px;">
-                                <li class="px-3 py-2 border-bottom mb-1">
-                                    <span class="d-block fw-bold"><?php echo $display_name; ?></span>
-                                    <span class="d-block text-muted small"><?php echo htmlspecialchars($_SESSION['email'] ?? 'admin@hostel.com'); ?></span>
-                                </li>
-                                <li><a class="dropdown-item py-2" href="admin-profile.php"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile</a></li>
-                                <li><a class="dropdown-item py-2" href="change-password.php"><i class="fas fa-key me-2 text-warning"></i>Change Password</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item py-2 text-danger" href="../logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                            </ul>
-                        </div>
+                        </a>
+                    </div>
+                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
+                        <a href="all-complaints.php" class="text-decoration-none">
+                            <div class="card-modern stat-card clickable-card">
+                                <div>
+                                    <div class="stat-label">Total Support</div>
+                                    <div class="stat-value counter"><?php echo $counts['all_complaints']; ?></div>
+                                    <div class="text-danger small fw-700"><i class="fas fa-headset me-1"></i>Reported issues</div>
+                                </div>
+                                <div class="stat-icon bg-danger text-white">
+                                    <i class="fas fa-life-ring"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="400">
+                        <a href="manage-courses.php" class="text-decoration-none">
+                            <div class="card-modern stat-card clickable-card">
+                                <div>
+                                    <div class="stat-label">Courses Offered</div>
+                                    <div class="stat-value counter"><?php echo $counts['courses']; ?></div>
+                                    <div class="text-warning small fw-700"><i class="fas fa-book me-1"></i>Active programs</div>
+                                </div>
+                                <div class="stat-icon bg-warning text-white">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                            </div>
+                        </a>
                     </div>
                 </div>
 
-                <!-- Metric Cards Row -->
-                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-bottom: 30px;">
-                    
-                    <!-- Pending Approvals -->
-                    <a href="manage-students.php" style="text-decoration:none; display:block; height:100%;">
-                        <div class="stat-card card-pending" data-aos="fade-up" data-aos-delay="0" style="height:100%;">
-                            <div class="stat-info">
-                                <h3>Pending Approvals</h3>
-                                <div class="stat-number"><?php echo $counts['pending_students']; ?></div>
-                                <div class="stat-trend">
-                                    <i class="fas fa-exclamation-circle"></i> Needs Action
+                <div class="row g-4">
+                    <!-- TRENDS CHART -->
+                    <div class="col-lg-8" data-aos="fade-right">
+                        <div class="card-modern chart-card">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-800 mb-0">Security & Support Trends</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-light rounded-pill dropdown-toggle fw-700 small" data-bs-toggle="dropdown">History (6 Months)</button>
                                 </div>
                             </div>
-                            <div class="stat-icon-wrapper">
-                                <i class="fas fa-user-clock"></i>
+                            <div style="height: 300px;">
+                                <canvas id="trendsChart"></canvas>
                             </div>
-                        </div>
-                    </a>
-
-                    <!-- Total Students -->
-                    <a href="manage-students.php" style="text-decoration:none; display:block; height:100%;">
-                        <div class="stat-card card-students" data-aos="fade-up" data-aos-delay="100" style="height:100%;">
-                            <div class="stat-info">
-                                <h3>Total Students</h3>
-                                <div class="stat-number"><?php echo $counts['students']; ?></div>
-                                <div class="stat-trend" style="color: var(--success);">
-                                    <i class="fas fa-arrow-up"></i> Registered
-                                </div>
-                            </div>
-                            <div class="stat-icon-wrapper">
-                                <i class="fas fa-users"></i>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- Total Rooms -->
-                    <a href="manage-rooms.php" style="text-decoration:none; display:block; height:100%;">
-                        <div class="stat-card card-rooms" data-aos="fade-up" data-aos-delay="200" style="height:100%;">
-                            <div class="stat-info">
-                                <h3>Total Rooms</h3>
-                                <div class="stat-number"><?php echo $counts['rooms']; ?></div>
-                                <div class="stat-trend" style="color: var(--success);">
-                                    <i class="fas fa-check-circle"></i> Available
-                                </div>
-                            </div>
-                            <div class="stat-icon-wrapper">
-                                <i class="fas fa-door-open"></i>
-                            </div>
-                        </div>
-                    </a>
-
-                    <!-- Complaints -->
-                    <div class="dropdown" style="height:100%;">
-                        <div class="stat-card card-complaints dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-aos="fade-up" data-aos-delay="300" style="height:100%; cursor: pointer;">
-                            <div class="stat-info">
-                                <h3>Complaints <i class="fas fa-chevron-down ms-1" style="font-size: 10px; color: var(--text-muted);"></i></h3>
-                                <div class="stat-number"><?php echo $counts['all_complaints']; ?></div>
-                                <div class="stat-trend" style="display:flex; gap:12px; margin-top:5px;">
-                                    <span style="color:#ef233c; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px;">
-                                        <span style="width:6px; height:6px; background:#ef233c; border-radius:50%;"></span>
-                                        <?php echo $counts['new_complaints']; ?> New
-                                    </span>
-                                    <span style="color:#ffb703; font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px;">
-                                        <span style="width:6px; height:6px; background:#ffb703; border-radius:50%;"></span>
-                                        <?php echo $counts['inprocess_complaints']; ?> Process
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="stat-icon-wrapper">
-                                <i class="fas fa-headset"></i>
-                            </div>
-                        </div>
-                        <ul class="dropdown-menu shadow-sm" style="border: none; border-radius: 12px; min-width: 220px;">
-                            <li><a class="dropdown-item py-2 fw-bold text-primary" href="all-complaints.php"><i class="fas fa-list me-2"></i> All Complaints</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item py-2" href="new-complaints.php"><i class="fas fa-exclamation-circle me-2 text-danger"></i> New Complaints</a></li>
-                            <li><a class="dropdown-item py-2" href="inprocess-complaints.php"><i class="fas fa-spinner me-2 text-warning"></i> In Process</a></li>
-                            <li><a class="dropdown-item py-2" href="closed-complaints.php"><i class="fas fa-check-circle me-2 text-success"></i> Closed Complaints</a></li>
-                        </ul>
-                    </div>
-
-                </div>
-
-                <!-- Charts and Activity Row -->
-                <div class="dashboard-content-row">
-                    
-                    <!-- Left: Trends Chart -->
-                    <div class="chart-card" data-aos="fade-up" data-aos-delay="400">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Complaints Trends</h3>
-                            <!-- <select class="form-select form-select-sm" style="width: auto;">
-                                <option>Last 6 Months</option>
-                            </select> -->
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="trendsChart"></canvas>
                         </div>
                     </div>
 
-                    <!-- Right: Recent Activity -->
-                    <div class="activities-card" data-aos="fade-up" data-aos-delay="500">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Recent Activity</h3>
-                            <a href="all-complaints.php" class="btn btn-sm btn-outline-primary" style="font-weight: 600; padding: 4px 12px; border-radius: 6px;">
-                                View All
-                            </a>
-                        </div>
-                        
-                        <div class="activities-list">
-                            <?php if(empty($recent_activities)): ?>
-                                <div class="text-center py-5">
-                                    <i class="fas fa-check-circle fa-3x" style="color: var(--gray-light); margin-bottom: 15px;"></i>
-                                    <p style="color: var(--text-muted);">No recent activities found.</p>
-                                </div>
-                            <?php else: ?>
-                                <?php foreach($recent_activities as $activity): ?>
-                                <div class="activity-item">
-                                    <div class="activity-icon">
-                                        <i class="fas fa-clipboard-list"></i>
+                    <!-- RECENT FEEDBACKS/ACTIVITIES -->
+                    <div class="col-lg-4" data-aos="fade-left">
+                        <div class="card-modern p-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-800 mb-0">Recent Activities</h5>
+                                <a href="access-log.php" class="text-primary small fw-800">Logs</a>
+                            </div>
+                            
+                            <div class="activities-list">
+                                <?php if(empty($recent_activities)): ?>
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-clipboard-check fa-3x text-light mb-3"></i>
+                                        <p class="text-muted fw-600">No recent transactions</p>
                                     </div>
-                                    <div class="activity-details">
-                                        <div class="activity-title"><?php echo htmlspecialchars($activity['title']); ?></div>
-                                        <div class="activity-meta">
-                                            <span><i class="far fa-clock me-1"></i> <?php echo date('M d, H:i', strtotime($activity['date'])); ?></span>
+                                <?php else: ?>
+                                    <?php foreach($recent_activities as $activity): ?>
+                                    <div class="activity-item">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="badge rounded-pill bg-primary-light text-primary small fw-800"><?php echo htmlspecialchars($activity['title']); ?></span>
+                                            <small class="text-muted fw-600"><?php echo date('H:i', strtotime($activity['date'])); ?></small>
+                                        </div>
+                                        <div class="text-dark small fw-700 text-truncate" style="max-width: 250px;">
+                                            <?php echo htmlspecialchars($activity['message'] ?: 'System event updated'); ?>
                                         </div>
                                     </div>
-                                    <span class="badge-status <?php echo strtolower($activity['status']); ?>">
-                                        <?php echo !empty($activity['status']) ? ucfirst($activity['status']) : 'New'; ?>
-                                    </span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="mt-4 pt-3 border-top">
+                                <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="bg-success-light text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <i class="fas fa-check-circle small"></i>
+                                    </div>
+                                    <span class="text-muted small fw-600">All systems are running smoothly</span>
                                 </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            </div>
                         </div>
                     </div>
-
                 </div>
 
             </div>
@@ -348,191 +348,62 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 50
-        });
+        AOS.init({ duration: 800, once: true });
 
+        // Chart Data
+        const ctx = document.getElementById('trendsChart').getContext('2d');
+        const months = <?php echo json_encode(array_reverse(array_keys($monthly_data))); ?>;
+        const data = <?php echo json_encode(array_reverse(array_values($monthly_data))); ?>;
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(67, 97, 238, 0.4)');
+        gradient.addColorStop(1, 'rgba(67, 97, 238, 0)');
 
-        // Sidebar Toggle Functionality
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleBtn = document.getElementById('toggleSidebar');
-
-        toggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            
-            // Change icon direction
-            const icon = this.querySelector('i');
-            if (sidebar.classList.contains('collapsed')) {
-                icon.className = 'fas fa-chevron-right';
-            } else {
-                icon.className = 'fas fa-chevron-left';
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Complaints Trend',
+                    data: data,
+                    borderColor: '#4361ee',
+                    backgroundColor: gradient,
+                    borderWidth: 4,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4361ee',
+                    pointBorderWidth: 3,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { borderDash: [5, 5] }, ticks: { font: { weight: '600' } } },
+                    x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+                }
             }
         });
-
-        // Mobile menu toggle
-        function toggleMobileMenu() {
-            sidebar.classList.toggle('mobile-open');
-        }
-
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const isMobile = window.innerWidth <= 992;
-            if (isMobile && !sidebar.contains(event.target) && !event.target.closest('.toggle-btn')) {
-                sidebar.classList.remove('mobile-open');
-            }
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth <= 992) {
-                sidebar.classList.remove('collapsed');
-                mainContent.classList.remove('expanded');
-            }
-        });
-
-        $(document).ready(function() {
-            // Complaints Chart
-            const complaintsEl = document.getElementById('complaintsChart');
-            if (complaintsEl) {
-                const complaintsCtx = complaintsEl.getContext('2d');
-                new Chart(complaintsCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['New', 'In Process', 'Closed'],
-                        datasets: [{
-                            data: [
-                                <?php echo $counts['new_complaints']; ?>,
-                                <?php echo $counts['inprocess_complaints']; ?>,
-                                <?php echo $counts['closed_complaints']; ?>
-                            ],
-                            backgroundColor: [
-                                '#ef233c',
-                                '#ffb703',
-                                '#06d6a0'
-                            ],
-                            borderWidth: 0,
-                            borderRadius: 10,
-                            spacing: 5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '70%',
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20,
-                                    color: 'white',
-                                    font: {
-                                        size: 12,
-                                        weight: '500',
-                                        family: 'Plus Jakarta Sans'
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Trends Chart
-            const trendsEl = document.getElementById('trendsChart');
-            if (trendsEl) {
-                const trendsCtx = trendsEl.getContext('2d');
-                
-                // Create gradient
-                let gradient = trendsCtx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(67, 97, 238, 0.2)');
-            gradient.addColorStop(1, 'rgba(67, 97, 238, 0)');
-
-            new Chart(trendsCtx, {
-                type: 'line',
-                data: {
-                    labels: <?php echo json_encode(array_reverse(array_keys($monthly_data))); ?>,
-                    datasets: [{
-                        label: 'Complaints',
-                        data: <?php echo json_encode(array_reverse(array_values($monthly_data))); ?>,
-                        borderColor: '#4361ee',
-                        backgroundColor: gradient,
-                        borderWidth: 3,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#4361ee',
-                        pointBorderWidth: 3,
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#2d3436',
-                            padding: 12,
-                            titleFont: { size: 13 },
-                            bodyFont: { size: 13 },
-                            cornerRadius: 8,
-                            displayColors: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: '#f0f0f0',
-                                borderDash: [5, 5]
-                            },
-                            ticks: {
-                                color: '#636e72',
-                                padding: 10,
-                                font: { size: 11 }
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                color: '#636e72',
-                                padding: 10,
-                                font: { size: 11 }
-                            }
-                        }
-                    }
+        
+        // Counter animation
+        $('.counter').each(function () {
+            $(this).prop('Counter', 0).animate({
+                Counter: $(this).text()
+            }, {
+                duration: 2000,
+                easing: 'swing',
+                step: function (now) {
+                    $(this).text(Math.ceil(now));
                 }
             });
-            }
-
-            // Animate numbers
-            function animateNumbers() {
-                $('.stat-number').each(function() {
-                    const $this = $(this);
-                    const target = parseInt($this.text());
-                    $({ count: 0 }).animate({ count: target }, {
-                        duration: 1500,
-                        easing: 'swing',
-                        step: function() {
-                            $this.text(Math.floor(this.count));
-                        },
-                        complete: function() {
-                            $this.text(this.count);
-                        }
-                    });
-                });
-            }
-            animateNumbers();
         });
     </script>
 </body>
-</html>```
+</html>

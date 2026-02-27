@@ -596,6 +596,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
             <!-- Body -->
             <div class="register-body">
                 <!-- Alert Messages -->
+                <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <a href="index.php" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Login
+                    </a>
+                    <?php if (isset($_SESSION['id'])): ?>
+                    <a href="<?php echo isSuperAdmin() ? 'superadmin-dashboard.php' : 'dashboard.php'; ?>" class="btn btn-primary btn-sm rounded-pill px-3">
+                        <i class="fas fa-th-large me-1"></i> Go to Dashboard
+                    </a>
+                    <?php endif; ?>
+                </div>
+
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-circle"></i>
