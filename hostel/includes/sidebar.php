@@ -2,7 +2,7 @@
     <div class="sidebar-header">
         <div class="logo-area">
             <div class="logo-icon-wrapper">
-                <i class="fas fa-home"></i>
+                <i class="fas fa-hotel"></i>
             </div>
             <span class="logo-text">HostelMS</span>
         </div>
@@ -12,694 +12,226 @@
     </div>
     
     <div class="sidebar-user">
-        <?php if(isset($_SESSION['id']) || isset($_SESSION['user_id'])): ?>
+        <?php if(isset($_SESSION['user_id'])): ?>
             <div class="user-avatar">
                 <?php 
-                $initial = isset($_SESSION['login']) ? strtoupper(substr($_SESSION['login'], 0, 1)) : 'S';
+                $initial = isset($_SESSION['name']) ? strtoupper(substr($_SESSION['name'], 0, 1)) : 'S';
                 echo $initial;
                 ?>
             </div>
             <div class="user-info">
-                <span class="user-name"><?php echo $_SESSION['login'] ?? 'Student'; ?></span>
-                <span class="user-role">
-                    <?php 
-                    if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
-                        echo 'Super Admin';
-                    } elseif(isset($_SESSION['id'])) {
-                        echo 'Admin';
-                    } else {
-                        echo 'Student';
-                    }
-                    ?>
-                </span>
+                <span class="user-name"><?php echo $_SESSION['name'] ?? 'Student'; ?></span>
+                <span class="user-role">Resident Student</span>
             </div>
-            
-
         <?php else: ?>
             <div class="user-avatar">
-                <i class="fas fa-user"></i>
+                <i class="fas fa-user-circle"></i>
             </div>
             <div class="user-info">
                 <span class="user-name">Guest</span>
-                <span class="user-role">Visitor</span>
+                <span class="user-role">Not Logged In</span>
             </div>
         <?php endif; ?>
     </div>
     
     <ul class="sidebar-menu">
-        <li class="menu-label">MAIN</li>
-        
-        <?php if(isset($_SESSION['id']) || isset($_SESSION['user_id'])): ?>
-            <!-- Dashboard -->
-            <li>
-                <a href="dashboard.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span class="link-text">Dashboard</span>
-                </a>
-            </li>
+        <li class="menu-label">DASHBOARD</li>
+        <li>
+            <a href="dashboard.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>">
+                <i class="fas fa-home"></i>
+                <span class="link-text">Home Dashboard</span>
+            </a>
+        </li>
 
-            <!-- My Payments (Student Only) -->
-            <?php if(isset($_SESSION['user_id'])): ?>
-            <li>
-                <a href="pay-fees.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'pay-fees.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-money-bill-wave text-success"></i>
-                    <span class="link-text">My Payments</span>
-                    <span class="badge bg-success ms-auto rounded-pill" style="font-size: 0.65rem;">ctrl no</span>
-                </a>
-            </li>
-            <?php endif; ?>
-            
-            <!-- Book Hostel -->
-            <li>
-                <a href="book-hostel.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'book-hostel.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-bed"></i>
-                    <span class="link-text">Request Room</span>
-                </a>
-            </li>
-            
-            <!-- Room Details -->
-            <li>
-                <a href="room-details.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'room-details.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-door-open"></i>
-                    <span class="link-text">Room Details</span>
-                </a>
-            </li>
-            
-            <!-- Complaints Section -->
-            <li class="submenu">
-                <a href="#" class="menu-link">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span class="link-text">Complaints</span>
-                    <i class="fas fa-chevron-down dropdown-icon"></i>
-                </a>
-                <ul class="submenu-items">
-                    <li>
-                        <a href="register-complaint.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'register-complaint.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-plus-circle"></i>
-                            <span>Register Complaint</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="my-complaints.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'my-complaints.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-list"></i>
-                            <span>My Complaints</span>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-            
-            <!-- Feedback -->
-            <li>
-                <a href="feedback.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'feedback.php' ? 'active' : ''; ?>">
-                    <i class="fas fa-comment-alt"></i>
-                    <span class="link-text">Feedback</span>
-                </a>
-            </li>
-            
-            <!-- My Account Section -->
-            <li class="submenu">
-                <a href="#" class="menu-link">
-                    <i class="fas fa-user-circle"></i>
-                    <span class="link-text">My Account</span>
-                    <i class="fas fa-chevron-down dropdown-icon"></i>
-                </a>
-                <ul class="submenu-items">
-                    <li>
-                        <a href="my-profile.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'my-profile.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-user"></i>
-                            <span>My Profile</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="change-password.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'change-password.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-key"></i>
-                            <span>Change Password</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="access-log.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'access-log.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-history"></i>
-                            <span>Access Log</span>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-            
-        <?php endif; ?>
+        <li class="menu-label">HOSTEL SERVICES</li>
+        <li>
+            <a href="book-hostel.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'book-hostel.php' ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-plus"></i>
+                <span class="link-text">Book Room</span>
+            </a>
+        </li>
+        <li>
+            <a href="room-details.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'room-details.php' ? 'active' : ''; ?>">
+                <i class="fas fa-door-open"></i>
+                <span class="link-text">Room Details</span>
+            </a>
+        </li>
+        <li>
+            <a href="pay-fees.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'pay-fees.php' ? 'active' : ''; ?>">
+                <i class="fas fa-wallet"></i>
+                <span class="link-text">Payments</span>
+            </a>
+        </li>
+
+        <li class="menu-label">SUPPORT</li>
+        <li class="submenu">
+            <a href="#" class="menu-link">
+                <i class="fas fa-flag"></i>
+                <span class="link-text">Complaints</span>
+                <i class="fas fa-chevron-down dropdown-icon"></i>
+            </a>
+            <ul class="submenu-items">
+                <li><a href="register-complaint.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'register-complaint.php' ? 'active' : ''; ?>"><i class="fas fa-plus-circle"></i> New Complaint</a></li>
+                <li><a href="my-complaints.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'my-complaints.php' ? 'active' : ''; ?>"><i class="fas fa-list-ul"></i> My History</a></li>
+            </ul>
+        </li>
+        <li>
+            <a href="feedback.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'feedback.php' ? 'active' : ''; ?>">
+                <i class="fas fa-star"></i>
+                <span class="link-text">Give Feedback</span>
+            </a>
+        </li>
+
+        <li class="menu-label">SETTINGS</li>
+        <li>
+            <a href="my-profile.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'my-profile.php' ? 'active' : ''; ?>">
+                <i class="fas fa-user-cog"></i>
+                <span class="link-text">My Profile</span>
+            </a>
+        </li>
+        <li>
+            <a href="access-log.php" class="menu-link <?php echo basename($_SERVER['PHP_SELF']) == 'access-log.php' ? 'active' : ''; ?>">
+                <i class="fas fa-history"></i>
+                <span class="link-text">Access Logs</span>
+            </a>
+        </li>
     </ul>
     
     <div class="sidebar-footer">
-        <?php if(isset($_SESSION['id']) || isset($_SESSION['user_id'])): ?>
-            <a href="logout.php" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i>
-                <span class="link-text">Logout</span>
-            </a>
-        <?php else: ?>
-            <a href="index.php" class="login-btn">
-                <i class="fas fa-sign-in-alt"></i>
-                <span class="link-text">Login</span>
-            </a>
-        <?php endif; ?>
+        <a href="logout.php" class="logout-btn">
+            <i class="fas fa-power-off"></i>
+            <span class="link-text">Logout Session</span>
+        </a>
     </div>
 </nav>
 
+<link rel="stylesheet" href="css/student-modern.css">
 <style>
-    /* ============================================
-         COLLAPSIBLE SIDEBAR - MODERN DESIGN
-         ============================================ */
-    :root {
-        --sidebar-width: 260px;
-        --sidebar-collapsed-width: 70px;
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --primary: #667eea;
-        --secondary: #764ba2;
-        --dark: #1e293b;
-        --light: #f8fafc;
-        --gray: #64748b;
-        --sidebar-bg: linear-gradient(135deg, #1a1e2c 0%, #2d3a4a 100%);
-        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* Main Layout */
-    body {
-        margin-left: var(--sidebar-width);
-        transition: var(--transition);
-        background-color: #f1f5f9;
-        padding-top: 60px;
-    }
-    
-    body.sidebar-collapsed {
-        margin-left: var(--sidebar-collapsed-width);
-    }
-    
-    /* Sidebar */
+    /* Internal Sidebar Styles */
     .ts-sidebar {
         width: var(--sidebar-width);
-        height: calc(100vh - 60px);
-        background: var(--sidebar-bg);
+        height: 100vh;
+        background: #1e293b; /* Slate-900 */
         color: white;
         position: fixed;
         left: 0;
-        top: 60px;
-        transition: var(--transition);
-        z-index: 1040;
-        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        top: 0;
+        transition: all 0.3s ease;
+        z-index: 1060;
         display: flex;
         flex-direction: column;
-        overflow-y: auto;
-        overflow-x: hidden;
+        border-right: 1px solid rgba(255,255,255,0.05);
     }
     
-    .ts-sidebar.collapsed {
-        width: var(--sidebar-collapsed-width);
-    }
-    
-    /* Sidebar Header */
+    .ts-sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+
     .sidebar-header {
+        height: var(--header-height);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 20px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .logo-area {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        overflow: hidden;
-    }
-    
-    .logo-icon-wrapper {
-        width: 40px;
-        height: 40px;
-        background: var(--primary-gradient);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 20px;
-        flex-shrink: 0;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    }
-    
-    .logo-text {
-        font-size: 18px;
-        font-weight: 700;
-        color: white;
-        white-space: nowrap;
-        transition: var(--transition);
-        opacity: 1;
-    }
-    
-    .ts-sidebar.collapsed .logo-text {
-        opacity: 0;
-        width: 0;
-        margin-left: -20px;
-    }
-    
-    /* Toggle Button */
-    .toggle-btn {
-        width: 36px;
-        height: 36px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        cursor: pointer;
-        transition: var(--transition);
-        flex-shrink: 0;
-    }
-    
-    .toggle-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.05);
-    }
-    
-    .toggle-btn i {
-        font-size: 16px;
-        transition: transform 0.3s ease;
-    }
-    
-    .ts-sidebar.collapsed .toggle-btn i {
-        transform: rotate(180deg);
-    }
-    
-    /* User Section */
-    .sidebar-user {
-        padding: 20px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        position: relative;
-        cursor: pointer;
-    }
-    
-    .sidebar-user-dropdown {
-        visibility: hidden;
-        opacity: 0;
-        position: absolute;
-        top: 100%;
-        left: 10px;
-        right: 10px;
-        background: linear-gradient(135deg, #1a1e2c 0%, #2d3a4a 100%);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        z-index: 1000;
-        flex-direction: column;
-        transition: all 0.3s ease;
-        transform: translateY(10px);
-    }
-    
-    .sidebar-user:hover .sidebar-user-dropdown {
-        visibility: visible;
-        opacity: 1;
-        transform: translateY(0);
+        padding: 0 20px;
+        background: rgba(0,0,0,0.1);
     }
 
-    .ts-sidebar.collapsed .sidebar-user-dropdown {
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-icon-wrapper {
+        width: 36px; height: 36px;
+        background: var(--gradient-primary);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 1.1rem;
+    }
+    .logo-text { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; }
+
+    .ts-sidebar.collapsed .logo-text, .ts-sidebar.collapsed .toggle-btn i { display: none; }
+    .ts-sidebar.collapsed .logo-area { margin: 0 auto; }
+
+    .sidebar-user {
+        padding: 24px 20px;
+        display: flex; align-items: center; gap: 12px;
+        margin: 10px 0;
+    }
+    .user-avatar {
+        width: 44px; height: 44px;
+        background: var(--gradient-primary);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 1.1rem;
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+    }
+    .user-info { line-height: 1.3; }
+    .user-name { display: block; font-weight: 700; font-size: 0.9rem; }
+    .user-role { font-size: 0.75rem; opacity: 0.6; }
+
+    .ts-sidebar.collapsed .user-info, .ts-sidebar.collapsed .menu-label, .ts-sidebar.collapsed .link-text, .ts-sidebar.collapsed .dropdown-icon {
         display: none !important;
     }
-    
-    .sidebar-user-dropdown a {
-        padding: 12px 16px;
-        color: rgba(255, 255, 255, 0.8);
-        text-decoration: none;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        transition: background 0.2s;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    .sidebar-user-dropdown a:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-    
-    .sidebar-user-dropdown a i {
-        margin-right: 10px;
-        width: 20px;
-        text-align: center;
-    }
-    
-    .sidebar-user-dropdown a:last-child {
-        border-bottom: none;
-    }
-    
-    .user-avatar {
-        width: 45px;
-        height: 45px;
-        background: var(--primary-gradient);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 700;
-        font-size: 18px;
-        flex-shrink: 0;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    }
-    
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        transition: var(--transition);
-        white-space: nowrap;
-        overflow: hidden;
-    }
-    
-    .ts-sidebar.collapsed .user-info {
-        opacity: 0;
-        width: 0;
-    }
-    
-    .user-name {
-        font-weight: 600;
-        font-size: 14px;
-        color: white;
-    }
-    
-    .user-role {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
-    }
-    
-    /* Sidebar Menu */
-    .sidebar-menu {
-        flex: 1;
-        list-style: none;
-        padding: 20px 12px;
-        margin: 0;
-        overflow-y: auto;
-    }
-    
+
+    .ts-sidebar.collapsed .sidebar-user { justify-content: center; padding: 20px 0; }
+
+    .sidebar-menu { flex: 1; list-style: none; padding: 10px 0; margin: 0; overflow-y: auto; }
     .menu-label {
-        padding: 10px 12px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: rgba(255, 255, 255, 0.5);
-        font-weight: 600;
-        transition: var(--transition);
+        font-size: 0.7rem; font-weight: 800; color: rgba(255,255,255,0.3);
+        margin: 15px 24px 8px; text-transform: uppercase; letter-spacing: 1px;
     }
-    
-    .ts-sidebar.collapsed .menu-label {
-        font-size: 0;
-        padding: 5px 0;
-    }
-    
-    .ts-sidebar.collapsed .menu-label::before {
-        content: '';
-        display: block;
-        width: 100%;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.1);
-    }
-    
-    /* Menu Links */
+
     .menu-link {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        color: rgba(255, 255, 255, 0.8);
-        text-decoration: none;
-        border-radius: 10px;
-        transition: var(--transition);
-        margin-bottom: 4px;
-        white-space: nowrap;
-        overflow: hidden;
+        display: flex; align-items: center; gap: 14px;
+        padding: 12px 24px; color: rgba(255,255,255,0.7);
+        text-decoration: none; transition: all 0.2s;
     }
-    
-    .menu-link i {
-        font-size: 18px;
-        width: 24px;
-        text-align: center;
-        flex-shrink: 0;
-        color: rgba(255, 255, 255, 0.9);
-    }
-    
-    .menu-link span {
-        transition: var(--transition);
-        font-weight: 500;
-    }
-    
-    .ts-sidebar.collapsed .menu-link span,
-    .ts-sidebar.collapsed .dropdown-icon {
-        opacity: 0;
-        width: 0;
-    }
-    
-    .menu-link:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        transform: translateX(5px);
-    }
-    
+    .menu-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+    .menu-link:hover { color: white; background: rgba(255,255,255,0.05); }
     .menu-link.active {
-        background: linear-gradient(90deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
-        color: white;
-        border-left: 3px solid #667eea;
+        color: white; background: rgba(67, 97, 238, 0.15);
+        border-left: 4px solid var(--primary);
     }
     
-    /* Submenu */
-    .submenu {
-        position: relative;
+    .submenu-items { list-style: none; padding-left: 58px; background: rgba(0,0,0,0.1); display: none; }
+    .submenu.active .submenu-items { display: block; }
+    .submenu-items a { display: block; padding: 10px 0; color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem; }
+    .submenu-items a.active { color: var(--primary); font-weight: 700; }
+
+    .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .logout-btn {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px; border-radius: 12px;
+        background: rgba(239, 35, 60, 0.1); color: var(--danger);
+        text-decoration: none; font-weight: 700; font-size: 0.9rem;
     }
-    
-    .dropdown-icon {
-        margin-left: auto;
-        font-size: 12px;
-        transition: transform 0.3s;
-    }
-    
-    .submenu.active .dropdown-icon {
-        transform: rotate(180deg);
-    }
-    
-    .submenu-items {
-        list-style: none;
-        padding-left: 36px;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out;
-    }
-    
-    .submenu.active .submenu-items {
-        max-height: 300px;
-    }
-    
-    .ts-sidebar.collapsed .submenu-items {
-        display: none;
-    }
-    
-    .submenu-items li a {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        color: rgba(255, 255, 255, 0.7);
-        text-decoration: none;
-        border-radius: 8px;
-        transition: var(--transition);
-        font-size: 14px;
-    }
-    
-    .submenu-items li a i {
-        font-size: 14px;
-        width: 20px;
-        text-align: center;
-    }
-    
-    .submenu-items li a:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: white;
-        transform: translateX(5px);
-    }
-    
-    .submenu-items li a.active {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-    
-    /* Sidebar Footer */
-    .sidebar-footer {
-        padding: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .logout-btn, .login-btn {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        color: rgba(255, 255, 255, 0.8);
-        text-decoration: none;
-        border-radius: 10px;
-        transition: var(--transition);
-        background: rgba(255, 255, 255, 0.05);
-        white-space: nowrap;
-        overflow: hidden;
-    }
-    
-    .logout-btn i, .login-btn i {
-        font-size: 18px;
-        width: 24px;
-        text-align: center;
-        flex-shrink: 0;
-    }
-    
-    .logout-btn:hover {
-        background: rgba(220, 53, 69, 0.2);
-        color: #ff6b6b;
-    }
-    
-    .login-btn:hover {
-        background: rgba(40, 167, 69, 0.2);
-        color: #06d6a0;
-    }
-    
-    .ts-sidebar.collapsed .logout-btn span,
-    .ts-sidebar.collapsed .login-btn span {
-        opacity: 0;
-        width: 0;
-    }
-    
-    /* Scrollbar */
-    .ts-sidebar::-webkit-scrollbar {
-        width: 4px;
-    }
-    
-    .ts-sidebar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-    }
-    
-    .ts-sidebar::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 4px;
-    }
-    
-    /* Mobile Responsive */
+    .logout-btn:hover { background: var(--danger); color: white; }
+
+    /* Fix Sidebar Layout with Header */
     @media (max-width: 768px) {
-        body {
-            margin-left: 0 !important;
-        }
-        
-        body.sidebar-collapsed {
-            margin-left: 0 !important;
-        }
-        
-        .ts-sidebar {
-            transform: translateX(-100%);
-            z-index: 1045;
-        }
-        
-        .ts-sidebar.mobile-open {
-            transform: translateX(0);
-        }
-
-        .ts-main-content .content-wrapper,
-        .content-wrapper {
-            margin-left: 0 !important;
-        }
+        .ts-sidebar { transform: translateX(-100%); }
+        .ts-sidebar.mobile-open { transform: translateX(0); }
     }
-
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sidebar = document.getElementById('sidebar');
-        const toggleBtn = document.getElementById('sidebarToggle');
-        const mobileToggleBtn = document.getElementById('mobileSidebarToggle');
-        const body = document.body;
-        
-        // Desktop collapse toggle (internal sidebar button)
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (window.innerWidth > 768) {
-                    sidebar.classList.toggle('collapsed');
-                    if (sidebar.classList.contains('collapsed')) {
-                        body.classList.add('sidebar-collapsed');
-                        this.querySelector('i').className = 'fas fa-chevron-right';
-                    } else {
-                        body.classList.remove('sidebar-collapsed');
-                        this.querySelector('i').className = 'fas fa-chevron-left';
-                    }
-                } else {
-                    // On mobile, toggle slide-in
-                    sidebar.classList.toggle('mobile-open');
-                }
-            });
-        }
-        
-        // Mobile hamburger toggle (from header)
-        if (mobileToggleBtn) {
-            mobileToggleBtn.addEventListener('click', function() {
-                sidebar.classList.toggle('mobile-open');
-                const icon = this.querySelector('i');
-                if (icon) icon.className = sidebar.classList.contains('mobile-open') ? 'fas fa-times' : 'fas fa-bars';
-            });
-        }
-        
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            if (window.innerWidth <= 768) {
-                if (sidebar && !sidebar.contains(event.target) 
-                    && !event.target.closest('#mobileSidebarToggle')
-                    && !event.target.closest('.sidebar-mobile-toggle')) {
-                    sidebar.classList.remove('mobile-open');
-                    if (mobileToggleBtn) {
-                        const icon = mobileToggleBtn.querySelector('i');
-                        if (icon) icon.className = 'fas fa-bars';
-                    }
-                }
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed');
+            const icon = this.querySelector('i');
+            icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
         });
-        
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('collapsed');
-                body.classList.remove('sidebar-collapsed');
-            }
-        });
-        
-        // Toggle submenus
-        document.querySelectorAll('.submenu > .menu-link').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (!sidebar.classList.contains('collapsed')) {
-                    this.parentElement.classList.toggle('active');
-                }
-            });
-        });
-        
-        // Auto-open submenu if child is active
-        document.querySelectorAll('.submenu-items a.active').forEach(activeLink => {
-            const submenu = activeLink.closest('.submenu');
-            if (submenu) submenu.classList.add('active');
-        });
+    }
 
-        // Wrap tables in responsive scroll containers
-        document.querySelectorAll('table').forEach(function(table) {
-            if (!table.closest('.table-responsive') && !table.closest('.table-responsive-wrapper')) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'table-responsive-wrapper';
-                wrapper.style.cssText = 'overflow-x:auto; -webkit-overflow-scrolling:touch;';
-                table.parentNode.insertBefore(wrapper, table);
-                wrapper.appendChild(table);
-            }
+    document.querySelectorAll('.submenu > .menu-link').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.parentElement.classList.toggle('active');
+            const icon = this.querySelector('.dropdown-icon');
+            icon.style.transform = this.parentElement.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0)';
         });
     });
+});
 </script>
 
 

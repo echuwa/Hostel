@@ -109,14 +109,14 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             width: 34px;
             height: 34px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #b5179e, #7209b7);
+            background: linear-gradient(135deg, #4361ee, #7b2ff7);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
             font-size: 0.95rem;
             color: #fff;
-            box-shadow: 0 2px 8px rgba(114,9,183,0.4);
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
             flex-shrink: 0;
         }
 

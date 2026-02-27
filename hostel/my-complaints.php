@@ -7,53 +7,41 @@ check_login();
 
 <!DOCTYPE html>
 <html lang="en">
-<!DOCTYPE html>
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Complaints | Hostel Management</title>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Modern CSS -->
-    <link rel="stylesheet" href="admin/css/modern.css">
+    <link rel="stylesheet" href="css/student-modern.css">
     
     <style>
-        body { background-color: #f5f6fa; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .complaint-card {
+        .complaint-card-modern {
             background: #fff;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid #f1f5f9;
-            transition: all 0.2s ease;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
         }
-        .complaint-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            border-color: #4361ee;
+        .complaint-card-modern:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
         }
-        .icon-circle {
-            width: 48px; height: 48px; border-radius: 14px;
+        .icon-box {
+            width: 56px; height: 56px; border-radius: 16px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; margin-right: 20px;
+            font-size: 1.4rem; margin-right: 20px;
         }
-        .status-badge {
-            padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
-        }
-        .modal-content { border-radius: 24px; border: none; }
-        .info-panel { background: #f8fafc; border-radius: 16px; padding: 15px; margin-bottom: 15px; }
-        .info-label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px; }
-        .info-desc { font-size: 0.95rem; font-weight: 600; color: #1e293b; }
     </style>
 </head>
 <body>
@@ -64,27 +52,30 @@ check_login();
         
         <div class="content-wrapper">
             <div class="container-fluid py-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-5 animate__animated animate__fadeInLeft">
                     <div>
-                        <h2 class="fw-bold mb-1">My Complaints</h2>
-                        <p class="text-muted small mb-0">Track the status of your reported issues</p>
+                        <h2 class="section-title">My Complaints</h2>
+                        <p class="section-subtitle">Track and manage your submitted support tickets</p>
                     </div>
-                    <a href="register-complaint.php" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
-                        <i class="fas fa-plus me-2"></i>New Complaint
+                    <a href="register-complaint.php" class="btn-modern btn-modern-primary px-4 shadow-lg">
+                        <i class="fas fa-plus me-2"></i> File New Complaint
                     </a>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-5 animate__animated animate__fadeInUp">
                     <div class="position-relative">
-                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                        <input type="text" id="complaintSearch" class="form-control ps-5 py-3 border-0 shadow-sm rounded-4" placeholder="Search my complaints...">
+                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-4 text-muted"></i>
+                        <input type="text" id="complaintSearch" class="form-control rounded-pill ps-5 py-3 border-0 shadow-sm" placeholder="Search by ticket number or complaint type...">
                     </div>
                 </div>
 
-                <div id="complaintList">
+                <div id="complaintList" class="row">
                     <?php
                     $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
-                    $ret = "SELECT * FROM complaints WHERE userId=? ORDER BY registrationDate DESC";
+                    $ret = "SELECT c.*, 
+                            (SELECT complaintRemark FROM complainthistory WHERE complaintid = c.id ORDER BY postingDate DESC LIMIT 1) as adminRemark,
+                            (SELECT postingDate FROM complainthistory WHERE complaintid = c.id ORDER BY postingDate DESC LIMIT 1) as adminRemarkDate
+                            FROM complaints c WHERE c.userId=? ORDER BY c.registrationDate DESC";
                     $stmt = $mysqli->prepare($ret);
                     $stmt->bind_param('i', $aid);
                     $stmt->execute();
@@ -94,39 +85,55 @@ check_login();
                         while($row = $res->fetch_object()):
                             $status = $row->complaintStatus ?: 'New';
                             $iconClass = 'fas fa-exclamation-circle';
-                            $bgClass = 'bg-primary-subtle text-primary';
+                            $themeColor = 'primary';
                             
-                            if($status === 'In Process') {
+                            if(strtolower($status) === 'in process' || strtolower($status) === 'in progress') {
                                 $iconClass = 'fas fa-spinner fa-spin';
-                                $bgClass = 'bg-warning-subtle text-warning';
-                            } elseif($status === 'Closed') {
+                                $themeColor = 'warning';
+                            } elseif(strtolower($status) === 'closed') {
                                 $iconClass = 'fas fa-check-circle';
-                                $bgClass = 'bg-success-subtle text-success';
+                                $themeColor = 'success';
                             }
                     ?>
-                    <div class="complaint-card" onclick='viewDetails(<?php echo json_encode($row); ?>)'>
-                        <div class="d-flex align-items-center">
-                            <div class="icon-circle <?php echo $bgClass; ?>">
-                                <i class="<?php echo $iconClass; ?>"></i>
+                    <div class="col-12 animate__animated animate__fadeInUp">
+                        <div class="complaint-card-modern" onclick='viewDetails(<?php echo json_encode($row); ?>)'>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-box bg-<?php echo $themeColor; ?>-light text-<?php echo $themeColor; ?>">
+                                        <i class="<?php echo $iconClass; ?>"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1 fw-800 text-dark"><?php echo htmlspecialchars($row->complaintType); ?></h5>
+                                        <div class="small text-muted fw-600">
+                                            <span class="text-primary">#<?php echo $row->ComplainNumber; ?></span> • 
+                                            <i class="far fa-calendar-alt ms-1 me-1"></i> <?php echo date('d M Y', strtotime($row->registrationDate)); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="text-end d-none d-sm-block">
+                                        <?php if($row->adminRemark): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-800">REPLIED</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="badge-modern badge-modern-<?php echo $themeColor; ?> px-4 py-2">
+                                        <?php echo strtoupper($status); ?>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-muted opacity-50 ms-2"></i>
+                                </div>
                             </div>
-                            <div>
-                                <h6 class="mb-1 fw-bold"><?php echo htmlspecialchars($row->complaintType); ?></h6>
-                                <div class="small text-muted">Ticket #<?php echo $row->ComplainNumber; ?> • <?php echo date('d M Y', strtotime($row->registrationDate)); ?></div>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <div class="status-badge <?php echo $bgClass; ?> mb-1">
-                                <?php echo strtoupper($status); ?>
-                            </div>
-                            <div class="small text-muted" style="font-size: 0.7rem;">Click to view</div>
                         </div>
                     </div>
                     <?php endwhile; else: ?>
-                    <div class="text-center py-5 bg-white rounded-4 shadow-sm">
-                        <i class="fas fa-clipboard-check text-muted fs-1 mb-3"></i>
-                        <h5 class="fw-bold">No complaints yet</h5>
-                        <p class="text-muted">You haven't submitted any complaints at the moment.</p>
-                        <a href="register-complaint.php" class="btn btn-outline-primary rounded-pill px-4">File a complaint</a>
+                    <div class="col-12 text-center py-5">
+                        <div class="bg-gray-light d-inline-flex p-4 rounded-circle mb-4">
+                            <i class="fas fa-clipboard-list text-gray fa-3x"></i>
+                        </div>
+                        <h4 class="fw-800">No Complaints Found</h4>
+                        <p class="text-muted mb-4">You haven't submitted any complaints yet. If you have any issues,<br>feel free to report them using the button above.</p>
+                        <a href="register-complaint.php" class="btn-modern btn-modern-primary d-inline-flex px-5 shadow-lg">
+                            File a Complaint
+                        </a>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -175,8 +182,13 @@ check_login();
         const modal = new bootstrap.Modal(document.getElementById('detailModal'));
         
         document.getElementById('mStatus').innerText = (data.complaintStatus || 'New').toUpperCase();
-        document.getElementById('mStatus').className = (data.complaintStatus === 'Closed') ? 'text-success fw-bold' : ((data.complaintStatus === 'In Process') ? 'text-warning fw-bold' : 'text-primary fw-bold');
         
+        const status = (data.complaintStatus || 'New').toLowerCase();
+        let statusClass = 'text-primary fw-bold';
+        if(status === 'closed') statusClass = 'text-success fw-bold';
+        else if(status === 'in process' || status === 'in progress') statusClass = 'text-warning fw-bold';
+        
+        document.getElementById('mStatus').className = statusClass;
         document.getElementById('mDesc').innerText = data.complaintDetails;
         
         const remarkSec = document.getElementById('remarkSection');
@@ -193,11 +205,10 @@ check_login();
 
     $("#complaintSearch").on("keyup", function() {
         var value = $(this).val().toLowerCase();
-        $(".complaint-card").filter(function() {
+        $(".complaint-card-modern").filter(function() {
             $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
         });
     });
     </script>
 </body>
-</html>
 </html>

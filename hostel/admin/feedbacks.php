@@ -7,7 +7,7 @@ check_login();
 if(isset($_GET['del']))
 {
 	$id=intval($_GET['del']);
-	$adn="delete from registration where regNo=?";
+	$adn="delete from feedback where id=?";
 		$stmt= $mysqli->prepare($adn);
 		$stmt->bind_param('i',$id);
         $stmt->execute();
@@ -90,7 +90,7 @@ if(isset($_GET['del']))
 
                 <div id="feedbackList">
                     <?php  
-                    $ret="SELECT f.*, u.firstName, u.lastName, r.roomno, r.seater 
+                    $ret="SELECT f.*, u.firstName, u.lastName, u.regNo, u.gender, u.fee_status, u.status, r.roomno, r.seater 
                           FROM feedback f 
                           JOIN userregistration u ON f.userId = u.id 
                           LEFT JOIN registration r ON u.regNo = r.regno 
@@ -105,7 +105,20 @@ if(isset($_GET['del']))
                                 <i class="fas fa-star<?php echo $row->OverallRating == 'Excellent' ? '' : '-half-alt'; ?>"></i>
                             </div>
                             <div>
-                                <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($row->firstName . ' ' . $row->lastName); ?></h6>
+                                <h6 class="mb-0 fw-bold">
+                                    <span class="text-primary cursor-pointer" onclick="event.stopPropagation(); openStudentInfo(<?php echo htmlspecialchars(json_encode([
+                                        'firstName' => $row->firstName,
+                                        'lastName' => $row->lastName,
+                                        'regNo' => $row->regNo,
+                                        'roomno' => $row->roomno,
+                                        'seater' => $row->seater,
+                                        'gender' => $row->gender,
+                                        'fee_status' => $row->fee_status,
+                                        'status' => $row->status
+                                    ])); ?>)">
+                                        <?php echo htmlspecialchars($row->firstName . ' ' . $row->lastName); ?>
+                                    </span>
+                                </h6>
                                 <small class="text-muted">Room <?php echo $row->roomno ?: 'N/A'; ?> • Overall: <b><?php echo $row->OverallRating; ?></b></small>
                             </div>
                         </div>
@@ -193,6 +206,39 @@ if(isset($_GET['del']))
         </div>
     </div>
 
+    <!-- Student Info Modal -->
+    <div class="modal fade" id="infoModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 24px;">
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <div id="mAvatar" class="mx-auto student-avatar mb-3 d-flex align-items-center justify-content-center fw-bold" style="width:70px; height:70px; border-radius:20px; font-size:1.5rem;"></div>
+                        <h4 id="mName" class="fw-bold mb-1"></h4>
+                        <span id="mReg" class="badge bg-light text-muted px-3"></span>
+                    </div>
+
+                    <div class="info-card">
+                        <label class="info-label">Room Allocation</label>
+                        <div id="mInfoRoom" class="info-val text-primary"></div>
+                    </div>
+                    <div class="info-card">
+                        <label class="info-label">Payment Status</label>
+                        <div id="mInfoPayment" class="info-val"></div>
+                    </div>
+                    <div class="info-card">
+                        <label class="info-label">Account Status</label>
+                        <div id="mInfoStatus" class="info-val"></div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a id="viewProfileBtn" href="#" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">View Full Profile</a>
+                        <button type="button" class="btn btn-light w-100 rounded-pill py-2 mt-2 fw-bold" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -209,6 +255,34 @@ if(isset($_GET['del']))
         document.getElementById('mRemark').value = data.adminRemark || "";
         
         const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+        modal.show();
+    }
+
+    function openStudentInfo(data) {
+        const modal = new bootstrap.Modal(document.getElementById('infoModal'));
+        
+        // Setup Avatar
+        const avatar = document.getElementById('mAvatar');
+        const isFemale = data.gender === 'female';
+        avatar.style.background = isFemale ? '#fff1f2' : '#eff6ff';
+        avatar.style.color = isFemale ? '#e11d48' : '#3b82f6';
+        avatar.innerText = data.firstName.charAt(0) + data.lastName.charAt(0);
+        
+        document.getElementById('mName').innerText = data.firstName + ' ' + data.lastName;
+        document.getElementById('mReg').innerText = data.regNo;
+        document.getElementById('mInfoRoom').innerText = data.roomno ? `Room ${data.roomno} (${data.seater} Seater)` : 'Not Assigned';
+        
+        const payEl = document.getElementById('mInfoPayment');
+        payEl.innerText = data.fee_status == 1 ? 'Eligible' : 'Ineligible';
+        payEl.className = `info-val fw-bold text-${data.fee_status == 1 ? 'success' : 'danger'}`;
+        
+        const statEl = document.getElementById('mInfoStatus');
+        const isActive = data.status?.toLowerCase() === 'active';
+        statEl.innerText = isActive ? 'Active' : (data.status || 'Pending');
+        statEl.className = `info-val fw-bold text-${isActive ? 'success' : 'warning'}`;
+        
+        document.getElementById('viewProfileBtn').href = `student-details.php?regno=${data.regNo}`;
+        
         modal.show();
     }
 

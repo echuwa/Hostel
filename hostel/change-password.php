@@ -46,81 +46,47 @@ $stmt->bind_result($last_update);
 $stmt->fetch();
 $stmt->close();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4361ee">
-    <title>Change Password</title>
-    
-    <!-- Combined CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/style.css" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="css/student-modern.css">
     
     <style>
-        :root {
-            --primary: #4361ee;
-            --danger: #ef233c;
-            --success: #4cc9f0;
-        }
-        
-        .password-card {
-            max-width: 800px;
+        .password-card-container {
+            max-width: 700px;
             margin: 0 auto;
-            border: none;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            border-radius: 10px;
         }
-        
-        .password-header {
-            background: var(--primary);
-            color: white;
-            border-radius: 10px 10px 0 0;
-            padding: 15px 20px;
+        .password-input-wrapper {
+            position: relative;
         }
-        
-        .password-body {
-            padding: 30px;
-        }
-        
-        .password-strength {
-            height: 5px;
-            margin-top: 5px;
-            background: #e9ecef;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .password-strength-bar {
-            height: 100%;
-            width: 0;
-            transition: width 0.3s;
-        }
-        
-        .last-updated {
-            background: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        .form-label {
-            font-weight: 500;
-        }
-        
-        .password-toggle {
+        .password-input-wrapper i.toggle-pwd {
             position: absolute;
-            right: 10px;
+            right: 0;
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
-            color: #6c757d;
+            color: #94a3b8;
+            padding: 10px;
+            transition: color 0.2s;
         }
-        
-        .password-input-group {
-            position: relative;
+        .password-input-wrapper i.toggle-pwd:hover {
+            color: var(--primary);
+        }
+        .strength-meter {
+            height: 6px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .strength-meter-fill {
+            height: 100%;
+            width: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 </head>
@@ -131,89 +97,92 @@ $stmt->close();
         <?php include('includes/sidebar.php'); ?>
         
         <div class="content-wrapper">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-md-12">
-                        <h2 class="page-title mb-4">
-                            <i class="fas fa-key"></i> Change Password
-                        </h2>
-                        
-                        <div class="card password-card">
-                            <div class="card-header password-header">
-                                <h4 class="mb-0">Update Your Password</h4>
-                            </div>
-                            
-                            <div class="card-body password-body">
-                                <?php echo $message; ?>
-                                
-                                <div class="last-updated mb-4">
-                                    <i class="fas fa-clock"></i> Last updated: 
-                                    <?php echo $last_update ? date('d M Y h:i A', strtotime($last_update)) : 'Never'; ?>
-                                </div>
-                                
-                                <form method="post" id="change-pwd" onsubmit="return validatePassword()">
-                                    <div class="form-group mb-4">
-                                        <label class="form-label">Current Password</label>
-                                        <div class="password-input-group">
-                                            <input type="password" name="oldpassword" id="oldpassword" 
-                                                   class="form-control" required 
-                                                   placeholder="Enter your current password">
-                                            <i class="fas fa-eye password-toggle" 
-                                               onclick="togglePassword('oldpassword')"></i>
-                                        </div>
-                                        <div id="password-match" class="text-danger small mt-1"></div>
-                                    </div>
-                                    
-                                    <div class="form-group mb-4">
-                                        <label class="form-label">New Password</label>
-                                        <div class="password-input-group">
-                                            <input type="password" name="newpassword" id="newpassword" 
-                                                   class="form-control" required 
-                                                   placeholder="Enter new password" 
-                                                   onkeyup="checkPasswordStrength()">
-                                            <i class="fas fa-eye password-toggle" 
-                                               onclick="togglePassword('newpassword')"></i>
-                                        </div>
-                                        <div class="password-strength">
-                                            <div id="password-strength-bar" class="password-strength-bar"></div>
-                                        </div>
-                                        <small class="text-muted">
-                                            Password must be at least 8 characters with uppercase, lowercase, number and special character
-                                        </small>
-                                    </div>
-                                    
-                                    <div class="form-group mb-4">
-                                        <label class="form-label">Confirm New Password</label>
-                                        <div class="password-input-group">
-                                            <input type="password" name="cpassword" id="cpassword" 
-                                                   class="form-control" required 
-                                                   placeholder="Confirm new password">
-                                            <i class="fas fa-eye password-toggle" 
-                                               onclick="togglePassword('cpassword')"></i>
-                                        </div>
-                                        <div id="password-confirm" class="text-danger small mt-1"></div>
-                                    </div>
-                                    
-                                    <div class="form-group text-end">
-                                        <a href="dashboard.php" class="btn btn-outline-secondary me-2">
-                                            <i class="fas fa-times"></i> Cancel
-                                        </a>
-                                        <button type="submit" name="changepwd" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> Change Password
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
+            <div class="container-fluid py-4">
+                
+                <div class="password-card-container">
+                    <div class="d-flex align-items-center mb-5 animate__animated animate__fadeInLeft">
+                        <div class="stat-icon-box bg-primary text-white rounded-circle me-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h2 class="section-title">Security Settings</h2>
+                            <p class="section-subtitle">Keep your account safe by updating your password regularly.</p>
                         </div>
                     </div>
+
+                    <div class="card-modern p-4 p-md-5 animate__animated animate__fadeInUp" style="border-radius: 30px;">
+                        <?php if($message) echo $message; ?>
+                        
+                        <div class="bg-light p-3 rounded-4 mb-5 d-flex align-items-center">
+                            <i class="fas fa-history text-muted me-3 fs-4"></i>
+                            <div>
+                                <span class="text-muted small fw-800 text-uppercase d-block">Last Password Update</span>
+                                <span class="fw-700 text-dark"><?php echo $last_update ? date('d F, Y \a\t h:i A', strtotime($last_update)) : 'No previous updates recorded'; ?></span>
+                            </div>
+                        </div>
+
+                        <form method="post" id="change-pwd" onsubmit="return validatePassword()">
+                            <div class="row g-4">
+                                <!-- Current Password -->
+                                <div class="col-12">
+                                    <div class="form-group-modern">
+                                        <label class="form-label-modern">CURRENT PASSWORD</label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" name="oldpassword" id="oldpassword" class="form-control border-0 bg-transparent fs-5 fw-600 p-0 pe-5" placeholder="Confirm your identity..." required>
+                                            <i class="fas fa-eye toggle-pwd" onclick="togglePassword('oldpassword')"></i>
+                                        </div>
+                                        <div class="form-underline"></div>
+                                        <div id="password-match" class="text-danger small mt-2 fw-600"></div>
+                                    </div>
+                                </div>
+
+                                <!-- New Password -->
+                                <div class="col-12">
+                                    <div class="form-group-modern mb-2">
+                                        <label class="form-label-modern">NEW PASSWORD</label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" name="newpassword" id="newpassword" class="form-control border-0 bg-transparent fs-5 fw-600 p-0 pe-5" placeholder="Choose a strong password..." required onkeyup="checkPasswordStrength()">
+                                            <i class="fas fa-eye toggle-pwd" onclick="togglePassword('newpassword')"></i>
+                                        </div>
+                                        <div class="form-underline"></div>
+                                    </div>
+                                    <div class="strength-meter">
+                                        <div id="strength-bar" class="strength-meter-fill"></div>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0 fw-600"><i class="fas fa-info-circle me-1 text-primary"></i> Mix uppercase, lowercase, numbers, and symbols for maximum security.</p>
+                                </div>
+
+                                <!-- Confirm New Password -->
+                                <div class="col-12">
+                                    <div class="form-group-modern">
+                                        <label class="form-label-modern">CONFIRM NEW PASSWORD</label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" name="cpassword" id="cpassword" class="form-control border-0 bg-transparent fs-5 fw-600 p-0 pe-5" placeholder="Repeat your new password..." required>
+                                            <i class="fas fa-eye toggle-pwd" onclick="togglePassword('cpassword')"></i>
+                                        </div>
+                                        <div class="form-underline"></div>
+                                        <div id="password-confirm" class="text-danger small mt-2 fw-600"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="col-12 mt-5 text-center">
+                                    <button type="submit" name="changepwd" class="btn-modern btn-modern-primary d-inline-flex px-5 py-4 shadow-lg w-100 justify-content-center fs-5">
+                                        <i class="fas fa-key me-3 mt-1"></i> UPDATE PASSWORD
+                                    </button>
+                                    <a href="dashboard.php" class="btn btn-link text-muted mt-3 fw-700 text-decoration-none d-block">NEVERMIND, GO BACK</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Combined JS -->
-    <script src="js/jquery.min.js+bootstrap.min.js+main.js"></script>
-    
+    <script src="js/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     // Toggle password visibility
     function togglePassword(id) {
@@ -232,36 +201,22 @@ $stmt->close();
     // Check password strength
     function checkPasswordStrength() {
         const password = document.getElementById('newpassword').value;
-        const strengthBar = document.getElementById('password-strength-bar');
+        const strengthBar = document.getElementById('strength-bar');
+        if (!strengthBar) return;
+
         let strength = 0;
-        
-        // Check length
         if (password.length >= 8) strength += 1;
-        
-        // Check for uppercase
         if (password.match(/[A-Z]/)) strength += 1;
-        
-        // Check for lowercase
         if (password.match(/[a-z]/)) strength += 1;
-        
-        // Check for numbers
         if (password.match(/[0-9]/)) strength += 1;
-        
-        // Check for special chars
         if (password.match(/[^A-Za-z0-9]/)) strength += 1;
         
-        // Update strength bar
         const width = strength * 20;
         strengthBar.style.width = width + '%';
         
-        // Change color based on strength
-        if (strength <= 2) {
-            strengthBar.style.backgroundColor = 'var(--danger)';
-        } else if (strength <= 4) {
-            strengthBar.style.backgroundColor = 'orange';
-        } else {
-            strengthBar.style.backgroundColor = 'var(--success)';
-        }
+        if (strength <= 2) strengthBar.style.backgroundColor = '#ef4444';
+        else if (strength <= 4) strengthBar.style.backgroundColor = '#f59e0b';
+        else strengthBar.style.backgroundColor = '#10b981';
     }
     
     // Validate password match
@@ -270,13 +225,11 @@ $stmt->close();
         const confirmPassword = document.getElementById('cpassword').value;
         const confirmMsg = document.getElementById('password-confirm');
         
-        // Check if passwords match
         if (newPassword !== confirmPassword) {
             confirmMsg.textContent = "Passwords do not match!";
             return false;
         }
         
-        // Check password strength
         if (newPassword.length < 8) {
             confirmMsg.textContent = "Password must be at least 8 characters!";
             return false;

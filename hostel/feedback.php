@@ -4,9 +4,21 @@ include('includes/config.php');
 date_default_timezone_set('Asia/Kolkata');
 include('includes/checklogin.php');
 check_login();
-$aid = $_SESSION['id'];
+$aid = $_SESSION['user_id'] ?? $_SESSION['id'] ?? null;
 
 if(isset($_POST['submit'])) {
+    if(!$aid) {
+        // Fallback: try to find user id by email if session aid is missing
+        if(isset($_SESSION['login'])) {
+            $uemail = $_SESSION['login'];
+            $find_stmt = $mysqli->prepare("SELECT id FROM userregistration WHERE email = ?");
+            $find_stmt->bind_param('s', $uemail);
+            $find_stmt->execute();
+            $find_stmt->bind_result($aid);
+            $find_stmt->fetch();
+            $find_stmt->close();
+        }
+    }
     // Sanitize inputs
     $acceswardent = htmlspecialchars(trim($_POST['acceswardent']));
     $accesmember = htmlspecialchars(trim($_POST['accesmember']));
@@ -38,93 +50,62 @@ if(isset($_POST['submit'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feedback | Hostel Management</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-    
-    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/student-modern.css">
     <style>
-        .feedback-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        .feedback-header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #3a7bd5;
-        }
         .rating-item {
-            margin-bottom: 20px;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: #f8f9fa;
+            margin-bottom: 24px;
+            padding: 24px;
+            border-radius: 20px;
+            background-color: var(--gray-light);
+            border: 1px solid rgba(0,0,0,0.03);
+            transition: all 0.2s;
+        }
+        .rating-item:hover {
+            background-color: #fff;
+            box-shadow: var(--shadow-sm);
+            border-color: var(--primary);
         }
         .rating-title {
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #495057;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-size: 1rem;
         }
         .rating-options {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
-        }
-        .rating-option {
-            display: flex;
-            align-items: center;
+            gap: 12px;
         }
         .rating-option input[type="radio"] {
             display: none;
         }
         .rating-option label {
-            padding: 8px 15px;
-            border-radius: 20px;
-            background-color: #e9ecef;
+            padding: 10px 20px;
+            border-radius: 12px;
+            background-color: #fff;
+            color: var(--gray);
+            font-weight: 600;
+            font-size: 0.85rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
         }
         .rating-option input[type="radio"]:checked + label {
-            background-color: #3a7bd5;
+            background: var(--gradient-primary);
             color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
         }
-        .btn-submit {
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-            border: none;
-            padding: 10px 25px;
-            font-weight: 600;
-        }
-        .btn-submit:hover {
-            background: linear-gradient(135deg, #2c65b4, #00b7eb);
-        }
-        .feedback-view {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-        }
-        .feedback-item {
-            margin-bottom: 15px;
-        }
-        .feedback-label {
-            font-weight: 600;
-            color: #495057;
-        }
-        .not-eligible {
-            text-align: center;
-            padding: 30px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+        .feedback-history-card {
+            border-radius: 24px;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: 30px;
         }
     </style>
 </head>
@@ -135,363 +116,278 @@ if(isset($_POST['submit'])) {
         <?php include('includes/sidebar.php'); ?>
         
         <div class="content-wrapper">
-            <div class="container-fluid py-4">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="feedback-container">
-                            <div class="feedback-header">
-                                <h2><i class="fas fa-comment-alt me-2"></i> Hostel Feedback</h2>
-                                <p class="text-muted">Share your experience with us</p>
+            <div class="container-fluid">
+                <div class="row justify-content-center">
+                    <div class="col-xl-9">
+                        <div class="mb-5 animate__animated animate__fadeInLeft">
+                            <h2 class="section-title">Hostel Feedback</h2>
+                            <p class="section-subtitle">Help us improve your living experience</p>
+                        </div>
+                        
+                        <?php if(isset($_SESSION['error'])): ?>
+                            <div class="alert alert-danger border-0 rounded-4 shadow-sm mb-4">
+                                <i class="fas fa-exclamation-circle me-2"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
                             </div>
-                            
-                            <!-- Display Success/Error Messages -->
-                            <?php if(isset($_SESSION['error'])): ?>
-                                <div class="alert alert-danger alert-dismissible fade show">
-                                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <?php if(isset($_SESSION['success'])): ?>
-                                <div class="alert alert-success alert-dismissible fade show">
-                                    <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <?php
-                            $uid = $_SESSION['login'];
-                            $stmt = $mysqli->prepare("SELECT emailid FROM registration WHERE emailid=? || regno=?");
-                            $stmt->bind_param('ss', $uid, $uid);
+                        <?php endif; ?>
+                        
+                        <?php if(isset($_SESSION['success'])): ?>
+                            <div class="alert alert-success border-0 rounded-4 shadow-sm mb-4">
+                                <i class="fas fa-check-circle me-2"></i> <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php
+                        $uid = $_SESSION['login'];
+                        $stmt = $mysqli->prepare("SELECT emailid FROM registration WHERE emailid=? || regno=?");
+                        $stmt->bind_param('ss', $uid, $uid);
+                        $stmt->execute();
+                        $stmt->store_result();
+                        $rs = $stmt->num_rows > 0;
+                        $stmt->close();
+                        
+                        if($rs) {
+                            $stmt = $mysqli->prepare("SELECT id FROM feedback WHERE userId=?");
+                            $stmt->bind_param('i', $aid);
                             $stmt->execute();
-                            $stmt->bind_result($email);
-                            $rs = $stmt->fetch();
+                            $stmt->bind_result($f_id);
+                            $stmt->store_result();
+                            $has_feedback = $stmt->num_rows > 0;
                             $stmt->close();
                             
-                            if($rs) {
-                                $ret = $mysqli->prepare("SELECT id FROM feedback WHERE userId=?");
-                                $ret->bind_param('i', $aid);
-                                $ret->execute();
-                                $ret->bind_result($count);
-                                $ret->fetch();
-                                
-                                if($count > 0) {
-                                    $ret = "SELECT * FROM feedback WHERE userId=?";
-                                    $stmt = $mysqli->prepare($ret);
-                                    $stmt->bind_param('i', $aid);
-                                    $stmt->execute();
-                                    $res = $stmt->get_result();
-                                    while($row = $res->fetch_object()):
-                            ?>
-                            
-                            <div class="feedback-view mb-4 border-0 shadow-sm" style="background: #fff; border-radius: 20px; overflow: hidden;">
-                                <div class="p-4" style="background: linear-gradient(135deg, #3a7bd5, #00d2ff); color: white;">
-                                    <h4 class="mb-0 fw-bold"><i class="fas fa-check-circle me-2"></i>My Submitted Feedback</h4>
-                                    <small class="opacity-75">Submitted on <?php echo date('d M Y, h:i A', strtotime($row->postinDate)); ?></small>
+                            if($has_feedback) {
+                                $ret = "SELECT * FROM feedback WHERE userId=?";
+                                $stmt = $mysqli->prepare($ret);
+                                $stmt->bind_param('i', $aid);
+                                $stmt->execute();
+                                $res = $stmt->get_result();
+                                while($row = $res->fetch_object()):
+                        ?>
+                        
+                        <div class="feedback-history-card animate__animated animate__fadeInUp">
+                            <div class="p-4 d-flex justify-content-between align-items-center" style="background: var(--gradient-primary); color: white;">
+                                <div>
+                                    <h4 class="mb-1 fw-800">Your Feedback Submission</h4>
+                                    <div class="small opacity-75"><i class="fas fa-calendar-alt me-1"></i> Submitted on <?php echo date('d M Y', strtotime($row->postinDate)); ?></div>
                                 </div>
-                                
-                                <div class="p-4">
-                                    <div class="row g-3 mb-4">
-                                        <div class="col-6 col-md-3">
-                                            <div class="p-3 bg-light rounded-4 text-center">
-                                                <div class="small fw-bold text-muted mb-1">WARDEN</div>
-                                                <div class="text-primary fw-bold"><?php echo $row->AccessibilityWarden; ?></div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <div class="p-3 bg-light rounded-4 text-center">
-                                                <div class="small fw-bold text-muted mb-1">MESS</div>
-                                                <div class="text-primary fw-bold"><?php echo $row->Mess; ?></div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <div class="p-3 bg-light rounded-4 text-center">
-                                                <div class="small fw-bold text-muted mb-1">ROOM</div>
-                                                <div class="text-primary fw-bold"><?php echo $row->Room; ?></div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <div class="p-3 bg-primary bg-opacity-10 rounded-4 text-center">
-                                                <div class="small fw-bold text-primary mb-1">OVERALL</div>
-                                                <div class="text-primary fw-bold"><?php echo $row->OverallRating; ?></div>
-                                            </div>
+                                <div class="bg-white bg-opacity-20 p-3 rounded-4">
+                                    <div class="small fw-700 opacity-75">OVERALL</div>
+                                    <div class="h5 fw-800 mb-0"><?php echo strtoupper($row->OverallRating); ?></div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-3">
+                                        <div class="p-3 bg-light rounded-4">
+                                            <div class="small fw-800 text-muted mb-1">WARDEN</div>
+                                            <div class="text-primary fw-800"><?php echo $row->AccessibilityWarden; ?></div>
                                         </div>
                                     </div>
-
-                                    <?php if(!empty($row->FeedbackMessage)): ?>
-                                    <div class="mb-4">
-                                        <label class="small fw-bold text-muted mb-2 text-uppercase">My Message:</label>
-                                        <div class="p-3 bg-light rounded-4" style="font-style: italic; color: #4a5568;">
-                                            "<?php echo htmlspecialchars($row->FeedbackMessage); ?>"
+                                    <div class="col-md-3">
+                                        <div class="p-3 bg-light rounded-4">
+                                            <div class="small fw-800 text-muted mb-1">MESS</div>
+                                            <div class="text-primary fw-800"><?php echo $row->Mess; ?></div>
                                         </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-3 bg-light rounded-4">
+                                            <div class="small fw-800 text-muted mb-1">ROOM</div>
+                                            <div class="text-primary fw-800"><?php echo $row->Room; ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-3 bg-light rounded-4">
+                                            <div class="small fw-800 text-muted mb-1">SURROUNDINGS</div>
+                                            <div class="text-primary fw-800"><?php echo $row->HostelSurroundings; ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label-modern mb-2">My Comments</label>
+                                    <div class="p-3 bg-light rounded-4 text-dark fst-italic">
+                                        "<?php echo htmlspecialchars($row->FeedbackMessage ?: 'No specific comments provided.'); ?>"
+                                    </div>
+                                </div>
+
+                                <div class="pt-4 border-top">
+                                    <label class="form-label-modern mb-3">Management Response</label>
+                                    <?php if($row->adminRemark): ?>
+                                    <div class="p-4 rounded-4" style="background: #ecfdf5; border-left: 5px solid var(--success);">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px;">
+                                                <i class="fas fa-user-shield"></i>
+                                            </div>
+                                            <span class="fw-800 text-success">Admin Response</span>
+                                            <span class="ms-auto text-muted small fw-700"><?php echo date('d M, Y', strtotime($row->adminRemarkDate)); ?></span>
+                                        </div>
+                                        <div class="text-dark" style="line-height: 1.6;">
+                                            <?php echo nl2br(htmlspecialchars($row->adminRemark)); ?>
+                                        </div>
+                                    </div>
+                                    <?php else: ?>
+                                    <div class="p-3 bg-light rounded-4 text-center text-muted small fw-600">
+                                        <i class="fas fa-hourglass-half me-2"></i> Pending review by the hostel administration
                                     </div>
                                     <?php endif; ?>
-
-                                    <!-- Admin Response Section -->
-                                    <div class="pt-4 border-top">
-                                        <label class="small fw-bold text-muted mb-3 text-uppercase">Admin Response:</label>
-                                        <?php if($row->adminRemark): ?>
-                                        <div class="admin-reply p-3 rounded-4" style="background: #f0fdf4; border-left: 4px solid #10b981;">
-                                            <div class="d-flex align-items-center mb-2">
-                                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width:24px; height:24px;">
-                                                    <i class="fas fa-user-shield" style="font-size:0.7rem;"></i>
-                                                </div>
-                                                <span class="fw-bold text-success small">Hostel Management</span>
-                                                <span class="ms-auto text-muted" style="font-size:0.7rem;"><?php echo date('d M, Y', strtotime($row->adminRemarkDate)); ?></span>
-                                            </div>
-                                            <div style="color: #166534; line-height: 1.5;">
-                                                <?php echo nl2br(htmlspecialchars($row->adminRemark)); ?>
-                                            </div>
-                                        </div>
-                                        <?php else: ?>
-                                        <div class="p-3 bg-light rounded-4 text-center text-muted small">
-                                            <i class="fas fa-clock me-2"></i> Your feedback is being reviewed by the management.
-                                        </div>
-                                        <?php endif; ?>
-                                    </div>
                                 </div>
                             </div>
-                            
-                            <?php
-                                    endwhile;
-                                } else {
-                            ?>
-                            
-                            <form method="post" action="" name="feedbackForm" class="needs-validation" novalidate>
-                                <!-- Accessibility to Warden -->
-                                <div class="rating-item">
-                                    <div class="rating-title">1. Accessibility to Warden</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="warden-excellent" name="acceswardent" value="Excellent" required>
-                                            <label for="warden-excellent">Excellent</label>
+                        </div>
+                        
+                        <?php endwhile; } else { ?>
+                        
+                        <div class="card-modern">
+                            <div class="card-body-modern p-5">
+                                <form method="post" action="" name="feedbackForm" class="needs-validation" novalidate>
+                                    <div class="row">
+                                        <!-- Question 1 -->
+                                        <div class="col-md-6">
+                                            <div class="rating-item">
+                                                <div class="rating-title">1. Accessibility to Warden</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="w-<?=str_replace(' ','',$val)?>" name="acceswardent" value="<?=$val?>" required>
+                                                        <label for="w-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="warden-vgood" name="acceswardent" value="Very Good">
-                                            <label for="warden-vgood">Very Good</label>
+                                        
+                                        <!-- Question 2 -->
+                                        <div class="col-md-6">
+                                            <div class="rating-item">
+                                                <div class="rating-title">2. Accessibility to Committee Members</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="m-<?=str_replace(' ','',$val)?>" name="accesmember" value="<?=$val?>" required>
+                                                        <label for="m-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="warden-good" name="acceswardent" value="Good">
-                                            <label for="warden-good">Good</label>
+
+                                        <!-- Question 3 -->
+                                        <div class="col-md-6">
+                                            <div class="rating-item">
+                                                <div class="rating-title">3. Redressal of Problems</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="p-<?=str_replace(' ','',$val)?>" name="redproblem" value="<?=$val?>" required>
+                                                        <label for="p-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="warden-avg" name="acceswardent" value="Average">
-                                            <label for="warden-avg">Average</label>
+
+                                        <!-- Question 4 -->
+                                        <div class="col-md-6">
+                                            <div class="rating-item">
+                                                <div class="rating-title">4. Room Condition & Maintenance</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="r-<?=str_replace(' ','',$val)?>" name="Room" value="<?=$val?>" required>
+                                                        <label for="r-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="warden-bavg" name="acceswardent" value="Below Average">
-                                            <label for="warden-bavg">Below Average</label>
+
+                                        <!-- Question 5 -->
+                                        <div class="col-md-6">
+                                            <div class="rating-item">
+                                                <div class="rating-title">5. Mess/Food Quality</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="ms-<?=str_replace(' ','',$val)?>" name="Mess" value="<?=$val?>" required>
+                                                        <label for="ms-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Accessibility to Hostel Committee members -->
-                                <div class="rating-item">
-                                    <div class="rating-title">2. Accessibility to Hostel Committee members</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="member-excellent" name="accesmember" value="Excellent" required>
-                                            <label for="member-excellent">Excellent</label>
+
+                                        <!-- Question 6 -->
+                                        <div class="col-md-6">
+                                            <div class="rating-item">
+                                                <div class="rating-title">6. Hostel Surroundings</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="s-<?=str_replace(' ','',$val)?>" name="hstelsor" value="<?=$val?>" required>
+                                                        <label for="s-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="member-vgood" name="accesmember" value="Very Good">
-                                            <label for="member-vgood">Very Good</label>
+
+                                        <!-- Overall -->
+                                        <div class="col-12">
+                                            <div class="rating-item" style="background: var(--primary-light);">
+                                                <div class="rating-title text-primary"><i class="fas fa-star me-2"></i>7. Overall Rating</div>
+                                                <div class="rating-options">
+                                                    <?php foreach(['Excellent', 'Very Good', 'Good', 'Average', 'Below Average'] as $val): ?>
+                                                    <div class="rating-option">
+                                                        <input type="radio" id="o-<?=str_replace(' ','',$val)?>" name="overall" value="<?=$val?>" required>
+                                                        <label for="o-<?=str_replace(' ','',$val)?>"><?=$val?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="member-good" name="accesmember" value="Good">
-                                            <label for="member-good">Good</label>
+
+                                        <!-- Comments -->
+                                        <div class="col-12 mt-3">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Additional Comments (Optional)</label>
+                                                <textarea name="feedback" class="form-control form-control-modern" style="height:120px; padding:15px;" placeholder="Is there anything else you'd like to tell us?"></textarea>
+                                            </div>
                                         </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="member-avg" name="accesmember" value="Average">
-                                            <label for="member-avg">Average</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="member-bavg" name="accesmember" value="Below Average">
-                                            <label for="member-bavg">Below Average</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Redressal of Problems -->
-                                <div class="rating-item">
-                                    <div class="rating-title">3. Redressal of Problems</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="problem-excellent" name="redproblem" value="Excellent" required>
-                                            <label for="problem-excellent">Excellent</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="problem-vgood" name="redproblem" value="Very Good">
-                                            <label for="problem-vgood">Very Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="problem-good" name="redproblem" value="Good">
-                                            <label for="problem-good">Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="problem-avg" name="redproblem" value="Average">
-                                            <label for="problem-avg">Average</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="problem-bavg" name="redproblem" value="Below Average">
-                                            <label for="problem-bavg">Below Average</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Room -->
-                                <div class="rating-item">
-                                    <div class="rating-title">4. Room</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="room-excellent" name="Room" value="Excellent" required>
-                                            <label for="room-excellent">Excellent</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="room-vgood" name="Room" value="Very Good">
-                                            <label for="room-vgood">Very Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="room-good" name="Room" value="Good">
-                                            <label for="room-good">Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="room-avg" name="Room" value="Average">
-                                            <label for="room-avg">Average</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="room-bavg" name="Room" value="Below Average">
-                                            <label for="room-bavg">Below Average</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Mess -->
-                                <div class="rating-item">
-                                    <div class="rating-title">5. Mess</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="mess-excellent" name="Mess" value="Excellent" required>
-                                            <label for="mess-excellent">Excellent</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="mess-vgood" name="Mess" value="Very Good">
-                                            <label for="mess-vgood">Very Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="mess-good" name="Mess" value="Good">
-                                            <label for="mess-good">Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="mess-avg" name="Mess" value="Average">
-                                            <label for="mess-avg">Average</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="mess-bavg" name="Mess" value="Below Average">
-                                            <label for="mess-bavg">Below Average</label>
+
+                                        <div class="col-12 text-center mt-5">
+                                            <button type="submit" name="submit" class="btn-modern btn-modern-primary py-3 px-5 justify-content-center shadow-lg">
+                                                <i class="fas fa-paper-plane"></i> SUBMIT FEEDBACK
+                                            </button>
                                         </div>
                                     </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <?php } } else { ?>
+                        
+                        <div class="card-modern border-0">
+                            <div class="p-5 text-center">
+                                <div class="bg-gray-light p-4 rounded-circle d-inline-flex mb-4">
+                                    <i class="fas fa-lock fa-3x text-gray"></i>
                                 </div>
-                                
-                                <!-- Hostel Surroundings -->
-                                <div class="rating-item">
-                                    <div class="rating-title">6. Hostel Surroundings (e.g. Lawn etc.)</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="surround-excellent" name="hstelsor" value="Excellent" required>
-                                            <label for="surround-excellent">Excellent</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="surround-vgood" name="hstelsor" value="Very Good">
-                                            <label for="surround-vgood">Very Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="surround-good" name="hstelsor" value="Good">
-                                            <label for="surround-good">Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="surround-avg" name="hstelsor" value="Average">
-                                            <label for="surround-avg">Average</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="surround-bavg" name="hstelsor" value="Below Average">
-                                            <label for="surround-bavg">Below Average</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Overall Rating -->
-                                <div class="rating-item">
-                                    <div class="rating-title">7. Overall Rating</div>
-                                    <div class="rating-options">
-                                        <div class="rating-option">
-                                            <input type="radio" id="overall-excellent" name="overall" value="Excellent" required>
-                                            <label for="overall-excellent">Excellent</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="overall-vgood" name="overall" value="Very Good">
-                                            <label for="overall-vgood">Very Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="overall-good" name="overall" value="Good">
-                                            <label for="overall-good">Good</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="overall-avg" name="overall" value="Average">
-                                            <label for="overall-avg">Average</label>
-                                        </div>
-                                        <div class="rating-option">
-                                            <input type="radio" id="overall-bavg" name="overall" value="Below Average">
-                                            <label for="overall-bavg">Below Average</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Feedback Message -->
-                                <div class="rating-item">
-                                    <div class="rating-title">8. Additional Feedback (Optional)</div>
-                                    <textarea name="feedback" id="feedback" class="form-control" rows="4" placeholder="Please share any additional comments or suggestions..."></textarea>
-                                </div>
-                                
-                                <!-- Submit Button -->
-                                <div class="text-center mt-4">
-                                    <button type="submit" name="submit" class="btn btn-submit text-white">
-                                        <i class="fas fa-paper-plane me-2"></i> Submit Feedback
-                                    </button>
-                                </div>
-                            </form>
-                            
-                            <?php
-                                }
-                            } else {
-                            ?>
-                            
-                            <div class="not-eligible">
-                                <i class="fas fa-info-circle fa-3x mb-3" style="color: #6c757d;"></i>
-                                <h4>You are not eligible to submit feedback yet</h4>
-                                <p>Once you book a hostel room, you will be able to share your feedback with us.</p>
-                                <a href="book-hostel.php" class="btn btn-primary mt-3">
-                                    <i class="fas fa-bed me-2"></i> Book Hostel
+                                <h4 class="fw-800">Feedback Unavailable</h4>
+                                <p class="text-muted mb-4">You need to have an active hostel booking to provide feedback.<br>Please secure a room first.</p>
+                                <a href="book-hostel.php" class="btn-modern btn-modern-primary justify-content-center">
+                                    <i class="fas fa-bed"></i> Book Hostel Now
                                 </a>
                             </div>
-                            
-                            <?php } ?>
                         </div>
+                        
+                        <?php } ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery -->
     <script src="js/jquery.min.js"></script>
-    
-    <!-- Custom Scripts -->
     <script>
-    // Form validation
     (function() {
         'use strict';
         var forms = document.querySelectorAll('.needs-validation');
@@ -500,8 +396,6 @@ if(isset($_POST['submit'])) {
                 if (!form.checkValidity()) {
                     event.preventDefault();
                     event.stopPropagation();
-                    
-                    // Scroll to first invalid field
                     var invalidFields = form.querySelectorAll(':invalid');
                     if(invalidFields.length > 0) {
                         invalidFields[0].scrollIntoView({ behavior: 'smooth', block: 'center' });

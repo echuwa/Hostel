@@ -240,25 +240,33 @@ foreach($rooms_by_block as $b => $s) {
         <?php include('includes/sidebar_modern.php'); ?>
         <div class="main-content">
             <div class="content-wrapper">
-                <div class="fancy-header-card d-flex align-items-center mb-4">
-                    <div class="header-icon-badge">
-                        <i class="fas fa-graduation-cap"></i>
+                <div class="fancy-header-card d-flex align-items-center mb-5 animate__animated animate__fadeInDown">
+                    <div class="header-icon-badge shadow-lg">
+                        <i class="fas fa-user-plus text-white"></i>
                     </div>
                     <div>
-                        <h2 class="fw-bold mb-0">Student Registration</h2>
-                        <p class="mb-0 opacity-75">Register a new student and assign a room in the system.</p>
+                        <h2 class="fw-800 mb-1" style="letter-spacing: -0.5px;">Student Enrollment</h2>
+                        <p class="mb-0 opacity-75 fw-500">Add a new student to the hostel system and allocate their living space.</p>
                     </div>
                 </div>
 
                 <?php if(isset($_SESSION['error'])): ?>
-                    <div class="alert alert-danger rounded-4 p-3 mb-4 shadow-sm border-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <div class="alert alert-danger rounded-4 p-4 mb-4 shadow-sm border-0 animate__animated animate__shakeX">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-circle fs-4 me-3"></i>
+                            <div>
+                                <h6 class="mb-0 fw-800 text-danger">Registration Error</h6>
+                                <p class="mb-0 small fw-600"><?php echo $_SESSION['error']; ?></p>
+                            </div>
+                        </div>
+                        <?php unset($_SESSION['error']); ?>
                     </div>
                 <?php endif; ?>
                 
                 <?php if(isset($_SESSION['errors'])): ?>
-                    <div class="alert alert-danger rounded-4 p-3 mb-4 shadow-sm border-0">
-                        <ul class="mb-0 small">
+                    <div class="alert alert-warning rounded-4 p-4 mb-4 shadow-sm border-0 animate__animated animate__fadeInRight">
+                        <h6 class="mb-2 fw-800 text-warning text-uppercase small">Validation Warnings</h6>
+                        <ul class="mb-0 small fw-600">
                             <?php foreach($_SESSION['errors'] as $e): ?>
                                 <li><?php echo $e; ?></li>
                             <?php endforeach; unset($_SESSION['errors']); ?>
@@ -269,37 +277,96 @@ foreach($rooms_by_block as $b => $s) {
                 <form method="post" action="" onsubmit="return validateForm()">
                     <div class="row g-4">
                         <div class="col-lg-7">
-                            <div class="reg-card p-4 h-100 shadow-sm">
-                                <h5 class="form-section-title"><i class="fas fa-user"></i> Personal Details</h5>
+                            <div class="reg-card p-4 h-100 shadow-sm animate__animated animate__fadeInLeft">
+                                <h5 class="form-section-title"><i class="fas fa-user-circle"></i> Student Profile Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label small fw-bold">First Name</label><input type="text" name="fname" class="form-control" required value="<?php echo $_POST['fname'] ?? ''; ?>"></div>
-                                    <div class="col-md-6"><label class="form-label small fw-bold">Last Name</label><input type="text" name="lname" class="form-control" required value="<?php echo $_POST['lname'] ?? ''; ?>"></div>
-                                    <div class="col-md-6"><label class="form-label small fw-bold">Gender</label><select name="gender" class="form-select" required><option value="">Select</option><option value="male">Male</option><option value="female">Female</option></select></div>
-                                    <div class="col-md-6"><label class="form-label small fw-bold">Contact No</label><input type="tel" name="contact" id="contact" class="form-control" required value="<?php echo $_POST['contact'] ?? ''; ?>"></div>
-                                    <div class="col-12"><label class="form-label small fw-bold">Email</label><input type="email" name="email" class="form-control" required value="<?php echo $_POST['email'] ?? ''; ?>"></div>
-                                    <div class="col-md-6"><label class="form-label small fw-bold">Password</label><input type="password" name="password" id="password" class="form-control" required></div>
-                                    <div class="col-md-6"><label class="form-label small fw-bold">Confirm</label><input type="password" name="cpassword" id="cpassword" class="form-control" required></div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-800 text-muted">FIRST NAME</label>
+                                        <input type="text" name="fname" class="form-control" placeholder="e.g. John" required value="<?php echo $_POST['fname'] ?? ''; ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-800 text-muted">MIDDLE NAME</label>
+                                        <input type="text" name="mname" class="form-control" placeholder="Optional" value="<?php echo $_POST['mname'] ?? ''; ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-800 text-muted">LAST NAME</label>
+                                        <input type="text" name="lname" class="form-control" placeholder="e.g. Doe" required value="<?php echo $_POST['lname'] ?? ''; ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-800 text-muted">GENDER</label>
+                                        <select name="gender" class="form-select" required>
+                                            <option value="" disabled selected>Select gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-800 text-muted">MOBILE NUMBER</label>
+                                        <input type="tel" name="contact" id="contact" class="form-control" placeholder="255XXXXXXXXX" required value="<?php echo $_POST['contact'] ?? ''; ?>">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-800 text-muted">EMAIL ADDRESS (FOR LOGIN)</label>
+                                        <input type="email" name="email" class="form-control" placeholder="student@example.com" required value="<?php echo $_POST['email'] ?? ''; ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-800 text-muted">LOGIN PASSWORD</label>
+                                        <input type="password" name="password" id="password" class="form-control" placeholder="••••••••" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-800 text-muted">REPEAT PASSWORD</label>
+                                        <input type="password" name="cpassword" id="cpassword" class="form-control" placeholder="••••••••" required>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
                         <div class="col-lg-5">
-                            <div class="reg-card p-4 h-100 shadow-sm">
-                                <h5 class="form-section-title"><i class="fas fa-bed"></i> Room & Stay</h5>
+                            <div class="reg-card p-4 h-100 shadow-sm animate__animated animate__fadeInRight">
+                                <h5 class="form-section-title"><i class="fas fa-building"></i> Accommodation & Period</h5>
                                 <input type="hidden" name="room" id="room" required>
-                                <input type="hidden" name="seater" id="seater"><input type="hidden" name="fpm" id="fpm">
-                                <div id="roomSelector" class="room-picker-btn mb-4" data-bs-toggle="modal" data-bs-target="#roomModal">
-                                    <div id="noRoomView"><i class="fas fa-plus-circle fs-3 mb-2"></i><div class="fw-bold fs-5">Pick a Room</div></div>
-                                    <div id="activeRoomView" style="display:none;"><h3 id="displayRoomNo" class="fw-bold text-dark mb-0"></h3><div id="displayRoomMeta" class="small text-muted fw-bold"></div></div>
+                                <input type="hidden" name="seater" id="seater">
+                                <input type="hidden" name="fpm" id="fpm">
+                                
+                                <div id="roomSelector" class="room-picker-btn mb-4 border-primary bg-primary-subtle" data-bs-toggle="modal" data-bs-target="#roomModal">
+                                    <div id="noRoomView">
+                                        <div class="bg-primary text-white d-inline-flex p-3 rounded-circle mb-3 shadow-sm">
+                                            <i class="fas fa-search-plus fs-4"></i>
+                                        </div>
+                                        <div class="fw-800 fs-5 text-primary">SELECT STUDENT BED</div>
+                                        <p class="small text-muted mb-0 fw-600">Click to browse available rooms</p>
+                                    </div>
+                                    <div id="activeRoomView" style="display:none;">
+                                        <div class="badge bg-primary rounded-pill px-3 py-2 mb-2">ALLOCATED</div>
+                                        <h3 id="displayRoomNo" class="fw-800 text-dark mb-1"></h3>
+                                        <div id="displayRoomMeta" class="small text-muted fw-800 text-uppercase"></div>
+                                    </div>
                                 </div>
-                                <div class="row g-2 mb-3">
-                                    <div class="col-6"><label class="form-label small fw-bold">Stay From</label><input type="date" name="stayf" class="form-control bg-white" value="<?php echo date('Y-m-d'); ?>" required></div>
-                                    <div class="col-6"><label class="form-label small fw-bold">Duration</label><select name="duration" class="form-select bg-white" required><option value="5">1 Semester</option><option value="10">Full Year</option></select></div>
+
+                                <div class="row g-3 mb-5">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-800 text-muted">EFFECTIVE FROM</label>
+                                        <input type="date" name="stayf" class="form-control bg-white" value="<?php echo date('Y-m-d'); ?>" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-800 text-muted">STAY DURATION</label>
+                                        <select name="duration" class="form-select bg-white" required>
+                                            <option value="5">One Semester (5 Months)</option>
+                                            <option value="10">Academic Year (10 Months)</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="p-3 rounded-4 bg-light border mb-4 d-none">
-                                    <div class="form-check"><input class="form-check-input" type="radio" name="foodstatus" id="food0" value="0" checked><label class="form-check-label small fw-bold" for="food0">Without Food</label></div>
-                                    <div class="form-check"><input class="form-check-input" type="radio" name="foodstatus" id="food1" value="1"><label class="form-check-label small fw-bold" for="food1">With Food</label></div>
+
+                                <!-- Hidden Food Option (Disabled as requested) -->
+                                <input type="hidden" name="foodstatus" value="0">
+
+                                <div class="pt-2">
+                                    <button type="submit" name="submit" class="btn btn-primary w-100 rounded-4 py-4 fw-800 shadow-lg d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-check-circle me-3 fs-5"></i> COMPLETE ENROLLMENT
+                                    </button>
+                                    <div class="text-center mt-3">
+                                        <p class="small text-muted fw-600 mb-0">System will autogenerate registration number upon success.</p>
+                                    </div>
                                 </div>
-                                <button type="submit" name="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm">Register Student</button>
                             </div>
                         </div>
                     </div>
@@ -308,40 +375,51 @@ foreach($rooms_by_block as $b => $s) {
         </div>
     </div>
 
-    <div class="modal fade" id="roomModal" tabindex="-1">
+    <!-- Room Selection Modal -->
+    <div class="modal fade" id="roomModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg" style="border-radius: 28px;">
-                <div class="modal-header border-0 px-4 pt-4"><h5 class="fw-bold mb-0 fs-4">Select a Room</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body p-4 pt-2">
-                    <ul class="nav nav-pills mb-4 p-2 bg-light rounded-4" role="tablist">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 30px;">
+                <div class="modal-header border-0 px-5 pt-5 pb-0">
+                    <div>
+                        <h4 class="fw-800 text-dark mb-1">Available Inventory</h4>
+                        <p class="text-muted small mb-0 fw-600">Pick a bed for the student from the catalog below.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-5 pt-4">
+                    <ul class="nav nav-pills mb-5 p-2 bg-light rounded-4" role="tablist">
                         <?php $bi=0; foreach ($rooms_by_block as $bn => $wings): ?>
-                            <li class="nav-item"><button class="nav-link rounded-pill px-4 <?php echo $bi===0?'active':''; ?>" data-bs-toggle="tab" data-bs-target="#m-pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$bn); ?>" type="button"><?php echo $bn; ?></button></li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill px-4 py-2 fw-700 <?php echo $bi===0?'active':''; ?>" data-bs-toggle="tab" data-bs-target="#m-pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$bn); ?>" type="button"><?php echo $bn; ?></button>
+                            </li>
                         <?php $bi++; endforeach; ?>
                     </ul>
-                    <div class="tab-content mt-4">
+                    <div class="tab-content">
                         <?php $bi=0; foreach ($rooms_by_block as $bn => $wings): ?>
                             <div class="tab-pane fade <?php echo $bi===0?'show active':''; ?>" id="m-pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$bn); ?>">
                                 <?php foreach ($wings as $sn => $s_rooms): ?>
-                                    <div class="mb-4">
+                                    <div class="mb-5">
                                         <div class="d-flex align-items-center mb-3">
-                                            <div style="width:12px; height:12px; background:#4361ee; border-radius:3px; margin-right:10px;"></div>
-                                            <h6 class="fw-bold text-dark small text-uppercase mb-0"><?php echo $sn; ?></h6>
+                                            <div class="bg-primary-subtle p-2 rounded-circle me-3">
+                                                <div style="width:10px; height:10px; background:var(--primary); border-radius:50%;"></div>
+                                            </div>
+                                            <h6 class="fw-800 text-dark small text-uppercase mb-0" style="letter-spacing: 1px;"><?php echo $sn; ?></h6>
                                         </div>
                                         <div class="room-grid">
                                             <?php foreach ($s_rooms as $rm): 
                                                 $full = $rm->is_full;
                                                 $remaining = $rm->seater - $rm->occupied;
                                             ?>
-                                                <div class="room-card-mini <?php echo $full?'full':''; ?>" 
+                                                <div class="room-card-mini <?php echo $full?'full':''; ?> border shadow-sm" style="border-radius: 20px;"
                                                      onclick="pickRoom(this, '<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>, <?php echo $rm->fees; ?>, <?php echo $rm->occupied; ?>)">
-                                                    <div class="fw-bold text-dark fs-5 mb-1"><?php echo $rm->room_no; ?></div>
-                                                    <div class="small fw-semibold text-muted mb-2" style="font-size: 0.75rem;">
-                                                        <i class="fas fa-users me-1"></i> <?php echo $rm->occupied; ?> / <?php echo $rm->seater; ?> Full
+                                                    <div class="fw-800 text-dark fs-5 mb-1"><?php echo $rm->room_no; ?></div>
+                                                    <div class="small fw-700 text-muted mb-3" style="font-size: 0.7rem;">
+                                                        <i class="fas fa-users me-1"></i> <?php echo $rm->occupied; ?> / <?php echo $rm->seater; ?> BEDS
                                                     </div>
                                                     <?php if($full): ?>
-                                                        <span class="badge bg-danger-subtle text-danger rounded-pill w-100" style="font-size: 0.65rem;">ROOM FULL</span>
+                                                        <span class="badge bg-danger text-white rounded-pill w-100 py-2" style="font-size: 0.6rem; letter-spacing: 0.5px;">UNAVAILABLE</span>
                                                     <?php else: ?>
-                                                        <span class="badge bg-success-subtle text-success rounded-pill w-100" style="font-size: 0.65rem;"><?php echo $remaining; ?> SPOTS LEFT</span>
+                                                        <span class="badge bg-success-subtle text-success rounded-pill w-100 py-2" style="font-size: 0.6rem; letter-spacing: 0.5px;"><?php echo $remaining; ?> SPOTS LEFT</span>
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endforeach; ?>
@@ -352,31 +430,84 @@ foreach($rooms_by_block as $b => $s) {
                         <?php $bi++; endforeach; ?>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4 pt-0">
-                    <div class="d-flex gap-3 me-auto small">
-                        <div class="d-flex align-items-center"><span class="d-inline-block bg-success-subtle rounded-circle me-1" style="width:10px; height:10px;"></span> Available</div>
-                        <div class="d-flex align-items-center"><span class="d-inline-block bg-danger-subtle rounded-circle me-1" style="width:10px; height:10px;"></span> Full</div>
-                    </div>
-                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold" data-bs-dismiss="modal">Confirm Selection</button>
+                <div class="modal-footer border-0 p-5 pt-0">
+                    <button type="button" class="btn btn-primary rounded-pill px-5 py-3 fw-800 shadow-sm" data-bs-dismiss="modal">Confirm Selection</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Success Overlay -->
     <div class="success-overlay" id="regSuccessOverlay">
-        <div class="success-modal">
-            <div class="bg-success text-white d-flex align-items-center justify-content-center mx-auto mb-4" style="width:80px; height:80px; border-radius:30px; font-size:2.5rem;"><i class="fas fa-check"></i></div>
-            <h2 class="fw-bold text-dark mb-2">Usajili Umekamilika!</h2>
+        <div class="success-modal animate__animated animate__zoomIn">
+            <div class="success-icon-container mx-auto mb-4">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 class="fw-800 text-dark mb-1">Success!</h2>
+            <p class="text-muted fw-600 mb-4">The student has been successfully enrolled.</p>
+            
             <?php if(isset($_SESSION['reg_success'])): $rs = $_SESSION['reg_success']; ?>
-            <div class="bg-light rounded-4 p-4 text-start mt-4 border">
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted small fw-bold">NAME</span><span class="fw-bold"><?php echo htmlspecialchars($rs['name']); ?></span></div>
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted small fw-bold">REG #</span><span class="fw-bold text-primary"><?php echo htmlspecialchars($rs['regno']); ?></span></div>
-                <div class="d-flex justify-content-between"><span class="text-muted small fw-bold">EMAIL</span><span class="fw-bold small"><?php echo htmlspecialchars($rs['email']); ?></span></div>
+            <div class="bg-light rounded-4 p-4 text-start mt-4 border border-2">
+                <div class="mb-3">
+                    <span class="text-muted small fw-800 text-uppercase d-block mb-1">Student Name</span>
+                    <span class="fw-700 text-dark fs-5"><?php echo htmlspecialchars($rs['name']); ?></span>
+                </div>
+                <div class="row">
+                    <div class="col-6 border-end">
+                        <span class="text-muted small fw-800 text-uppercase d-block mb-1">Reg Number</span>
+                        <span class="fw-800 text-primary"><?php echo htmlspecialchars($rs['regno']); ?></span>
+                    </div>
+                    <div class="col-6 ps-3">
+                        <span class="text-muted small fw-800 text-uppercase d-block mb-1">Status</span>
+                        <span class="badge bg-success-subtle text-success rounded-pill px-3">ACTIVE</span>
+                    </div>
+                </div>
             </div>
             <?php endif; ?>
-            <div class="mt-4 pt-3 d-grid gap-2"><button class="btn btn-primary rounded-pill py-3 fw-bold" onclick="location.href='registration.php'">Sajili Mwingine</button><a href="manage-students.php" class="btn btn-outline-secondary rounded-pill py-2 border-0 fw-bold">Student List</a></div>
+
+            <div class="mt-5 pt-2 d-grid gap-3">
+                <button class="btn btn-primary rounded-pill py-3 fw-800 shadow-sm" onclick="location.href='registration.php'">ENROLL ANOTHER STUDENT</button>
+                <a href="manage-students.php" class="btn btn-link text-muted fw-700 text-decoration-none">VIEW DIRECTORY</a>
+            </div>
         </div>
     </div>
+
+    <style>
+        .success-icon-container {
+            width: 90px;
+            height: 90px;
+            background: #10b981;
+            color: white;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+            transform: rotate(-10deg);
+        }
+        .room-picker-btn {
+            border: 2px dashed #cbd5e1 !important;
+            transition: all 0.3s ease;
+        }
+        .room-picker-btn:hover {
+            border-color: var(--primary) !important;
+            background: #f0f7ff !important;
+        }
+        .room-card-mini {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .room-card-mini:hover:not(.full) {
+            transform: translateY(-5px);
+            border-color: var(--primary) !important;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+        }
+        .room-card-mini.selected {
+            background-color: #f0f7ff;
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1) !important;
+        }
+    </style>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -391,13 +522,29 @@ foreach($rooms_by_block as $b => $s) {
         document.getElementById('noRoomView').style.display = 'none'; 
         document.getElementById('activeRoomView').style.display = 'block'; 
         document.getElementById('displayRoomNo').innerText = 'Room ' + rNo; 
-        document.getElementById('displayRoomMeta').innerText = occupied + '/' + seater + ' Occupied • TSH ' + fees.toLocaleString(); 
+        document.getElementById('displayRoomMeta').innerText = occupied + '/' + seater + ' BEDS ALLOCATED • TSH ' + parseInt(fees).toLocaleString(); 
     }
-    function validateForm() { const pass = document.getElementById('password').value; const cpass = document.getElementById('cpassword').value; if (pass !== cpass) { alert("Passwords do not match!"); return false; } if (!document.getElementById('room').value) { alert("Please pick a room!"); return false; } return true; }
+    function validateForm() { 
+        const pass = document.getElementById('password').value; 
+        const cpass = document.getElementById('cpassword').value; 
+        if (pass !== cpass) { alert("Passwords do not match!"); return false; } 
+        if (!document.getElementById('room').value) { alert("Please allocate a room for the student!"); return false; } 
+        return true; 
+    }
     <?php if(isset($_GET['registered'])): ?>
-    document.addEventListener('DOMContentLoaded', () => { document.getElementById('regSuccessOverlay').classList.add('show'); <?php unset($_SESSION['reg_success']); ?> });
+    document.addEventListener('DOMContentLoaded', () => { 
+        document.getElementById('regSuccessOverlay').classList.add('show'); 
+        <?php unset($_SESSION['reg_success']); ?> 
+    });
     <?php endif; ?>
-    document.getElementById('contact').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); if (!this.value.startsWith('255') && this.value.length > 0) this.value = '255' + this.value; if (this.value.length > 12) this.value = this.value.substring(0, 12); });
+    const contactInput = document.getElementById('contact');
+    if (contactInput) {
+        contactInput.addEventListener('input', function() { 
+            this.value = this.value.replace(/[^0-9]/g, ''); 
+            if (!this.value.startsWith('255') && this.value.length > 0) this.value = '255' + this.value; 
+            if (this.value.length > 12) this.value = this.value.substring(0, 12); 
+        });
+    }
     </script>
 </body>
 </html>

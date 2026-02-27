@@ -102,298 +102,210 @@ if (empty($user->fee_control_no)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Make Payment | Hostel Management</title>
-    
-    <!-- Bootstrap 5 -->
+    <title>Payments | Hostel Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link rel="stylesheet" href="css/student-modern.css">
     <style>
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --success: #06d6a0;
-            --danger: #ef233c;
-            --warning: #ffb703;
-            --info: #4cc9f0;
-            --gray: #94a3b8;
-            --dark: #1e293b;
-            --light: #f8fafc;
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9;
-            color: var(--dark);
-        }
-
-        .payment-card {
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            transition: transform 0.3s ease;
-            overflow: hidden;
-            background: #fff;
-            height: 100%;
-        }
-
-        .payment-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .card-header-custom {
-            padding: 24px;
-            background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
-            color: white;
-            border: none;
-        }
-
         .ctrl-box {
-            background: #f1f5f9;
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 15px;
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
             text-align: center;
             margin: 15px 0;
             cursor: pointer;
             transition: all 0.2s;
         }
-
         .ctrl-box:hover {
             border-color: var(--primary);
-            background: #eff6ff;
+            background: #f0f7ff;
+            transform: scale(1.02);
         }
-
         .ctrl-box code {
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             color: var(--primary);
             font-weight: 800;
             letter-spacing: 1px;
-        }
-
-        .btn-simulate {
-            background: var(--dark);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 12px;
-            font-weight: 700;
-            width: 100%;
-            transition: all 0.3s;
-        }
-
-        .btn-simulate:hover {
-            background: #000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .badge-payment {
-            padding: 6px 12px;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .progress {
-            height: 10px;
-            border-radius: 10px;
-            background-color: #e2e8f0;
-        }
-
-        /* Modal Simulation Styling */
-        .gepg-logo {
-            width: 150px;
-            margin-bottom: 20px;
-        }
-
-        .modal-content {
-            border-radius: 24px;
-            border: none;
-            overflow: hidden;
-        }
-
-        .amount-display {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--dark);
-            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <?php include('includes/header.php'); ?>
     
-    <div class="container-fluid py-5 mt-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold mb-1">Fee Payment & Control Numbers</h2>
-                        <p class="text-muted">Simulate your payments using GePG Control Numbers</p>
+    <div class="ts-main-content">
+        <?php include('includes/sidebar.php'); ?>
+        
+        <div class="content-wrapper">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 transition-all">
+                    <div class="animate__animated animate__fadeInLeft">
+                        <h2 class="section-title">Payments & Control Numbers</h2>
+                        <p class="section-subtitle">Manage your dues and simulate GePG payments</p>
                     </div>
-                    <a href="dashboard.php" class="btn btn-outline-secondary rounded-pill px-4">
-                        <i class="fas fa-arrow-left me-2"></i> Dashboard
-                    </a>
                 </div>
 
                 <?php if(isset($_SESSION['success'])): ?>
-                    <div class="alert alert-success alert-dismissible fade show rounded-4 mb-4 border-0 shadow-sm" role="alert">
-                        <i class="fas fa-check-circle me-2 text-success"></i> <?php echo $_SESSION['success']; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4 animate__animated animate__fadeInDown">
+                        <i class="fas fa-check-circle me-2"></i> <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
                     </div>
-                    <?php unset($_SESSION['success']); ?>
                 <?php endif; ?>
 
                 <?php if(isset($_SESSION['error'])): ?>
-                    <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-4 border-0 shadow-sm" role="alert">
-                        <i class="fas fa-exclamation-circle me-2 text-danger"></i> <?php echo $_SESSION['error']; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4 animate__animated animate__fadeInDown">
+                        <i class="fas fa-exclamation-circle me-2"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
                     </div>
-                    <?php unset($_SESSION['error']); ?>
                 <?php endif; ?>
 
-                <!-- Rules Alert -->
-                <div class="alert alert-info border-0 shadow-sm rounded-4 mb-4" style="background: white; border-left: 5px solid var(--info) !important;">
-                    <div class="d-flex align-items-center p-2">
-                        <div class="me-3"><i class="fas fa-info-circle fa-2x text-info"></i></div>
+                <!-- Requirements Banner -->
+                <div class="card-modern border-0 mb-4 overflow-hidden" style="background: white;">
+                    <div class="d-flex align-items-center p-4">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-4">
+                            <i class="fas fa-info-circle fa-2x text-primary"></i>
+                        </div>
                         <div>
-                            <h6 class="fw-bold mb-1">Room Allocation Requirements</h6>
-                            <p class="mb-0 small text-muted">You must pay at least <strong>50% of School Fees (TSH 750,000)</strong> and <strong>100% of Accommodation (TSH 178,500)</strong> to be eligible for room selection.</p>
+                            <h5 class="fw-800 mb-1">Room Allocation Requirements</h5>
+                            <p class="mb-0 text-muted">A total of <strong>50% School Fees (750,000/=)</strong> and <strong>100% Accommodation (178,500/=)</strong> is required for room selection.</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-4">
-                    <!-- School Fees Card -->
-                    <div class="col-md-4">
-                        <div class="payment-card">
-                            <div class="card-header-custom">
-                                <h5 class="mb-0 fw-bold"><i class="fas fa-graduation-cap me-2"></i>School Fees</h5>
-                                <small class="opacity-75">Full Amount: TSH 1,500,000</small>
+                <div class="row g-4 mb-5">
+                    <!-- School Fees -->
+                    <div class="col-lg-4">
+                        <div class="card-modern h-100">
+                            <div class="p-4" style="background: var(--gradient-primary); color: white;">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="fw-800 mb-0">School Fees</h5>
+                                    <i class="fas fa-graduation-cap fs-4 opacity-50"></i>
+                                </div>
+                                <div class="h3 fw-800 mb-1">TSH 1,500,000</div>
+                                <div class="small opacity-75">Full Academic Year</div>
                             </div>
-                            <div class="card-body p-4">
+                            <div class="card-body-modern">
                                 <div class="mb-4">
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted small">Amount Paid</span>
-                                        <span class="fw-bold">TSH <?php echo number_format($user->fees_paid); ?></span>
+                                        <span class="small fw-700 text-muted">AMOUNT PAID</span>
+                                        <span class="small fw-800 text-primary"><?php echo number_format(($user->fees_paid/1500000)*100, 1); ?>%</span>
                                     </div>
-                                    <div class="progress mb-2">
-                                        <div class="progress-bar bg-primary" style="width: <?php echo ($user->fees_paid/1500000)*100; ?>%"></div>
+                                    <div class="progress rounded-pill mb-3" style="height: 10px;">
+                                        <div class="progress-bar rounded-pill" style="width: <?php echo ($user->fees_paid/1500000)*100; ?>%; background: var(--gradient-primary);"></div>
                                     </div>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="small text-muted">Remaining Balance:</span>
-                                        <span class="small fw-bold text-danger">TSH <?php echo number_format(max(0, 1500000 - $user->fees_paid)); ?></span>
+                                    <div class="d-flex justify-content-between h6 mb-0">
+                                        <span class="text-muted">Paid: <?php echo number_format($user->fees_paid); ?>/=</span>
+                                        <span class="text-danger fw-700">Due: <?php echo number_format(1500000 - $user->fees_paid); ?>/=</span>
                                     </div>
                                 </div>
 
-                                <?php if(1500000 - $user->fees_paid > 0): ?>
-                                    <label class="small text-muted fw-bold">GePG Control Number:</label>
+                                <?php if($user->fees_paid < 1500000): ?>
+                                    <label class="form-label-modern mb-1">Control Number</label>
                                     <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->fee_control_no; ?>')">
                                         <code><?php echo $user->fee_control_no; ?></code>
                                     </div>
-
-                                    <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
+                                    <button class="btn btn-modern btn-modern-primary w-100 justify-content-center mt-2" data-bs-toggle="modal" data-bs-target="#payModal" 
                                             data-type="Fees" data-ctrl="<?php echo $user->fee_control_no; ?>" 
                                             data-balance="<?php echo 1500000 - $user->fees_paid; ?>">
-                                        <i class="fas fa-money-check-alt me-2"></i> Pay Remaining Balance
+                                        <i class="fas fa-money-check-alt"></i> Pay Balance
                                     </button>
                                 <?php else: ?>
-                                    <div class="text-center py-3">
-                                        <div class="badge bg-success-subtle text-success p-3 rounded-pill w-100">
-                                            <i class="fas fa-check-circle me-2"></i> FEE FULLY PAID
-                                        </div>
+                                    <div class="text-center py-4 bg-success bg-opacity-10 rounded-4">
+                                        <i class="fas fa-check-circle text-success fs-1 mb-2"></i>
+                                        <div class="fw-800 text-success">FULLY PAID</div>
                                     </div>
                                 <?php endif; ?>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Accommodation Card -->
-                    <div class="col-md-4">
-                        <div class="payment-card">
-                            <div class="card-header-custom" style="background: linear-gradient(135deg, #06d6a0 0%, #05c08e 100%);">
-                                <h5 class="mb-0 fw-bold"><i class="fas fa-bed me-2"></i>Accommodation</h5>
-                                <small class="opacity-75">Full Amount: TSH 178,500</small>
+                    <!-- Accommodation -->
+                    <div class="col-lg-4">
+                        <div class="card-modern h-100">
+                            <div class="p-4" style="background: var(--gradient-success); color: white;">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="fw-800 mb-0">Accommodation</h5>
+                                    <i class="fas fa-bed fs-4 opacity-50"></i>
+                                </div>
+                                <div class="h3 fw-800 mb-1">TSH 178,500</div>
+                                <div class="small opacity-75">Per Semester</div>
                             </div>
-                            <div class="card-body p-4">
+                            <div class="card-body-modern">
                                 <div class="mb-4">
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted small">Amount Paid</span>
-                                        <span class="fw-bold">TSH <?php echo number_format($user->accommodation_paid); ?></span>
+                                        <span class="small fw-700 text-muted">AMOUNT PAID</span>
+                                        <span class="small fw-800 text-success"><?php echo number_format(($user->accommodation_paid/178500)*100, 1); ?>%</span>
                                     </div>
-                                    <div class="progress mb-2">
-                                        <div class="progress-bar bg-success" style="width: <?php echo ($user->accommodation_paid/178500)*100; ?>%"></div>
+                                    <div class="progress rounded-pill mb-3" style="height: 10px;">
+                                        <div class="progress-bar rounded-pill" style="width: <?php echo ($user->accommodation_paid/178500)*100; ?>%; background: var(--gradient-success);"></div>
                                     </div>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="small text-muted">Remaining Balance:</span>
-                                        <span class="small fw-bold text-danger">TSH <?php echo number_format(max(0, 178500 - $user->accommodation_paid)); ?></span>
+                                    <div class="d-flex justify-content-between h6 mb-0">
+                                        <span class="text-muted">Paid: <?php echo number_format($user->accommodation_paid); ?>/=</span>
+                                        <span class="text-danger fw-700">Due: <?php echo number_format(178500 - $user->accommodation_paid); ?>/=</span>
                                     </div>
                                 </div>
 
-                                <?php if(178500 - $user->accommodation_paid > 0): ?>
-                                    <label class="small text-muted fw-bold">GePG Control Number:</label>
+                                <?php if($user->accommodation_paid < 178500): ?>
+                                    <label class="form-label-modern mb-1">Control Number</label>
                                     <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->acc_control_no; ?>')">
                                         <code><?php echo $user->acc_control_no; ?></code>
                                     </div>
-
-                                    <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
+                                    <button class="btn btn-modern btn-modern-primary w-100 justify-content-center mt-2" style="background: var(--gradient-success);" 
+                                            data-bs-toggle="modal" data-bs-target="#payModal" 
                                             data-type="Accommodation" data-ctrl="<?php echo $user->acc_control_no; ?>" 
                                             data-balance="<?php echo 178500 - $user->accommodation_paid; ?>">
-                                        <i class="fas fa-money-check-alt me-2"></i> Pay Remaining Balance
+                                        <i class="fas fa-money-check-alt"></i> Pay Balance
                                     </button>
                                 <?php else: ?>
-                                    <div class="text-center py-3">
-                                        <div class="badge bg-success-subtle text-success p-3 rounded-pill w-100">
-                                            <i class="fas fa-check-circle me-2"></i> FULLY PAID
-                                        </div>
+                                    <div class="text-center py-4 bg-success bg-opacity-10 rounded-4">
+                                        <i class="fas fa-check-circle text-success fs-1 mb-2"></i>
+                                        <div class="fw-800 text-success">FULLY PAID</div>
                                     </div>
                                 <?php endif; ?>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Registration Fee Card -->
-                    <div class="col-md-4">
-                        <div class="payment-card">
-                            <div class="card-header-custom" style="background: linear-gradient(135deg, #7209b7 0%, #560bad 100%);">
-                                <h5 class="mb-0 fw-bold"><i class="fas fa-id-card me-2"></i>Registration Fee <span class="badge bg-light text-dark small ms-2" style="font-size:0.6rem;">(Optional)</span></h5>
-                                <small class="opacity-75">Full Amount: TSH 50,000</small>
+                    <!-- Registration -->
+                    <div class="col-lg-4">
+                        <div class="card-modern h-100">
+                             <div class="p-4" style="background: var(--gradient-purple); color: white;">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="fw-800 mb-0">Registration</h5>
+                                    <i class="fas fa-id-card fs-4 opacity-50"></i>
+                                </div>
+                                <div class="h3 fw-800 mb-1">TSH 50,000</div>
+                                <div class="small opacity-75">One-time Fee</div>
                             </div>
-                            <div class="card-body p-4">
+                            <div class="card-body-modern">
                                 <div class="mb-4">
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted small">Amount Paid</span>
-                                        <span class="fw-bold">TSH <?php echo number_format($user->registration_paid); ?></span>
+                                        <span class="small fw-700 text-muted">AMOUNT PAID</span>
+                                        <span class="small fw-800" style="color:#7209b7;"><?php echo number_format(($user->registration_paid/50000)*100, 1); ?>%</span>
                                     </div>
-                                    <div class="progress mb-2">
-                                        <div class="progress-bar" style="width: <?php echo ($user->registration_paid/50000)*100; ?>%; background-color:#7209b7;"></div>
+                                    <div class="progress rounded-pill mb-3" style="height: 10px;">
+                                        <div class="progress-bar rounded-pill" style="width: <?php echo ($user->registration_paid/50000)*100; ?>%; background: var(--gradient-purple);"></div>
                                     </div>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="small text-muted">Remaining Balance:</span>
-                                        <span class="small fw-bold text-danger">TSH <?php echo number_format(max(0, 50000 - $user->registration_paid)); ?></span>
+                                    <div class="d-flex justify-content-between h6 mb-0">
+                                        <span class="text-muted">Paid: <?php echo number_format($user->registration_paid); ?>/=</span>
+                                        <span class="text-danger fw-700">Due: <?php echo number_format(50000 - $user->registration_paid); ?>/=</span>
                                     </div>
                                 </div>
 
-                                <?php if(50000 - $user->registration_paid > 0): ?>
-                                    <label class="small text-muted fw-bold">GePG Control Number:</label>
+                                <?php if($user->registration_paid < 50000): ?>
+                                    <label class="form-label-modern mb-1">Control Number</label>
                                     <div class="ctrl-box" onclick="copyToClipboard('<?php echo $user->reg_control_no; ?>')">
                                         <code><?php echo $user->reg_control_no; ?></code>
                                     </div>
-
-                                    <button class="btn-simulate" data-bs-toggle="modal" data-bs-target="#payModal" 
+                                    <button class="btn btn-modern btn-modern-primary w-100 justify-content-center mt-2" style="background: var(--gradient-purple);"
+                                            data-bs-toggle="modal" data-bs-target="#payModal" 
                                             data-type="Registration" data-ctrl="<?php echo $user->reg_control_no; ?>" 
                                             data-balance="<?php echo 50000 - $user->registration_paid; ?>">
-                                        <i class="fas fa-money-check-alt me-2"></i> Pay Remaining Balance
+                                        <i class="fas fa-money-check-alt"></i> Pay Balance
                                     </button>
                                 <?php else: ?>
-                                    <div class="text-center py-3">
-                                        <div class="badge bg-success-subtle text-success p-3 rounded-pill w-100">
-                                            <i class="fas fa-check-circle me-2"></i> FULLY PAID
-                                        </div>
+                                    <div class="text-center py-4 bg-success bg-opacity-10 rounded-4">
+                                        <i class="fas fa-check-circle text-success fs-1 mb-2"></i>
+                                        <div class="fw-800 text-success">FULLY PAID</div>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -401,44 +313,43 @@ if (empty($user->fee_control_no)) {
                     </div>
                 </div>
 
-                <!-- Recent Transactions -->
-                <div class="card border-0 shadow-sm rounded-4 mt-5">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold mb-4"><i class="fas fa-history me-2"></i>Recent Transactions (Simulation)</h5>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Transaction ID</th>
-                                        <th>Type</th>
-                                        <th>Control No</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    $logs = $mysqli->query("SELECT * FROM payment_logs WHERE regNo = '$user->regNo' ORDER BY created_at DESC LIMIT 5");
-                                    if($logs->num_rows > 0):
-                                        while($log = $logs->fetch_object()):
-                                    ?>
-                                    <tr>
-                                        <td class="small"><?php echo date('d M Y, H:i', strtotime($log->created_at)); ?></td>
-                                        <td class="fw-bold"><?php echo $log->transaction_id; ?></td>
-                                        <td><span class="badge bg-light text-dark border"><?php echo $log->payment_type; ?></span></td>
-                                        <td class="text-primary fw-bold"><?php echo $log->control_no; ?></td>
-                                        <td class="fw-bold">TSH <?php echo number_format($log->amount); ?></td>
-                                        <td><span class="badge bg-success-subtle text-success px-3">SUCCESS</span></td>
-                                    </tr>
-                                    <?php endwhile; else: ?>
-                                    <tr>
-                                        <td colspan="6" class="text-center py-4 text-muted">No recent transactions found.</td>
-                                    </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- Transaction Log -->
+                <div class="card-modern">
+                    <div class="card-header-modern d-flex justify-content-between align-items-center">
+                        <h5 class="fw-800 mb-0">Recent Transactions</h5>
+                        <button class="btn btn-sm btn-light rounded-pill px-3">View All</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Date & Time</th>
+                                    <th>Transaction ID</th>
+                                    <th>Service Type</th>
+                                    <th>Control No</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $logs = $mysqli->query("SELECT * FROM payment_logs WHERE regNo = '$user->regNo' ORDER BY created_at DESC LIMIT 5");
+                                if($logs->num_rows > 0):
+                                    while($log = $logs->fetch_object()):
+                                ?>
+                                <tr>
+                                    <td class="ps-4 small text-muted"><?php echo date('d M Y, h:i A', strtotime($log->created_at)); ?></td>
+                                    <td class="fw-700 text-dark"><?php echo $log->transaction_id; ?></td>
+                                    <td><span class="badge-modern" style="background: #f1f5f9; color: var(--gray-dark);"><?php echo $log->payment_type; ?></span></td>
+                                    <td class="text-primary fw-800"><?php echo $log->control_no; ?></td>
+                                    <td class="fw-800 text-dark"><?php echo number_format($log->amount); ?>/=</td>
+                                    <td><span class="badge-modern badge-modern-success"><i class="fas fa-check me-1"></i> Success</span></td>
+                                </tr>
+                                <?php endwhile; else: ?>
+                                <tr><td colspan="6" class="text-center py-5 text-muted">No transactions recorded yet.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -448,39 +359,40 @@ if (empty($user->fee_control_no)) {
     <!-- Payment Simulation Modal -->
     <div class="modal fade" id="payModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content border-0 shadow-lg rounded-5 overflow-hidden">
                 <div class="modal-body p-5 text-center">
-                    <img src="https://bot.co.tz/GePG/images/gepg_logo.png" alt="GePG" class="gepg_logo mb-3" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/GePG_Logo.png/220px-GePG_Logo.png'; this.style.width='150px'">
-                    <h4 class="fw-bold">GePG Payment Simulation</h4>
-                    <p class="text-muted">You are paying for <strong id="modal-type"></strong></p>
+                    <div class="mb-4">
+                        <img src="https://bot.co.tz/GePG/images/gepg_logo.png" alt="GePG" style="height: 60px;" onerror="this.src='https://via.placeholder.com/150x60?text=GePG+Portal'">
+                    </div>
+                    <h4 class="fw-800 mb-1">GePG Payment Simulation</h4>
+                    <p class="text-muted mb-4">You are about to simulate a payment for <span id="modal-type" class="fw-700 text-primary"></span></p>
                     
-                    <div class="ctrl-display mb-3">
-                        <small class="text-muted d-block uppercase fw-bold">Control Number</small>
-                        <span class="h4 fw-bold text-primary" id="modal-ctrl"></span>
+                    <div class="bg-light p-4 rounded-4 mb-4">
+                        <div class="small fw-700 text-muted text-uppercase mb-1">Control Number</div>
+                        <div class="h3 fw-800 text-dark" id="modal-ctrl"></div>
                     </div>
 
                     <form action="" method="post">
                         <input type="hidden" name="payment_type" id="form-type">
                         <input type="hidden" name="control_no" id="form-ctrl">
                         
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Enter Amount to Pay (Tsh)</label>
-                            <input type="number" name="amount" id="form-amount" class="form-control form-control-lg text-center fw-bold" required>
-                            <div class="form-text mt-2">Balance: <span id="modal-balance"></span></div>
+                        <div class="mb-4 text-start">
+                            <label class="form-label-modern">Enter Amount (TSH)</label>
+                            <input type="number" name="amount" id="form-amount" class="form-control-modern w-100 fs-4 fw-800 text-center" required>
+                            <div class="form-text text-center mt-2">Remaining balance: <span id="modal-balance" class="fw-700"></span></div>
                         </div>
 
-                        <button type="submit" name="simulate_payment" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold shadow">
-                            SIMULATE PAYMENT SUCCESS
+                        <button type="submit" name="simulate_payment" class="btn-modern btn-modern-primary w-100 py-3 justify-content-center shadow-lg">
+                            <i class="fas fa-bolt me-2"></i> CONFIRM PAYMENT
                         </button>
                     </form>
                     
-                    <button type="button" class="btn btn-link link-secondary mt-3 text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-link link-secondary mt-3 text-decoration-none fw-700" data-bs-dismiss="modal">Cancel & Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -499,7 +411,7 @@ if (empty($user->fee_control_no)) {
                 $('#modal-ctrl').text(ctrl);
                 $('#form-ctrl').val(ctrl);
                 $('#form-amount').val(balance > 0 ? balance : 0);
-                $('#modal-balance').text('TSH ' + parseInt(balance).toLocaleString());
+                $('#modal-balance').text(parseInt(balance).toLocaleString() + '/=');
             });
         });
 
@@ -507,10 +419,12 @@ if (empty($user->fee_control_no)) {
             navigator.clipboard.writeText(text).then(() => {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Control Number Copied',
-                    text: text,
-                    timer: 1500,
-                    showConfirmButton: false
+                    title: 'Copied!',
+                    text: 'Control Number: ' + text,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
                 });
             });
         }

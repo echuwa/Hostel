@@ -246,7 +246,5 @@ body {
         width: var(--sidebar-w);
     }
 
-    .content-wrapper {
-        margin-left: 0;
-    }
+    /* Removed margin-left: 0 override as it conflicts with student-modern.css */
 }

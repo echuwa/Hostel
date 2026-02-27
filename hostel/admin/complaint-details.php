@@ -169,6 +169,24 @@ $cid = intval($_GET['cid']);
                 
                 if($row=$res->fetch_object()): 
                     $cstatus = $row->complaintStatus;
+                    
+                    // Auto-update status to 'In Process' if it's currently New when admin opens it
+                    if(empty($cstatus) || strtolower($cstatus) == 'new') {
+                        $new_status = 'In Process';
+                        $update_stmt = $mysqli->prepare("UPDATE complaints SET complaintStatus=? WHERE id=?");
+                        $update_stmt->bind_param('si', $new_status, $cid);
+                        $update_stmt->execute();
+                        $update_stmt->close();
+                        
+                        // Add to history
+                        $hist_remark = "Status automatically updated to In Process (Admin viewed)";
+                        $hist_stmt = $mysqli->prepare("INSERT INTO complainthistory(complaintid, compalintStatus, complaintRemark) VALUES (?, ?, ?)");
+                        $hist_stmt->bind_param('iss', $cid, $new_status, $hist_remark);
+                        $hist_stmt->execute();
+                        $hist_stmt->close();
+                        
+                        $cstatus = $new_status; // Update local variable for display
+                    }
                 ?>
                 <!-- Complaint Detail Card -->
                 <div class="detail-card">

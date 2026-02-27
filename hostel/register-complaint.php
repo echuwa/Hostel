@@ -72,93 +72,43 @@ if(isset($_POST['submit'])) {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complaint Registration | Hostel Management</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="css/student-modern.css">
     
     <style>
-        .complaint-form-container {
-            max-width: 800px;
+        .complaint-card-container {
+            max-width: 900px;
             margin: 0 auto;
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
-        .form-header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #3a7bd5;
-        }
-        .form-icon {
+        .file-upload-modern {
             position: relative;
-        }
-        .form-icon i {
-            position: absolute;
-            left: 15px;
-            top: 12px;
-            color: #6c757d;
-        }
-        .form-icon input, 
-        .form-icon select, 
-        .form-icon textarea {
-            padding-left: 40px;
-        }
-        .file-upload {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-        .file-upload-btn {
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 30px;
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 20px;
+            padding: 40px;
             text-align: center;
-            width: 100%;
-            cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
         }
-        .file-upload-btn:hover {
-            border-color: #3a7bd5;
-            background-color: #f8f9fa;
+        .file-upload-modern:hover, .file-upload-modern.active {
+            border-color: var(--primary);
+            background: #f0f7ff;
+        }
+        .file-upload-modern i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            opacity: 0.7;
         }
         .file-upload-input {
             position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-        .file-name {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #6c757d;
-        }
-        .btn-submit {
-            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
-            border: none;
-            padding: 10px 25px;
-            font-weight: 600;
-        }
-        .btn-submit:hover {
-            background: linear-gradient(135deg, #2c65b4, #00b7eb);
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer;
         }
     </style>
 </head>
@@ -170,170 +120,149 @@ if(isset($_POST['submit'])) {
         
         <div class="content-wrapper">
             <div class="container-fluid py-4">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="complaint-form-container">
-                            <div class="form-header">
-                                <h2><i class="fas fa-exclamation-circle me-2"></i> Register a Complaint</h2>
-                                <p class="text-muted">Please provide details about your issue</p>
-                            </div>
-                            
-                            <!-- Display Success/Error Messages -->
-                            <?php if(isset($_SESSION['error'])): ?>
-                                <div class="alert alert-danger alert-dismissible fade show">
-                                    <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            <?php endif; ?>
+                
+                <div class="complaint-card-container">
+                    <div class="d-flex align-items-center mb-5 animate__animated animate__fadeInLeft">
+                        <div class="stat-icon-box bg-primary text-white rounded-circle me-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div>
+                            <h2 class="section-title">Report an Issue</h2>
+                            <p class="section-subtitle">Something not right? Tell us about it.</p>
+                        </div>
+                    </div>
 
-                            <?php if (!$has_room): ?>
-                            <!-- NOT ELIGIBLE: No room assigned -->
-                            <div class="text-center py-5">
-                                <div style="width:90px;height:90px;background:linear-gradient(135deg,#fed7d7,#fc8181);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2.5rem;color:#c53030;">
-                                    <i class="fas fa-bed"></i>
+                    <?php if(isset($_SESSION['error'])): ?>
+                        <div class="alert alert-danger border-0 shadow-sm mb-4 animate__animated animate__shakeX" style="border-radius: 16px;">
+                            <i class="fas fa-exclamation-circle me-2"></i> <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!$has_room): ?>
+                        <div class="card-modern p-5 text-center shadow-lg animate__animated animate__zoomIn" style="border-radius: 30px;">
+                            <div class="mb-4">
+                                <div class="bg-warning-light d-inline-flex p-4 rounded-circle">
+                                    <i class="fas fa-lock text-warning fa-3x"></i>
                                 </div>
-                                <h4 class="fw-bold text-dark">Huna Chumba Kilichopewa</h4>
-                                <p class="text-muted mb-4">Unahitaji kwanza kupewa chumba na admin ili uweze kutuma malalamiko.<br>Omba chumba hapa chini, na baada ya admin kukuidhinisha utaweza kutuma malalamiko.</p>
-                                <a href="book-hostel.php" class="btn btn-primary me-2">
-                                    <i class="fas fa-bed me-2"></i> Omba Chumba
+                            </div>
+                            <h3 class="fw-800 text-dark mb-3">Room Assignment Required</h3>
+                            <p class="text-muted mb-4 fs-5">You are not eligible to file a complaint yet. Please ensure you have requested a room and the administration has approved your allocation.</p>
+                            <div class="d-flex gap-3 justify-content-center">
+                                <a href="book-hostel.php" class="btn-modern btn-modern-primary px-5 py-3">
+                                    <i class="fas fa-bed me-2"></i> Book a Room
                                 </a>
-                                <a href="dashboard.php" class="btn btn-outline-secondary">
-                                    <i class="fas fa-home me-2"></i> Rudi Dashboard
+                                <a href="dashboard.php" class="btn-modern btn-modern-light px-5 py-3">
+                                    <i class="fas fa-home me-2"></i> Dashboard
                                 </a>
                             </div>
-
-                            <?php else: ?>
-                            <!-- ELIGIBLE: Has room -->
-                            <form method="post" action="" name="complaint" class="needs-validation" novalidate enctype="multipart/form-data">
-                                <div class="row g-3">
-                                    <!-- Complaint Type -->
-                                    <div class="col-md-12">
-                                        <label for="ctype" class="form-label">Complaint Type</label>
-                                        <div class="form-icon">
-                                            <i class="fas fa-tag"></i>
-                                            <select class="form-select" id="ctype" name="ctype" required>
-                                                <option value="" selected disabled>Select Complaint Type</option>
-                                                <option value="Food Related">Food Related</option>
-                                                <option value="Room Related">Room Related</option>
-                                                <option value="Fee Related">Fee Related</option>
-                                                <option value="Electrical">Electrical</option>
-                                                <option value="Plumbing">Plumbing</option>
-                                                <option value="Discipline">Discipline</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                            <div class="invalid-feedback">
-                                                Please select a complaint type.
+                        </div>
+                    <?php else: ?>
+                        <div class="card-modern p-4 p-md-5 animate__animated animate__fadeInUp" style="border-radius: 30px;">
+                            <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                                <div class="row g-4">
+                                    <!-- Category -->
+                                    <div class="col-12">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern">ISSUE CATEGORY</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-0 ps-0"><i class="fas fa-list-ul text-primary"></i></span>
+                                                <select name="ctype" class="form-select border-0 bg-transparent fs-5 fw-600" required>
+                                                    <option value="" selected disabled>What type of problem are you facing?</option>
+                                                    <option value="Food Related">Food & Dining Services</option>
+                                                    <option value="Room Related">Room Maintenance & Comfort</option>
+                                                    <option value="Fee Related">Financial & Payment Issues</option>
+                                                    <option value="Electrical">Electrical Repairs</option>
+                                                    <option value="Plumbing">Water & Plumbing Problems</option>
+                                                    <option value="Security">Security & Safety Concerns</option>
+                                                    <option value="Discipline">Conduct & Discipline Issues</option>
+                                                    <option value="Other">Something Else</option>
+                                                </select>
                                             </div>
+                                            <div class="form-underline"></div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Complaint Details -->
-                                    <div class="col-md-12">
-                                        <label for="cdetails" class="form-label">Complaint Details</label>
-                                        <div class="form-icon">
-                                            <i class="fas fa-align-left"></i>
-                                            <textarea class="form-control" id="cdetails" name="cdetails" rows="5" required></textarea>
-                                            <div class="invalid-feedback">
-                                                Please provide details about your complaint.
-                                            </div>
+
+                                    <!-- Description -->
+                                    <div class="col-12">
+                                        <div class="form-group-modern">
+                                            <label class="form-label-modern">DESCRIBE WHAT HAPPENED</label>
+                                            <textarea name="cdetails" rows="6" class="form-control border-0 bg-transparent fs-5 fw-600 p-0" placeholder="Please provide specific details so we can help you faster..." required></textarea>
+                                            <div class="form-underline"></div>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- File Upload -->
-                                    <div class="col-md-12">
-                                        <label class="form-label">Attachment (Optional)</label>
-                                        <div class="file-upload">
-                                            <div class="file-upload-btn">
-                                                <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: #3a7bd5;"></i>
-                                                <p>Drag & drop files here or click to browse</p>
-                                                <p class="small text-muted">Supported formats: JPG, PNG, GIF, PDF</p>
-                                                <input type="file" class="file-upload-input" id="image" name="image" accept=".jpg,.jpeg,.png,.gif,.pdf">
-                                            </div>
-                                            <div id="file-name" class="file-name"></div>
+                                    <div class="col-12">
+                                        <label class="form-label-modern mb-3">SUPPORTING EVIDENCE (OPTIONAL)</label>
+                                        <div class="file-upload-modern" id="dropZone">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            <h5 class="fw-800 text-dark mb-1">Click to Upload or Drag & Drop</h5>
+                                            <p class="text-muted small mb-0">PDF, PNG, JPG, or GIF (Max 5MB)</p>
+                                            <input type="file" name="image" class="file-upload-input" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.pdf">
+                                            <div id="fileInfo" class="mt-3 fw-700 text-primary" style="display: none;"></div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Submit Button -->
-                                    <div class="col-12 mt-4 text-center">
-                                        <button type="submit" name="submit" class="btn btn-submit text-white">
-                                            <i class="fas fa-paper-plane me-1"></i> Submit Complaint
+
+                                    <!-- Submit -->
+                                    <div class="col-12 mt-5 text-center">
+                                        <button type="submit" name="submit" class="btn-modern btn-modern-primary d-inline-flex px-5 py-4 shadow-lg w-100 justify-content-center fs-5">
+                                            <i class="fas fa-paper-plane me-3 mt-1"></i> SEND REPORT
                                         </button>
+                                        <p class="text-muted mt-4 small fw-600">Your ticket will be assigned a priority based on the category.</p>
                                     </div>
                                 </div>
                             </form>
-                            <?php endif; ?>
                         </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery -->
-    <script src="js/jquery.min.js"></script>
-    
-    <!-- Custom Scripts -->
     <script>
     <?php if ($has_room): ?>
-    // Form validation
-    (function() {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function(form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-    
     // File upload display
-    var imgInput = document.getElementById('image');
-    if (imgInput) {
-        imgInput.addEventListener('change', function(e) {
-            var fileName = '';
-            if(this.files && this.files.length > 1) {
-                fileName = (this.files.length + ' files selected');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const dropZone = document.getElementById('dropZone');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            if(this.files && this.files.length > 0) {
+                fileInfo.style.display = 'block';
+                fileInfo.innerHTML = `<i class="fas fa-file-alt me-2"></i> Selected: ${this.files[0].name}`;
+                dropZone.classList.add('active');
             } else {
-                fileName = this.files[0] ? this.files[0].name : '';
+                fileInfo.style.display = 'none';
+                dropZone.classList.remove('active');
             }
-            var fnEl = document.getElementById('file-name');
-            if (fnEl) fnEl.textContent = fileName;
         });
     }
     
-    // Drag and drop functionality
-    var fileUploadBtn = document.querySelector('.file-upload-btn');
-    if (fileUploadBtn) {
-        fileUploadBtn.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUploadBtn.style.borderColor = '#3a7bd5';
-            fileUploadBtn.style.backgroundColor = '#f8f9fa';
+    // Drag and drop
+    if (dropZone) {
+        ['dragover', 'dragenter'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('active');
+            }, false);
         });
-        
-        fileUploadBtn.addEventListener('dragleave', () => {
-            fileUploadBtn.style.borderColor = '#ddd';
-            fileUploadBtn.style.backgroundColor = 'transparent';
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('active');
+            }, false);
         });
-        
-        fileUploadBtn.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileUploadBtn.style.borderColor = '#ddd';
-            fileUploadBtn.style.backgroundColor = 'transparent';
-            
-            const fileInput = document.querySelector('.file-upload-input');
-            fileInput.files = e.dataTransfer.files;
-            
-            // Trigger change event
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
             const event = new Event('change');
             fileInput.dispatchEvent(event);
-        });
+        }, false);
     }
     <?php endif; ?>
     </script>
