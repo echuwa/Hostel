@@ -181,7 +181,7 @@ foreach($rooms_by_block as $b => $s) {
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Modern Styling -->
-	<link rel="stylesheet" href="css/modern.css">
+	<link rel="stylesheet" href="css/admin-modern.css">
     
     <style>
         .reg-card { background: #fff; border-radius: 24px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.02); overflow: hidden; }

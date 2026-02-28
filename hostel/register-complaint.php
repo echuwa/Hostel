@@ -167,16 +167,15 @@ if(isset($_POST['submit'])) {
                                             <div class="input-group">
                                                 <span class="input-group-text bg-white border-0 ps-0"><i class="fas fa-list-ul text-primary"></i></span>
                                                 <select name="ctype" class="form-select border-0 bg-transparent fs-5 fw-600" required>
-                                                    <option value="" selected disabled>What type of problem are you facing?</option>
-                                                    <option value="Food Related">Food & Dining Services</option>
-                                                    <option value="Room Related">Room Maintenance & Comfort</option>
-                                                    <option value="Fee Related">Financial & Payment Issues</option>
-                                                    <option value="Electrical">Electrical Repairs</option>
-                                                    <option value="Plumbing">Water & Plumbing Problems</option>
-                                                    <option value="Security">Security & Safety Concerns</option>
-                                                    <option value="Discipline">Conduct & Discipline Issues</option>
-                                                    <option value="Other">Something Else</option>
-                                                </select>
+    <option value="" selected disabled>What type of problem are you facing?</option>
+    <option value="Water">Water Supply & Plumbing Issues</option>
+    <option value="Electrical">Electrical & Power Problems</option>
+    <option value="RoomAssets">Room Furniture & Asset Damage</option>
+    <option value="Sanitation">Toilet & Sanitation Problems</option>
+    <option value="Security">Security & Safety Concerns</option>
+    <option value="Infrastructure">Block Infrastructure & Structural Issues</option>
+    <option value="Other">Other / Not Listed</option>
+</select>
                                             </div>
                                             <div class="form-underline"></div>
                                         </div>

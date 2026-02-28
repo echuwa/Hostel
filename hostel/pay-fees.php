@@ -6,13 +6,62 @@ check_login();
 
 $user_id = $_SESSION['user_id'] ?? $_SESSION['id'];
 
+// Define Constants for Fee Amounts
+define('FEES_TOTAL', 1500000);
+define('FEES_HALF', 750000);
+define('ACC_TOTAL', 178500);
+define('REG_TOTAL', 50000);
+
 // Simulation Logic: When a student "pays"
 if(isset($_POST['simulate_payment'])) {
     $type = $_POST['payment_type'] ?? '';
     $amount = floatval($_POST['amount'] ?? 0);
     $ctrl = $_POST['control_no'] ?? '';
     
-    if ($amount > 0 && !empty($type)) {
+    // Fetch current user data for amount validation
+    $q_data = $mysqli->prepare("SELECT fees_paid, accommodation_paid, registration_paid, regNo FROM userregistration WHERE id = ?");
+    $q_data->bind_param('i', $user_id);
+    $q_data->execute();
+    $curr = $q_data->get_result()->fetch_object();
+    $q_data->close();
+
+    $error = null;
+    $valid_amounts = [];
+
+    // ENFORCE STRICT PAYMENT RULES
+    // Only fetch valid limits for validation logic.
+    if ($type === 'Fees') {
+        $remaining = FEES_TOTAL - $curr->fees_paid;
+        if ($remaining <= 0) {
+            $error = "Fees are already fully paid.";
+        } elseif ($amount > $remaining) {
+           $error = "Amount exceeds the remaining tuition fee balance.";
+        } elseif ($amount != FEES_HALF && $amount != FEES_TOTAL && $amount != $remaining) {
+            $error = "For School Fees, you must pay in chunks of exactly 50% (TSH 750,000) or complete your balance.";
+        }
+    } elseif ($type === 'Accommodation') {
+        $remaining = ACC_TOTAL - $curr->accommodation_paid;
+        if ($remaining <= 0) {
+            $error = "Accommodation is already fully paid.";
+        } elseif ($amount > $remaining) {
+            $error = "Amount exceeds the remaining accommodation balance.";
+        } elseif ($amount != $remaining && $amount != ACC_TOTAL) {
+            $error = "Accommodation must be paid in full (TSH " . number_format(ACC_TOTAL) . ").";
+        }
+    } elseif ($type === 'Registration') {
+        $remaining = REG_TOTAL - $curr->registration_paid;
+        if ($remaining <= 0) {
+            $error = "Registration is already fully paid.";
+        } elseif ($amount > $remaining) {
+            $error = "Amount exceeds the remaining registration balance.";
+        } elseif ($amount != $remaining && $amount != REG_TOTAL) {
+            $error = "Registration must be paid in full (TSH " . number_format(REG_TOTAL) . ").";
+        }
+    } else {
+        $error = "Invalid payment type.";
+    }
+
+    if (!$error && $amount > 0) {
         // Map types to columns
         $col_map = [
             'Fees' => 'fees_paid',
@@ -33,7 +82,7 @@ if(isset($_POST['simulate_payment'])) {
                 $stmt->close();
                 
                 // Fetch updated amounts to re-evaluate fee_status
-                $q = "SELECT regNo, fees_paid, accommodation_paid FROM userregistration WHERE id = ?";
+                $q = "SELECT regNo, fees_paid, accommodation_paid, registration_paid FROM userregistration WHERE id = ?";
                 $st = $mysqli->prepare($q);
                 $st->bind_param('i', $user_id);
                 $st->execute();
@@ -41,12 +90,12 @@ if(isset($_POST['simulate_payment'])) {
                 $regNo = $res->regNo;
                 $st->close();
                 
-                // 1 if met threshold (50% fees + 100% acc), else 0
-                $new_fee_status = ($res->fees_paid >= 750000 && $res->accommodation_paid >= 178500) ? 1 : 0;
+                // 1 if met threshold (at least 50% fees + 100% acc + 100% reg), else 0
+                $new_fee_status = ($res->fees_paid >= FEES_HALF && $res->accommodation_paid >= ACC_TOTAL && $res->registration_paid >= REG_TOTAL) ? 1 : 0;
                 
                 // Update payment_status text
                 $payment_status = "Partially Paid";
-                if ($res->fees_paid >= 1500000 && $res->accommodation_paid >= 178500) {
+                if ($res->fees_paid >= FEES_TOTAL && $res->accommodation_paid >= ACC_TOTAL && $res->registration_paid >= REG_TOTAL) {
                     $payment_status = "Fully Paid";
                 }
 
@@ -55,20 +104,22 @@ if(isset($_POST['simulate_payment'])) {
                 $upd->execute();
                 $upd->close();
                 
-                // Log the payment
-                $log = $mysqli->prepare("INSERT INTO payment_logs (regNo, control_no, amount, payment_type, transaction_id) VALUES (?, ?, ?, ?, ?)");
-                $trans_id = "SIM-" . strtoupper(substr(md5(time()), 0, 8));
+                // Log the payment with a verification hash for proof
+                $log = $mysqli->prepare("INSERT INTO payment_logs (regNo, control_no, amount, payment_type, transaction_id, status) VALUES (?, ?, ?, ?, ?, 'Verified')");
+                $trans_id = "TRANS-" . date('Ymd') . "-" . strtoupper(substr(md5($regNo . time() . $amount), 0, 8));
                 $log->bind_param('ssdss', $regNo, $ctrl, $amount, $type, $trans_id);
                 $log->execute();
                 $log->close();
                 
                 $mysqli->commit();
-                $_SESSION['success'] = "Payment of TSH " . number_format($amount) . " for $type was successful! Control Number: $ctrl";
+                $_SESSION['success'] = "Payment verified! Receipt for TSH " . number_format($amount) . " issued for $type. Transaction Ref: $trans_id";
             } catch (Exception $e) {
                 $mysqli->rollback();
-                $_SESSION['error'] = "Payment simulation failed: " . $e->getMessage();
+                $_SESSION['error'] = "Critical error processing payment: " . $e->getMessage();
             }
         }
+    } else {
+        $_SESSION['error'] = $error ?? "Invalid payment amount or transaction cancelled.";
     }
     header("Location: pay-fees.php");
     exit();
@@ -166,7 +217,14 @@ if (empty($user->fee_control_no)) {
                         </div>
                         <div>
                             <h5 class="fw-800 mb-1">Room Allocation Requirements</h5>
-                            <p class="mb-0 text-muted">A total of <strong>50% School Fees (750,000/=)</strong> and <strong>100% Accommodation (178,500/=)</strong> is required for room selection.</p>
+                            <p class="mb-0 text-muted">A total of <strong>50% Fees (750k)</strong>, <strong>100% Accommodation (178.5k)</strong>, and <strong>100% Registration (50k)</strong> is required for room selection.</p>
+                            <?php if ($user->fees_paid >= 750000 && $user->accommodation_paid >= 178500 && $user->registration_paid >= 50000): ?>
+                                <div class="mt-3">
+                                    <a href="book-hostel.php" class="btn btn-success rounded-pill px-4 fw-800 animate__animated animate__pulse animate__infinite">
+                                        <i class="fas fa-door-open me-2"></i> PROCEED TO BOOK ROOM
+                                    </a>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -316,16 +374,19 @@ if (empty($user->fee_control_no)) {
                 <!-- Transaction Log -->
                 <div class="card-modern">
                     <div class="card-header-modern d-flex justify-content-between align-items-center">
-                        <h5 class="fw-800 mb-0">Recent Transactions</h5>
-                        <button class="btn btn-sm btn-light rounded-pill px-3">View All</button>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-history text-primary"></i>
+                            <h5 class="fw-800 mb-0">Official Payment History</h5>
+                        </div>
+                        <span class="badge bg-primary-light text-primary rounded-pill px-3 py-2 fw-700">Recent 10</span>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light">
                                 <tr>
                                     <th class="ps-4">Date & Time</th>
-                                    <th>Transaction ID</th>
-                                    <th>Service Type</th>
+                                    <th>Verification Ref</th>
+                                    <th>Fee Type</th>
                                     <th>Control No</th>
                                     <th>Amount</th>
                                     <th>Status</th>
@@ -333,23 +394,41 @@ if (empty($user->fee_control_no)) {
                             </thead>
                             <tbody>
                                 <?php
-                                $logs = $mysqli->query("SELECT * FROM payment_logs WHERE regNo = '$user->regNo' ORDER BY created_at DESC LIMIT 5");
+                                $logs = $mysqli->query("SELECT * FROM payment_logs WHERE regNo = '$user->regNo' ORDER BY created_at DESC LIMIT 10");
                                 if($logs->num_rows > 0):
                                     while($log = $logs->fetch_object()):
+                                        $status_color = ($log->status == 'Verified' || $log->status == 'Success') ? 'success' : 'warning';
                                 ?>
                                 <tr>
-                                    <td class="ps-4 small text-muted"><?php echo date('d M Y, h:i A', strtotime($log->created_at)); ?></td>
-                                    <td class="fw-700 text-dark"><?php echo $log->transaction_id; ?></td>
-                                    <td><span class="badge-modern" style="background: #f1f5f9; color: var(--gray-dark);"><?php echo $log->payment_type; ?></span></td>
-                                    <td class="text-primary fw-800"><?php echo $log->control_no; ?></td>
-                                    <td class="fw-800 text-dark"><?php echo number_format($log->amount); ?>/=</td>
-                                    <td><span class="badge-modern badge-modern-success"><i class="fas fa-check me-1"></i> Success</span></td>
+                                    <td class="ps-4">
+                                        <div class="fw-700 text-dark"><?php echo date('d M Y', strtotime($log->created_at)); ?></div>
+                                        <div class="small text-muted"><?php echo date('h:i A', strtotime($log->created_at)); ?></div>
+                                    </td>
+                                    <td>
+                                        <code class="text-primary fw-800" style="font-size: 0.9rem;"><?php echo $log->transaction_id; ?></code>
+                                    </td>
+                                    <td>
+                                        <span class="badge-modern" style="background: rgba(67, 97, 238, 0.08); color: var(--primary);"><?php echo $log->payment_type; ?></span>
+                                    </td>
+                                    <td class="fw-700 text-muted small"><?php echo $log->control_no; ?></td>
+                                    <td class="fw-800 text-dark">TSH <?php echo number_format($log->amount); ?></td>
+                                    <td>
+                                        <span class="badge-modern badge-modern-<?php echo $status_color; ?>">
+                                            <i class="fas fa-check-circle me-1"></i> <?php echo $log->status ?? 'Verified'; ?>
+                                        </span>
+                                    </td>
                                 </tr>
                                 <?php endwhile; else: ?>
-                                <tr><td colspan="6" class="text-center py-5 text-muted">No transactions recorded yet.</td></tr>
+                                <tr><td colspan="6" class="text-center py-5">
+                                    <div class="opacity-50 mb-3"><i class="fas fa-receipt fa-3x"></i></div>
+                                    <p class="text-muted fw-600">No official payments recorded yet.</p>
+                                </td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="card-footer bg-light p-3 text-center">
+                        <small class="text-muted fw-600"><i class="fas fa-info-circle me-1"></i> These transaction logs serve as digital receipts for all GePG payments.</small>
                     </div>
                 </div>
             </div>
@@ -364,26 +443,58 @@ if (empty($user->fee_control_no)) {
                     <div class="mb-4">
                         <img src="https://bot.co.tz/GePG/images/gepg_logo.png" alt="GePG" style="height: 60px;" onerror="this.src='https://via.placeholder.com/150x60?text=GePG+Portal'">
                     </div>
-                    <h4 class="fw-800 mb-1">GePG Payment Simulation</h4>
-                    <p class="text-muted mb-4">You are about to simulate a payment for <span id="modal-type" class="fw-700 text-primary"></span></p>
+                    <h4 class="fw-800 mb-1">GePG Payment Portal</h4>
+                    <p class="text-muted mb-4">Simulate payment for <span id="modal-type" class="fw-700 text-primary"></span></p>
                     
                     <div class="bg-light p-4 rounded-4 mb-4">
                         <div class="small fw-700 text-muted text-uppercase mb-1">Control Number</div>
                         <div class="h3 fw-800 text-dark" id="modal-ctrl"></div>
                     </div>
 
-                    <form action="" method="post">
+                    <form action="" method="post" id="payForm">
                         <input type="hidden" name="payment_type" id="form-type">
                         <input type="hidden" name="control_no" id="form-ctrl">
+                        <input type="hidden" name="amount" id="form-amount-hidden">
                         
                         <div class="mb-4 text-start">
-                            <label class="form-label-modern">Enter Amount (TSH)</label>
-                            <input type="number" name="amount" id="form-amount" class="form-control-modern w-100 fs-4 fw-800 text-center" required>
-                            <div class="form-text text-center mt-2">Remaining balance: <span id="modal-balance" class="fw-700"></span></div>
+                            <label class="form-label-modern mb-2">Select Amount to Pay (TSH)</label>
+                            
+                            <!-- Amount Options Container -->
+                            <div id="fees-options" style="display:none;">
+                                <div class="form-check custom-radio-btn mb-2">
+                                    <input class="form-check-input amnt-trigger" type="radio" name="amnt-choice" id="amt50" value="750000">
+                                    <label class="form-check-label w-100 p-3 border rounded-3 fw-700" for="amt50">
+                                        50% - TSH 750,000
+                                    </label>
+                                </div>
+                                <div class="form-check custom-radio-btn mb-2">
+                                    <input class="form-check-input amnt-trigger" type="radio" name="amnt-choice" id="amt100" value="1500000">
+                                    <label class="form-check-label w-100 p-3 border rounded-3 fw-700" for="amt100">
+                                        100% - TSH 1,500,000
+                                    </label>
+                                </div>
+                                <div class="form-check custom-radio-btn mb-2">
+                                    <input class="form-check-input amnt-trigger" type="radio" name="amnt-choice" id="amtRem" value="750000">
+                                    <label class="form-check-label w-100 p-3 border rounded-3 fw-700" for="amtRem">
+                                        Remaining 50% - TSH 750,000
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="full-msg" class="mb-3" style="display:none;">
+                                <div class="p-3 border rounded-3 bg-light text-center">
+                                    <div class="small fw-700 text-muted mb-1">Required Amount</div>
+                                    <div class="h4 fw-800 text-dark mb-0" id="fixed-amt-display"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-text text-center mt-2 text-primary fw-600">
+                                <i class="fas fa-shield-alt me-1"></i> Official payment amounts only
+                            </div>
                         </div>
 
                         <button type="submit" name="simulate_payment" class="btn-modern btn-modern-primary w-100 py-3 justify-content-center shadow-lg">
-                            <i class="fas fa-bolt me-2"></i> CONFIRM PAYMENT
+                            <i class="fas fa-lock me-2"></i> CONFIRM SECURE PAYMENT
                         </button>
                     </form>
                     
@@ -405,13 +516,49 @@ if (empty($user->fee_control_no)) {
                 var type = button.getAttribute('data-type')
                 var ctrl = button.getAttribute('data-ctrl')
                 var balance = button.getAttribute('data-balance')
+                var paid = <?php echo json_encode([
+                    'Fees' => $user->fees_paid,
+                    'Accommodation' => $user->accommodation_paid,
+                    'Registration' => $user->registration_paid
+                ]); ?>;
 
                 $('#modal-type').text(type);
                 $('#form-type').val(type);
                 $('#modal-ctrl').text(ctrl);
                 $('#form-ctrl').val(ctrl);
-                $('#form-amount').val(balance > 0 ? balance : 0);
-                $('#modal-balance').text(parseInt(balance).toLocaleString() + '/=');
+
+                // Reset UI
+                $('#fees-options').hide();
+                $('#full-msg').hide();
+                $('#form-amount-hidden').val('');
+                $('.amnt-trigger').prop('checked', false);
+
+                if (type === 'Fees') {
+                    $('#fees-options').show();
+                    $('.amnt-trigger').prop('required', true);
+                    
+                    if (paid.Fees == 0) {
+                        $('#amt50').parent().show();
+                        $('#amt100').parent().show();
+                        $('#amtRem').parent().hide();
+                    } else if (paid.Fees >= 750000 && paid.Fees < 1500000) {
+                        $('#amt50').parent().hide();
+                        $('#amt100').parent().hide();
+                        $('#amtRem').parent().show();
+                    }
+                } else {
+                    $('#full-msg').show();
+                    $('.amnt-trigger').prop('required', false);
+                    $('#fixed-amt-display').text('TSH ' + parseInt(balance).toLocaleString());
+                    $('#form-amount-hidden').val(balance);
+                }
+            });
+
+            // Update hidden amount whenever radio changes
+            $('.amnt-trigger').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#form-amount-hidden').val($(this).val());
+                }
             });
         });
 

@@ -101,7 +101,7 @@ check_login();
 
                 <?php
                 $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
-                $ret = "SELECT r.* FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE u.id = ? ORDER BY r.id DESC LIMIT 1";
+                $ret = "SELECT r.*, u.fee_status FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE u.id = ? ORDER BY r.id DESC LIMIT 1";
                 $stmt = $mysqli->prepare($ret);
                 $stmt->bind_param('i', $aid);
                 $stmt->execute();
@@ -110,6 +110,10 @@ check_login();
                 if($res->num_rows > 0):
                     while($row = $res->fetch_object()):
                         $totalFees = $row->feespm * $row->duration;
+                        $fee_status = $row->fee_status;
+                        
+                        // Check if student is eligible to view their room (Must have paid fully)
+                        if ($fee_status == 1):
                 ?>
                 
                 <div class="row g-4" id="printContent">
@@ -120,21 +124,21 @@ check_login();
                                 <div class="row align-items-center">
                                     <div class="col-md-8">
                                         <div class="d-flex align-items-center">
-                                            <div class="bg-white bg-opacity-20 p-3 rounded-circle me-4">
+                                            <div class="p-3 rounded-circle me-4 text-white" style="background: rgba(255,255,255,0.2);">
                                                 <i class="fas fa-hotel fs-3"></i>
                                             </div>
                                             <div>
-                                                <h4 class="mb-1 fw-800">Room <?php echo $row->roomno; ?></h4>
-                                                <div class="small fw-700 opacity-75">
+                                                <h4 class="mb-1 fw-800 text-white">Room <?php echo $row->roomno; ?></h4>
+                                                <div class="small fw-700 opacity-75 text-white">
                                                     <i class="fas fa-calendar-check me-1"></i> Allocation Confirmed on <?php echo date('d M Y', strtotime($row->postingDate)); ?>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                        <div class="bg-white bg-opacity-20 d-inline-block p-3 rounded-4">
-                                            <div class="small fw-700 opacity-75 text-uppercase">Total Fees</div>
-                                            <div class="h4 mb-0 fw-800">TSH <?php echo number_format($totalFees); ?>/=</div>
+                                        <div class="d-inline-block p-3 rounded-4 text-white" style="background: rgba(255,255,255,0.2);">
+                                            <div class="small fw-700 opacity-75 text-uppercase text-white">Total Fees</div>
+                                            <div class="h4 mb-0 fw-800 text-white">TSH <?php echo number_format($totalFees); ?>/=</div>
                                         </div>
                                     </div>
                                 </div>
@@ -159,7 +163,7 @@ check_login();
                                         <div class="detail-value">
                                             <?php 
                                             if (empty($row->course) || $row->course == '0') {
-                                                echo '<span class="text-muted italic">Not Specified</span>';
+                                                echo '<span class="text-muted fst-italic fs-6">Not Provided</span>';
                                             } else {
                                                 echo htmlspecialchars($row->course); 
                                             }
@@ -208,15 +212,15 @@ check_login();
                                 <div class="row g-4 mb-4">
                                     <div class="col-md-4">
                                         <div class="detail-label">Student Contact</div>
-                                        <div class="detail-value"><?php echo $row->contactno; ?></div>
+                                        <div class="detail-value"><?php echo $row->contactno ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; ?></div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="detail-label">Guardian Name</div>
-                                        <div class="detail-value"><?php echo $row->guardianName; ?></div>
+                                        <div class="detail-value"><?php echo $row->guardianName ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; ?></div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="detail-label">Emergency Number</div>
-                                        <div class="detail-value text-danger fw-800"><?php echo $row->egycontactno; ?></div>
+                                        <div class="detail-value text-danger fw-800"><?php echo $row->egycontactno ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; ?></div>
                                     </div>
                                 </div>
 
@@ -224,13 +228,17 @@ check_login();
                                     <div class="row g-4">
                                         <div class="col-md-6">
                                             <div class="detail-label">Permanent Address</div>
-                                            <div class="fw-700 text-dark"><?php echo $row->pmntAddress ?: 'Not Provided'; ?></div>
+                                            <div class="fw-700 text-dark"><?php echo $row->pmntAddress ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; ?></div>
+                                            <?php if($row->pmntState || $row->pmntCountry): ?>
                                             <div class="small text-muted mt-1"><?php echo htmlspecialchars($row->pmntState); ?> <?php echo $row->pmntCountry ? '('.$row->pmntCountry.')' : ''; ?></div>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="col-md-6 border-start-md">
                                             <div class="detail-label">Correspondence Address</div>
-                                            <div class="fw-700 text-dark"><?php echo $row->corresAddress ?: 'Not Provided'; ?></div>
+                                            <div class="fw-700 text-dark"><?php echo $row->corresAddress ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; ?></div>
+                                            <?php if($row->corresState || $row->corresCountry): ?>
                                             <div class="small text-muted mt-1"><?php echo htmlspecialchars($row->corresState); ?> <?php echo $row->corresCountry ? '('.$row->corresCountry.')' : ''; ?></div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -265,6 +273,23 @@ check_login();
                         </div>
                     </div>
                 </div>
+                
+                <?php else: ?>
+                <!-- PAYMENT REQUIRED LOCK SCREEN -->
+                <div class="card-modern border-0 p-5 text-center bg-white shadow-sm animate__animated animate__zoomIn">
+                    <div class="bg-danger bg-opacity-10 p-4 rounded-circle d-inline-flex mb-4 text-danger">
+                        <i class="fas fa-lock fa-3x"></i>
+                    </div>
+                    <h4 class="fw-800 text-dark">Access Denied: Room Locked</h4>
+                    <p class="text-muted mx-auto mb-4" style="max-width: 500px;">
+                        Congratulations! You have been allocated a room by the administration. However, your detailed room slip is currently locked. To unlock and view your room details, please complete your fee payments (Registration, Tuition, and Accommodation).
+                    </p>
+                    <a href="pay-fees.php" class="btn-modern btn-modern-success d-inline-flex mx-auto fw-800 px-4 py-3">
+                        <i class="fas fa-wallet me-2 fs-5"></i>Proceed to Payments
+                    </a>
+                </div>
+                <!-- END LOCK SCREEN -->
+                <?php endif; ?>
                 
                 <?php endwhile; else: ?>
                 

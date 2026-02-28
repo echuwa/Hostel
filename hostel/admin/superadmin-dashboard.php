@@ -158,40 +158,48 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
                 <!-- STATS GRID -->
                 <div class="row g-4 mb-5">
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="0">
-                        <div class="super-card text-center metric-card">
-                            <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                <i class="fas fa-shield-alt fa-xl"></i>
+                        <a href="#debtor-section" class="text-decoration-none h-100 d-block">
+                            <div class="super-card text-center metric-card">
+                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-shield-alt fa-xl"></i>
+                                </div>
+                                <div class="metric-label fw-800 text-muted small">TOTAL ADMINS</div>
+                                <div class="metric-value h2 fw-800 text-dark"><?php echo count($admins); ?></div>
                             </div>
-                            <div class="metric-label fw-800 text-muted small">TOTAL ADMINS</div>
-                            <div class="metric-value h2 fw-800 text-dark"><?php echo count($admins); ?></div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="100">
-                        <div class="super-card text-center metric-card">
-                            <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                <i class="fas fa-clipboard-list fa-xl"></i>
+                        <a href="#debtor-section" class="text-decoration-none h-100 d-block">
+                            <div class="super-card text-center metric-card">
+                                <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-clipboard-list fa-xl"></i>
+                                </div>
+                                <div class="metric-label fw-800 text-muted small">PENDING TIERS</div>
+                                <div class="metric-value h2 fw-800 text-dark"><?php echo $pending_count; ?></div>
                             </div>
-                            <div class="metric-label fw-800 text-muted small">PENDING TIERS</div>
-                            <div class="metric-value h2 fw-800 text-dark"><?php echo $pending_count; ?></div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="200">
-                        <div class="super-card text-center metric-card">
-                            <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                <i class="fas fa-server fa-xl"></i>
+                        <a href="access-log.php" class="text-decoration-none h-100 d-block">
+                            <div class="super-card text-center metric-card">
+                                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-server fa-xl"></i>
+                                </div>
+                                <div class="metric-label fw-800 text-muted small">SYSTEM STATE</div>
+                                <div class="metric-value h2 fw-800 text-success">HEALTHY</div>
                             </div>
-                            <div class="metric-label fw-800 text-muted small">SYSTEM STATE</div>
-                            <div class="metric-value h2 fw-800 text-success">HEALTHY</div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="300">
-                        <div class="super-card text-center metric-card">
-                            <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                <i class="fas fa-database fa-xl"></i>
+                        <a href="manage-students.php" class="text-decoration-none h-100 d-block">
+                            <div class="super-card text-center metric-card">
+                                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-database fa-xl"></i>
+                                </div>
+                                <div class="metric-label fw-800 text-muted small">RECORDS LOAD</div>
+                                <div class="metric-value h2 fw-800 text-dark"><?php echo $mysqli->query("SELECT count(*) FROM registration")->fetch_row()[0]; ?></div>
                             </div>
-                            <div class="metric-label fw-800 text-muted small">RECORDS LOAD</div>
-                            <div class="metric-value h2 fw-800 text-dark"><?php echo $mysqli->query("SELECT count(*) FROM registration")->fetch_row()[0]; ?></div>
-                        </div>
+                        </a>
                     </div>
                 </div>
 

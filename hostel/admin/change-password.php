@@ -61,7 +61,7 @@ if (isset($_POST['change_pwd'])) {
     <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- CSS from modern.css -->
-    <link rel="stylesheet" href="css/modern.css">
+    <link rel="stylesheet" href="css/admin-modern.css">
     <style>
         .form-control {
             border-radius: 8px;

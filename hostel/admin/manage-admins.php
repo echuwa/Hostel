@@ -46,7 +46,7 @@ if(isset($_GET['del'])) {
     <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <!-- Modern CSS -->
-    <link rel="stylesheet" href="css/modern.css">
+    <link rel="stylesheet" href="css/admin-modern.css">
     
     <style>
         .admin-card {

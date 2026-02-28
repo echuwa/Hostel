@@ -54,20 +54,53 @@ body {
     margin-left: var(--sidebar-width);
     padding: 30px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 5;
+    /* Lower than sidebar */
 }
 
 .main-content.expanded {
     margin-left: var(--sidebar-collapsed-width);
 }
 
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+    /* Force GPU acceleration */
+}
+
+.clickable-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-link {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    /* Must be higher than all card content */
+    cursor: pointer;
+    text-decoration: none !important;
+    background: rgba(0, 0, 0, 0);
+    /* Hack for older IE/Edge transparency clicks */
+    pointer-events: auto !important;
+}
+
 /* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
-    background: var(--gradient-dark);
-    color: #fff;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #fff !important;
     position: fixed;
     height: 100vh;
-    z-index: 1000;
+    z-index: 9999;
+    /* Absolute top */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -75,6 +108,43 @@ body {
 
 .sidebar.collapsed {
     width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .profile-text,
+.sidebar.collapsed .sidebar-menu span,
+.sidebar.collapsed .sidebar-header .toggle-btn span,
+.sidebar.collapsed .sidebar-footer span,
+.sidebar.collapsed .menu-header,
+.sidebar.collapsed #openSearchBtn span,
+.sidebar.collapsed #openSearchBtn kbd,
+.sidebar.collapsed .ms-auto {
+    display: none !important;
+}
+
+.sidebar.collapsed .sidebar-header {
+    justify-content: center;
+    padding: 0;
+}
+
+.sidebar.collapsed .sidebar-menu a,
+.sidebar.collapsed .sidebar-profile>div {
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.sidebar.collapsed .sidebar-profile {
+    padding: 24px 0 !important;
+}
+
+.sidebar.collapsed .sidebar-menu a i {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.sidebar.collapsed #openSearchBtn {
+    justify-content: center;
+    padding: 10px 0;
 }
 
 .sidebar-header {
@@ -105,18 +175,49 @@ body {
     border-radius: 12px;
     font-weight: 500;
     transition: all 0.2s;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto !important;
 }
 
 .sidebar-menu a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.sidebar-menu li.active>a {
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
-    padding-left: 20px;
 }
 
 .sidebar-menu a.active {
     background: var(--primary);
-    color: #fff;
+    color: #fff !important;
     box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+}
+
+.submenu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.submenu li a {
+    padding: 10px 16px 10px 54px !important;
+    font-size: 0.85rem !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.submenu li a:hover,
+.submenu li a.active-link {
+    color: #fff !important;
+    background: transparent !important;
+}
+
+.submenu li a.active-link {
+    font-weight: 700;
 }
 
 .sidebar-menu a i {
@@ -135,16 +236,20 @@ body {
 /* Cards */
 .card-modern {
     background: #fff;
-    border-radius: 20px;
+    border-radius: 24px;
     border: 1px solid rgba(0, 0, 0, 0.03);
     box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+    position: relative;
+    /* CRITICAL: Creates stacking context for card-link */
+    z-index: 1;
 }
 
 .card-modern:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-4px);
+    z-index: 2;
 }
 
 /* Stats */

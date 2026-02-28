@@ -124,386 +124,243 @@ $adminUsers = $mysqli->query("SELECT id, username FROM admins ORDER BY username"
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audit Logs</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Audit Logs | HostelMS</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin-modern.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .card {
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .card-header {
-            padding: 1.25rem 1.5rem;
-        }
-        .table-responsive {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .table {
-            margin-bottom: 0;
-        }
-        .badge {
-            font-size: 0.85em;
-            padding: 0.35em 0.65em;
-        }
-        .view-details {
-            transition: all 0.2s;
-        }
-        .view-details:hover {
-            transform: translateY(-2px);
-        }
-        .modal-body pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            margin-bottom: 0;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
         .filter-section {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #f1f5f9;
+        }
+        .table-modern-audit {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
         }
     </style>
 </head>
 <body>
-    <?php include('includes/header.php'); ?>
-
-    <div class="container py-4">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Audit Logs</h2>
-                    <span class="badge bg-light text-primary fs-6">Total: <?= number_format($totalRows) ?></span>
-                </div>
-            </div>
-
-            <div class="card-body">
-                <!-- Search Filters -->
-                <div class="filter-section">
-                    <form method="get" class="mb-0">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Search Text</label>
-                                <input type="text" name="search" class="form-control" placeholder="Search..." value="<?= htmlspecialchars($search) ?>">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small text-muted">Action Type</label>
-                                <select name="action_type" class="form-select">
-                                    <option value="">All Actions</option>
-                                    <?php while ($action = $actionTypes->fetch_assoc()): ?>
-                                        <option value="<?= htmlspecialchars($action['action_type']) ?>" <?= $actionType === $action['action_type'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars(ucwords(str_replace('_', ' ', $action['action_type']))) ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small text-muted">User</label>
-                                <select name="user_id" class="form-select">
-                                    <option value="">All Users</option>
-                                    <?php while ($user = $adminUsers->fetch_assoc()): ?>
-                                        <option value="<?= $user['id'] ?>" <?= $userId == $user['id'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($user['username']) ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small text-muted">Date From</label>
-                                <input type="date" name="date_from" class="form-control" value="<?= htmlspecialchars($dateFrom) ?>">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label small text-muted">Date To</label>
-                                <input type="date" name="date_to" class="form-control" value="<?= htmlspecialchars($dateTo) ?>">
-                            </div>
-                            <div class="col-md-1">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-filter me-1"></i> Filter
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+    <div class="app-container">
+        <?php include('includes/sidebar_modern.php'); ?>
+        
+        <div class="main-content">
+            <div class="content-wrapper">
+                
+                <div class="d-flex justify-content-between align-items-end mb-4">
+                    <div>
+                        <h2 class="fw-800 mb-1">Audit Logs & System Tracking</h2>
+                        <p class="text-muted fw-600 mb-0">Monitor high-level administrative actions and user access sessions.</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge rounded-pill bg-primary px-3 py-2 fw-800">Total Entries: <?= number_format($totalRows) ?></span>
+                    </div>
                 </div>
 
-                <!-- Logs Table -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>User</th>
-                                <th>Action</th>
-                                <th>Description</th>
-                                <th>IP</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if ($result->num_rows > 0): ?>
-                                <?php while ($log = $result->fetch_assoc()): ?>
+                <div class="card-modern p-4">
+                    <!-- Search Filters -->
+                    <div class="filter-section">
+                        <form method="get" class="mb-0">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-800 text-muted">SEARCH DESCRIPTION</label>
+                                    <input type="text" name="search" class="form-control rounded-pill border-light bg-light" placeholder="Keyword..." value="<?= htmlspecialchars($search) ?>">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-800 text-muted">ACTION TYPE</label>
+                                    <select name="action_type" class="form-select rounded-pill border-light bg-light">
+                                        <option value="">All Actions</option>
+                                        <?php while ($action = $actionTypes->fetch_assoc()): ?>
+                                            <option value="<?= htmlspecialchars($action['action_type']) ?>" <?= $actionType === $action['action_type'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars(ucwords(str_replace('_', ' ', $action['action_type']))) ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-800 text-muted">PERFORMED BY</label>
+                                    <select name="user_id" class="form-select rounded-pill border-light bg-light">
+                                        <option value="">All Users</option>
+                                        <?php while ($user = $adminUsers->fetch_assoc()): ?>
+                                            <option value="<?= $user['id'] ?>" <?= $userId == $user['id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($user['username']) ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label small fw-800 text-muted">FROM DATE</label>
+                                            <input type="date" name="date_from" class="form-control rounded-pill border-light bg-light" value="<?= htmlspecialchars($dateFrom) ?>">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small fw-800 text-muted">TO DATE</label>
+                                            <input type="date" name="date_to" class="form-control rounded-pill border-light bg-light" value="<?= htmlspecialchars($dateTo) ?>">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Logs Table -->
+                    <div class="table-responsive table-modern-audit">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0 small fw-800 text-muted py-3 ps-4">TIMESTAMP</th>
+                                    <th class="border-0 small fw-800 text-muted py-3">ADMIN USER</th>
+                                    <th class="border-0 small fw-800 text-muted py-3">ACTION EVENT</th>
+                                    <th class="border-0 small fw-800 text-muted py-3">DESCRIPTION</th>
+                                    <th class="border-0 small fw-800 text-muted py-3">CLIENT IP</th>
+                                    <th class="border-0 small fw-800 text-muted py-3 pe-4 text-center">ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($result->num_rows > 0): ?>
+                                    <?php while ($log = $result->fetch_assoc()): ?>
+                                        <tr class="align-middle">
+                                            <td class="ps-4">
+                                                <div class="fw-800 text-dark small mb-0"><?= date('M j, Y', strtotime($log['created_at'])) ?></div>
+                                                <div class="text-muted" style="font-size: 0.7rem;"><?= date('H:i:s A', strtotime($log['created_at'])) ?></div>
+                                            </td>
+                                            <td class="fw-700 text-dark small"><?= htmlspecialchars($log['username'] ?? 'System') ?></td>
+                                            <td>
+                                                <span class="badge rounded-pill bg-primary-light text-primary small fw-800" style="font-size: 0.65rem;">
+                                                    <?= htmlspecialchars(strtoupper(str_replace('_', ' ', $log['action_type']))) ?>
+                                                </span>
+                                            </td>
+                                            <td class="text-muted small fw-600"><?= htmlspecialchars($log['description']) ?></td>
+                                            <td><span class="badge rounded-pill bg-light text-muted fw-700"><?= htmlspecialchars($log['ip_address']) ?></span></td>
+                                            <td class="pe-4 text-center">
+                                                <button class="btn btn-sm btn-light rounded-pill px-3 fw-800 border-0 view-details" 
+                                                        data-bs-toggle="modal" data-bs-target="#logDetailsModal"
+                                                        data-log='<?= htmlspecialchars(json_encode($log)) ?>' style="font-size:0.7rem;">
+                                                    DETAILS
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
                                     <tr>
-                                        <td><?= date('M j, Y H:i', strtotime($log['created_at'])) ?></td>
-                                        <td><?= htmlspecialchars($log['username'] ?? 'System') ?></td>
-                                        <td><span class="badge bg-info"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $log['action_type']))) ?></span></td>
-                                        <td><?= htmlspecialchars($log['description']) ?></td>
-                                        <td><span class="badge bg-secondary"><?= htmlspecialchars($log['ip_address']) ?></span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary view-details" 
-                                                    data-bs-toggle="modal" data-bs-target="#logDetailsModal"
-                                                    data-log='<?= htmlspecialchars(json_encode($log)) ?>'>
-                                                <i class="fas fa-eye me-1"></i> View
-                                            </button>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="fas fa-search-plus fa-3x text-light mb-3"></i>
+                                            <h5 class="text-muted fw-800">No logs found for these criteria</h5>
                                         </td>
                                     </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="6" class="text-center py-4">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="fas fa-clipboard-question fs-1 text-muted mb-3"></i>
-                                            <h5 class="text-muted">No audit logs found</h5>
-                                            <?php if (!empty($where)): ?>
-                                                <a href="audit_logs.php" class="btn btn-sm btn-outline-primary mt-2">
-                                                    Clear filters
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <?php if ($totalPages > 1): ?>
+                        <div class="mt-4">
+                            <ul class="pagination pagination-modern justify-content-center">
+                                <?php if ($page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?= buildQueryString(['page' => $page - 1]) ?>"><i class="fas fa-chevron-left"></i></a>
+                                    </li>
+                                <?php endif; ?>
+
+                                <?php for ($i = max(1, $page - 2); $i <= min($page + 2, $totalPages); $i++): ?>
+                                    <li class="page-item <?= $i == $page ? 'active' : '' ?>">
+                                        <a class="page-link" href="?<?= buildQueryString(['page' => $i]) ?>"><?= $i ?></a>
+                                    </li>
+                                <?php endfor; ?>
+
+                                <?php if ($page < $totalPages): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?= buildQueryString(['page' => $page + 1]) ?>"><i class="fas fa-chevron-right"></i></a>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
-                <!-- Pagination -->
-                <?php if ($totalPages > 1): ?>
-                    <nav class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <?php if ($page > 1): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => 1]) ?>">
-                                        <i class="fas fa-angle-double-left"></i>
-                                    </a>
-                                </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => $page - 1]) ?>">
-                                        <i class="fas fa-angle-left"></i>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
-
-                            <?php 
-                            // Show first page and ellipsis if needed
-                            if ($page > 3): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => 1]) ?>">1</a>
-                                </li>
-                                <?php if ($page > 4): ?>
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                <?php endif; ?>
-                            <?php endif; ?>
-
-                            <?php for ($i = max(1, $page - 2); $i <= min($page + 2, $totalPages); $i++): ?>
-                                <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => $i]) ?>"><?= $i ?></a>
-                                </li>
-                            <?php endfor; ?>
-
-                            <?php 
-                            // Show last page and ellipsis if needed
-                            if ($page < $totalPages - 2): ?>
-                                <?php if ($page < $totalPages - 3): ?>
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                <?php endif; ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => $totalPages]) ?>"><?= $totalPages ?></a>
-                                </li>
-                            <?php endif; ?>
-
-                            <?php if ($page < $totalPages): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => $page + 1]) ?>">
-                                        <i class="fas fa-angle-right"></i>
-                                    </a>
-                                </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?= buildQueryString(['page' => $totalPages]) ?>">
-                                        <i class="fas fa-angle-double-right"></i>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
-                        </ul>
-                    </nav>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+            </div> <!-- End content-wrapper -->
+        </div> <!-- End main-content -->
+    </div> <!-- End app-container -->
 
     <!-- Details Modal -->
-    <div class="modal fade" id="logDetailsModal" tabindex="-1" aria-labelledby="logDetailsModalLabel" aria-hidden="true">
+    <div class="modal fade" id="logDetailsModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="logDetailsModalLabel">
-                        <i class="fas fa-info-circle me-2"></i>Audit Log Details
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-primary text-white p-4 border-0">
+                    <h5 class="modal-title fw-800"><i class="fas fa-info-circle me-2"></i> Transaction Breakdown</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row mb-3">
+                <div class="modal-body p-4">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <div class="d-flex mb-2">
-                                <div class="me-3 text-muted" style="width: 120px;">
-                                    <i class="fas fa-clock me-1"></i> Timestamp:
-                                </div>
-                                <div id="detailTimestamp" class="fw-bold"></div>
-                            </div>
-                            <div class="d-flex mb-2">
-                                <div class="me-3 text-muted" style="width: 120px;">
-                                    <i class="fas fa-user me-1"></i> User:
-                                </div>
-                                <div id="detailUser" class="fw-bold"></div>
-                            </div>
-                            <div class="d-flex mb-2">
-                                <div class="me-3 text-muted" style="width: 120px;">
-                                    <i class="fas fa-bolt me-1"></i> Action:
-                                </div>
-                                <div id="detailAction" class="fw-bold"></div>
+                            <div class="p-3 bg-light rounded-4">
+                                <label class="small fw-800 text-muted d-block mb-1">DATA ORIGIN</label>
+                                <div id="detailIp" class="fw-800 text-dark"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="d-flex mb-2">
-                                <div class="me-3 text-muted" style="width: 120px;">
-                                    <i class="fas fa-network-wired me-1"></i> IP Address:
-                                </div>
-                                <div id="detailIp" class="fw-bold"></div>
-                            </div>
-                            <div class="d-flex mb-2">
-                                <div class="me-3 text-muted" style="width: 120px;">
-                                    <i class="fas fa-flag me-1"></i> Status:
-                                </div>
-                                <div id="detailStatus" class="fw-bold"></div>
-                            </div>
-                            <div class="d-flex mb-2">
-                                <div class="me-3 text-muted" style="width: 120px;">
-                                    <i class="fas fa-database me-1"></i> Affected:
-                                </div>
-                                <div id="detailAffected" class="fw-bold"></div>
+                            <div class="p-3 bg-light rounded-4">
+                                <label class="small fw-800 text-muted d-block mb-1">EVENT TYPE</label>
+                                <div id="detailAction" class="fw-800 text-primary"></div>
                             </div>
                         </div>
                     </div>
                     
-                    <hr>
-                    
-                    <div class="mb-4">
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-align-left me-1"></i> Description
-                        </h6>
-                        <div class="p-3 bg-light rounded">
-                            <p id="detailDescription" class="mb-0"></p>
-                        </div>
+                    <div class="my-4">
+                        <label class="small fw-800 text-muted d-block mb-2">DESCRIPTION</label>
+                        <div id="detailDescription" class="p-3 border rounded-4 bg-white fw-600"></div>
                     </div>
                     
                     <div class="mb-4">
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-code me-1"></i> Additional Data
-                        </h6>
-                        <pre id="detailAdditional" class="p-3 bg-light rounded"></pre>
+                        <label class="small fw-800 text-muted d-block mb-2">RAW PAYLOAD</label>
+                        <pre id="detailAdditional" class="p-4 bg-dark text-success rounded-4" style="font-size: 0.8rem;"></pre>
                     </div>
                     
-                    <div>
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-desktop me-1"></i> User Agent
-                        </h6>
-                        <div class="p-3 bg-light rounded">
-                            <p id="detailUserAgent" class="mb-0"></p>
-                        </div>
+                    <div class="text-center">
+                        <button type="button" class="btn btn-light rounded-pill px-5 fw-800" data-bs-dismiss="modal">DISMISS</button>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Close
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     $(document).ready(function() {
-        // Modal handling
         $('#logDetailsModal').on('show.bs.modal', function(event) {
             const button = $(event.relatedTarget);
             const log = JSON.parse(button.data('log'));
             
-            // Format affected record info
-            let affectedInfo = 'N/A';
-            if (log.affected_table && log.affected_record_id) {
-                affectedInfo = `${log.affected_table} #${log.affected_record_id}`;
-            }
-            
-            // Format additional data
-            let additionalData = 'N/A';
+            let additionalData = 'NO PAYLOAD RECORDED';
             if (log.additional_data) {
                 try {
-                    additionalData = JSON.stringify(JSON.parse(log.additional_data), null, 2);
+                    additionalData = JSON.stringify(JSON.parse(log.additional_data), null, 4);
                 } catch (e) {
                     additionalData = log.additional_data;
                 }
             }
             
-            // Format timestamp
-            const timestamp = new Date(log.created_at);
-            const formattedTimestamp = timestamp.toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-            
-            // Populate modal
-            $('#detailTimestamp').text(formattedTimestamp);
-            $('#detailUser').text(log.username || 'System');
-            $('#detailAction').text(log.action_type.replace(/_/g, ' '));
+            $('#detailAction').text(log.action_type.toUpperCase().replace(/_/g, ' '));
             $('#detailIp').text(log.ip_address);
-            $('#detailStatus').text(log.status || 'N/A');
-            $('#detailAffected').text(affectedInfo);
-            $('#detailDescription').text(log.description || 'N/A');
+            $('#detailDescription').text(log.description || 'No description provided');
             $('#detailAdditional').text(additionalData);
-            $('#detailUserAgent').text(log.user_agent || 'N/A');
-        });
-        
-        // Ensure modal is properly closed when clicking close button
-        $('#logDetailsModal .btn-close, #logDetailsModal .btn-secondary').on('click', function() {
-            $('#logDetailsModal').modal('hide');
-        });
-        
-        // Reset modal content when closed to prevent flickering
-        $('#logDetailsModal').on('hidden.bs.modal', function() {
-            $('#detailTimestamp, #detailUser, #detailAction, #detailIp, #detailStatus, ' +
-              '#detailAffected, #detailDescription, #detailAdditional, #detailUserAgent').text('');
         });
     });
     </script>
-    <div class="d-flex justify-content-start mb-4">
-    <a href="superadmin-dashboard.php" class="btn btn-outline-primary">
-        ← Back to Dashboard
-    </a>
-</div>
 </body>
 </html>

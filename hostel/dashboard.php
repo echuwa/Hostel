@@ -63,7 +63,7 @@ $stmt->close();
 
 // Fetch Payment Data for Student
 $pay_data = null;
-$pay_query = "SELECT fees_paid, accommodation_paid, registration_paid, payment_status, fee_control_no FROM userregistration WHERE id = ?";
+$pay_query = "SELECT fee_status, fees_paid, accommodation_paid, registration_paid, payment_status, fee_control_no FROM userregistration WHERE id = ?";
 $stmt = $mysqli->prepare($pay_query);
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
@@ -132,7 +132,7 @@ $stmt->close();
                 
                 <!-- Dashboard Welcome Header -->
                 <div class="dashboard-header-modern animate__animated animate__fadeInDown">
-                    <h1 class="fw-800">Welcome Back, <?php echo htmlspecialchars($user_name); ?>! 👋</h1>
+                    <h1 class="fw-800">Welcome Back, <?php echo htmlspecialchars($user_name); ?>!</h1>
                     <p class="opacity-75">Track your room status, manage complaints, and explore your personal dashboard.</p>
                 </div>
                 
@@ -183,12 +183,24 @@ $stmt->close();
                                 <i class="fas fa-bed"></i>
                             </div>
                             <label class="text-muted fw-800 small text-uppercase mb-1 d-block">Room Status</label>
-                            <h3 class="fw-800 text-dark mb-1"><?php echo $registration ? htmlspecialchars($registration->roomno) : 'N/A'; ?></h3>
-                            <?php if($registration): ?>
+                            
+                            <?php 
+                            // Determine if student has fully paid (fee_status = 1)
+                            $is_eligible = ($pay_data && isset($pay_data->fee_status) && $pay_data->fee_status == 1);
+                            
+                            if($registration && $is_eligible): 
+                            ?>
+                                <h3 class="fw-800 text-dark mb-1"><?php echo htmlspecialchars($registration->roomno); ?></h3>
                                 <span class="badge-modern badge-modern-primary py-1"><?php echo htmlspecialchars($registration->seater); ?> Seater</span>
+                            <?php elseif($registration && !$is_eligible): ?>
+                                <!-- Locked State: Has room but hasn't paid full fees -->
+                                <h3 class="fw-800 text-muted mb-1"><i class="fas fa-lock me-2 fs-5"></i> Locked</h3>
+                                <span class="text-danger small fw-700">Unlock upon payment</span>
                             <?php else: ?>
+                                <h3 class="fw-800 text-dark mb-1">N/A</h3>
                                 <span class="text-muted small">No allocation yet</span>
                             <?php endif; ?>
+                            
                         </div>
                     </div>
                     <div class="col-xl-3 col-sm-6">
@@ -197,12 +209,15 @@ $stmt->close();
                                 <i class="fas fa-wallet"></i>
                             </div>
                             <label class="text-muted fw-800 small text-uppercase mb-1 d-block">Account Level</label>
-                            <h3 class="fw-800 text-dark mb-1"><?php echo $registration ? 'Verified' : 'Unpaid'; ?></h3>
-                            <?php if($registration): ?>
-                                <span class="text-success small fw-700">TSH <?php echo number_format($registration->feespm); ?> /mon</span>
+                            
+                            <?php if($is_eligible): ?>
+                                <h3 class="fw-800 text-dark mb-1">Verified <i class="fas fa-check-circle text-success fs-5 ms-1"></i></h3>
+                                <span class="text-success small fw-700">Ready</span>
                             <?php else: ?>
-                                <span class="text-danger small fw-700">Action Pending</span>
+                                <h3 class="fw-800 text-dark mb-1">Pending</h3>
+                                <span class="text-danger small fw-700">Incomplete Fees</span>
                             <?php endif; ?>
+                            
                         </div>
                     </div>
                     <div class="col-xl-3 col-sm-6">
@@ -281,29 +296,37 @@ $stmt->close();
                                 <?php if($pay_data): 
                                     $fees_perc = ($pay_data->fees_paid / 1500000) * 100;
                                     $acc_perc = ($pay_data->accommodation_paid / 178500) * 100;
-                                    $is_eligible = ($pay_data->fees_paid >= 750000 && $pay_data->accommodation_paid >= 178500);
+                                    $reg_perc = ($pay_data->registration_paid / 50000) * 100;
+                                    $is_eligible = ($pay_data->fees_paid >= 750000 && $pay_data->accommodation_paid >= 178500 && $pay_data->registration_paid >= 50000);
                                 ?>
                                     <div class="row g-4 mb-4">
-                                        <div class="col-md-6">
-                                            <div class="mb-2 d-flex justify-content-between align-items-end">
-                                                <span class="small fw-800 text-dark">HOSTEL TUITION FEES</span>
-                                                <span class="small fw-700 text-primary"><?php echo number_format($fees_perc, 1); ?>%</span>
-                                            </div>
-                                            <div class="progress rounded-pill shadow-sm" style="height: 12px; background-color: #f1f5f9;">
-                                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: <?php echo min(100, $fees_perc); ?>%"></div>
-                                            </div>
-                                            <div class="mt-2 small text-muted">TSH <?php echo number_format($pay_data->fees_paid); ?> / 1,500,000</div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-2 d-flex justify-content-between align-items-end">
-                                                <span class="small fw-800 text-dark">ACCOMMODATION</span>
-                                                <span class="small fw-700 text-success"><?php echo number_format($acc_perc, 1); ?>%</span>
-                                            </div>
-                                            <div class="progress rounded-pill shadow-sm" style="height: 12px; background-color: #f1f5f9;">
-                                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: <?php echo min(100, $acc_perc); ?>%"></div>
-                                            </div>
-                                            <div class="mt-2 small text-muted">TSH <?php echo number_format($pay_data->accommodation_paid); ?> / 178,500</div>
-                                        </div>
+                                         <div class="col-md-4">
+                                             <div class="mb-2 d-flex justify-content-between align-items-end">
+                                                 <span class="small fw-800 text-dark">FEES</span>
+                                                 <span class="small fw-700 text-primary"><?php echo number_format($fees_perc, 1); ?>%</span>
+                                             </div>
+                                             <div class="progress rounded-pill shadow-sm" style="height: 10px; background-color: #f1f5f9;">
+                                                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: <?php echo min(100, $fees_perc); ?>%"></div>
+                                             </div>
+                                         </div>
+                                         <div class="col-md-4">
+                                             <div class="mb-2 d-flex justify-content-between align-items-end">
+                                                 <span class="small fw-800 text-dark">ACCOMMODATION</span>
+                                                 <span class="small fw-700 text-success"><?php echo number_format($acc_perc, 1); ?>%</span>
+                                             </div>
+                                             <div class="progress rounded-pill shadow-sm" style="height: 10px; background-color: #f1f5f9;">
+                                                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: <?php echo min(100, $acc_perc); ?>%"></div>
+                                             </div>
+                                         </div>
+                                         <div class="col-md-4">
+                                             <div class="mb-2 d-flex justify-content-between align-items-end">
+                                                 <span class="small fw-800 text-dark">REGISTRATION</span>
+                                                 <span class="small fw-700 text-info"><?php echo number_format($reg_perc, 1); ?>%</span>
+                                             </div>
+                                             <div class="progress rounded-pill shadow-sm" style="height: 10px; background-color: #f1f5f9;">
+                                                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width: <?php echo min(100, $reg_perc); ?>%"></div>
+                                             </div>
+                                         </div>
                                     </div>
                                     
                                     <div class="p-3 <?php echo $is_eligible ? 'bg-success-light' : 'bg-warning-light'; ?> rounded-4 mb-0">
@@ -314,10 +337,12 @@ $stmt->close();
                                                     <?php echo $is_eligible ? 'Allocation Eligible' : 'Eligibility Pending'; ?>
                                                 </h6>
                                                 <p class="mb-0 small opacity-75 fw-600">
-                                                    <?php echo $is_eligible ? 'You have cleared the minimum requirements for room allocation.' : 'Requirement: Pay 100% Accommodation and 50% Tuition to qualify.'; ?>
+                                                    <?php echo $is_eligible ? 'You have cleared the requirements (50%+ Fees, 100% Acc, 100% Reg).' : 'Requirement: Pay 100% Accommodation, 100% Registration, and 50% Tuition to qualify.'; ?>
                                                 </p>
                                             </div>
-                                            <a href="pay-fees.php" class="ms-auto btn-modern <?php echo $is_eligible ? 'btn-modern-success' : 'btn-modern-primary'; ?> px-4 py-2 border-0 shadow-sm" style="font-size: 0.8rem;">PAYMENT PORTAL</a>
+                                            <a href="<?php echo $is_eligible ? 'book-hostel.php' : 'pay-fees.php'; ?>" class="ms-auto btn-modern <?php echo $is_eligible ? 'btn-modern-success' : 'btn-modern-primary'; ?> px-4 py-2 border-0 shadow-sm" style="font-size: 0.8rem;">
+                                                <?php echo $is_eligible ? 'BOOK ROOM NOW' : 'GO TO PAYMENTS'; ?>
+                                            </a>
                                         </div>
                                     </div>
                                 <?php endif; ?>

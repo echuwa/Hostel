@@ -22,9 +22,7 @@ if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
     $block = $_SESSION['assigned_block'];
     $block_cond_rooms = " WHERE room_no LIKE '$block%'";
     $block_cond_reg = " WHERE roomno LIKE '$block%'";
-    $block_join_complaints = " JOIN registration r ON complaints.userId = r.id"; // Assuming userId is registration.id, let's check
-    // Wait, let's verify if userId in complaints is userregistration.id or registration.id
-    $block_join_complaints = " JOIN userregistration u ON complaints.userId = u.id JOIN registration r ON u.regNo = r.regno";
+    $block_join_complaints = " JOIN userregistration u ON c.userId = u.id JOIN registration r ON u.regNo = r.regno";
     $block_cond_complaints = " AND r.roomno LIKE '$block%'";
 }
 
@@ -32,13 +30,25 @@ $queries = [
     'students' => "SELECT count(*) FROM registration $block_cond_reg",
     'rooms' => "SELECT count(*) FROM rooms $block_cond_rooms",
     'courses' => "SELECT count(*) FROM courses",
-    'all_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE 1=1 $block_cond_complaints",
-    'new_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE complaintStatus IS NULL $block_cond_complaints",
-    'inprocess_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE complaintStatus='In Process' $block_cond_complaints",
-    'closed_complaints' => "SELECT count(*) FROM complaints $block_join_complaints WHERE complaintStatus='Closed' $block_cond_complaints",
+    'all_complaints' => "SELECT count(*) FROM complaints c $block_join_complaints WHERE 1=1 $block_cond_complaints",
+    'new_complaints' => "SELECT count(*) FROM complaints c $block_join_complaints WHERE (c.complaintStatus IS NULL OR c.complaintStatus='New') $block_cond_complaints",
+    'inprocess_complaints' => "SELECT count(*) FROM complaints c $block_join_complaints WHERE (c.complaintStatus='In Process' OR c.complaintStatus='In Progress') $block_cond_complaints",
+    'closed_complaints' => "SELECT count(*) FROM complaints c $block_join_complaints WHERE (c.complaintStatus='Closed' OR c.complaintStatus='Resolved') $block_cond_complaints",
     'feedbacks' => "SELECT count(*) FROM feedback",
     'pending_students' => "SELECT count(*) FROM userregistration WHERE status='Pending'"
 ];
+
+// Identify Most Common Problem
+$common_problem = "None";
+$problem_query = "SELECT c.complaintType, COUNT(*) as count FROM complaints c $block_join_complaints WHERE 1=1 $block_cond_complaints GROUP BY c.complaintType ORDER BY count DESC LIMIT 1";
+if ($stmt = $mysqli->prepare($problem_query)) {
+    $stmt->execute();
+    $stmt->bind_result($p_type, $p_count);
+    if($stmt->fetch()) {
+        $common_problem = $p_type;
+    }
+    $stmt->close();
+}
 
 foreach ($queries as $key => $query) {
     if ($stmt = $mysqli->prepare($query)) {
@@ -52,17 +62,21 @@ foreach ($queries as $key => $query) {
     }
 }
 
-// Get monthly data for chart
-$monthly_data = [];
+// Get monthly data for chart (Registrations & Revenue)
+$chart_revenue = [];
+$chart_occupancy = [];
 $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 $current_month = date('m');
 
-$block_join = "";
-$block_cond = "";
+$block_cond_reg_only = "";
+$block_join_logs = "";
+$block_cond_logs = "";
+
 if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
     $block = $_SESSION['assigned_block'];
-    $block_join = " JOIN userregistration u ON c.userId = u.id JOIN registration r ON u.regNo = r.regno";
-    $block_cond = " AND r.roomno LIKE '$block%'";
+    $block_cond_reg_only = " AND roomno LIKE '$block%'";
+    $block_join_logs = " JOIN registration r ON p.regNo = r.regno";
+    $block_cond_logs = " AND r.roomno LIKE '$block%'";
 }
 
 for ($i = 0; $i < 6; $i++) {
@@ -74,13 +88,24 @@ for ($i = 0; $i < 6; $i++) {
     }
     $month_name = $months[$month_num - 1];
     
-    $chartQ = "SELECT COUNT(*) FROM complaints c $block_join WHERE MONTH(c.registrationDate) = ? AND YEAR(c.registrationDate) = ? $block_cond";
-    $stmt = $mysqli->prepare($chartQ);
+    // 1. Monthly Occupancy (Registrations)
+    $occQ = "SELECT COUNT(*) FROM registration WHERE MONTH(reg_date) = ? AND YEAR(reg_date) = ? $block_cond_reg_only";
+    $stmt = $mysqli->prepare($occQ);
     $stmt->bind_param("ii", $month_num, $year);
     $stmt->execute();
-    $stmt->bind_result($count);
+    $stmt->bind_result($occCount);
     $stmt->fetch();
-    $monthly_data[$month_name] = $count;
+    $chart_occupancy[$month_name] = $occCount;
+    $stmt->close();
+
+    // 2. Monthly Revenue (Payments)
+    $revQ = "SELECT SUM(p.amount) FROM payment_logs p $block_join_logs WHERE MONTH(p.created_at) = ? AND YEAR(p.created_at) = ? $block_cond_logs";
+    $stmt = $mysqli->prepare($revQ);
+    $stmt->bind_param("ii", $month_num, $year);
+    $stmt->execute();
+    $stmt->bind_result($revSum);
+    $stmt->fetch();
+    $chart_revenue[$month_name] = $revSum ?: 0;
     $stmt->close();
 }
 
@@ -93,8 +118,8 @@ $recentQ = "SELECT
     c.complaintDetails as message,
     c.registrationDate as date, 
     c.complaintStatus as status 
-FROM complaints c $block_join 
-WHERE 1=1 $block_cond
+FROM complaints c $block_join_complaints 
+WHERE 1=1 $block_cond_complaints
 ORDER BY c.registrationDate DESC 
 LIMIT 5";
 
@@ -215,71 +240,72 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                 <div class="greeting-card shadow-lg" data-aos="fade-up">
                     <div class="row align-items-center">
                         <div class="col-lg-8">
-                            <h2 class="fw-800 mb-2">Welcome back, <?php echo $display_name; ?>! 👋</h2>
-                            <p class="opacity-75 fw-600 mb-0">System performance is optimal today. You have <strong><?php echo $counts['new_complaints']; ?></strong> new complaints waiting for your attention and <strong><?php echo $counts['pending_students']; ?></strong> pending accounts to verify.</p>
+                            <h2 class="fw-800 mb-2">Welcome back, <?php echo $display_name; ?></h2>
+                            <p class="opacity-75 fw-600 mb-0">
+                                Current Strategy: Focus on <strong><?php echo htmlspecialchars($common_problem); ?></strong> issues. 
+                                Resolve <strong><?php echo $counts['new_complaints'] + $counts['inprocess_complaints']; ?></strong> active cases to maintain health.
+                            </p>
                         </div>
-                        <div class="col-lg-4 text-end d-none d-lg-block">
-                            <a href="manage-students.php" class="btn btn-light rounded-pill px-4 fw-800 text-primary shadow-sm">Review Students</a>
+                        <div class="col-lg-4 text-end d-none d-lg-block" style="position: relative; z-index: 100;">
+                            <a href="manage-students.php" class="btn btn-light rounded-pill px-4 fw-800 text-primary shadow-sm" style="position: relative; z-index: 101;">Verification Hub</a>
                         </div>
                     </div>
                 </div>
 
                 <div class="row g-4 mb-5">
-                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
-                        <a href="manage-students.php" class="text-decoration-none">
-                            <div class="card-modern stat-card clickable-card">
-                                <div>
-                                    <div class="stat-label">Verified Residents</div>
-                                    <div class="stat-value counter"><?php echo $counts['students']; ?></div>
-                                    <div class="text-success small fw-700"><i class="fas fa-arrow-up me-1"></i>Active accounts</div>
-                                </div>
-                                <div class="stat-icon bg-primary text-white">
-                                    <i class="fas fa-user-graduate"></i>
-                                </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-modern stat-card clickable-card">
+                            <a href="manage-students.php" class="card-link" title="View Students"></a>
+                            <div>
+                                <div class="stat-label">Occupancy Health</div>
+                                <div class="stat-value counter"><?php echo $counts['students']; ?></div>
+                                <div class="text-success small fw-700"><i class="fas fa-arrow-up me-1"></i>Verified Residents</div>
                             </div>
-                        </a>
+                            <div class="stat-icon bg-primary text-white">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="200">
-                        <a href="manage-rooms.php" class="text-decoration-none">
-                            <div class="card-modern stat-card clickable-card">
-                                <div>
-                                    <div class="stat-label">Total Inventory</div>
-                                    <div class="stat-value counter"><?php echo $counts['rooms']; ?></div>
-                                    <div class="text-primary small fw-700"><i class="fas fa-bed me-1"></i>Dormitory units</div>
-                                </div>
-                                <div class="stat-icon bg-info text-white">
-                                    <i class="fas fa-door-open"></i>
-                                </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-modern stat-card clickable-card">
+                            <a href="manage-rooms.php" class="card-link" title="View Rooms"></a>
+                            <div>
+                                <div class="stat-label">Total Inventory</div>
+                                <div class="stat-value counter"><?php echo $counts['rooms']; ?></div>
+                                <div class="text-primary small fw-700"><i class="fas fa-bed me-1"></i>Dormitory units</div>
                             </div>
-                        </a>
+                            <div class="stat-icon bg-info text-white">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
-                        <a href="all-complaints.php" class="text-decoration-none">
-                            <div class="card-modern stat-card clickable-card">
-                                <div>
-                                    <div class="stat-label">Total Support</div>
-                                    <div class="stat-value counter"><?php echo $counts['all_complaints']; ?></div>
-                                    <div class="text-danger small fw-700"><i class="fas fa-headset me-1"></i>Reported issues</div>
-                                </div>
-                                <div class="stat-icon bg-danger text-white">
-                                    <i class="fas fa-life-ring"></i>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-modern stat-card clickable-card">
+                            <a href="all-complaints.php" class="card-link" title="Support Portal"></a>
+                            <div>
+                                <div class="stat-label">Support Efficiency</div>
+                                <div class="stat-value counter"><?php echo $counts['all_complaints'] > 0 ? round(($counts['closed_complaints'] / $counts['all_complaints']) * 100) : 0; ?>%</div>
+                                <div class="text-danger small fw-700">
+                                    <i class="fas fa-check-circle me-1"></i> <?php echo $counts['closed_complaints']; ?> Solved of <?php echo $counts['all_complaints']; ?>
                                 </div>
                             </div>
-                        </a>
+                            <div class="stat-icon bg-danger text-white">
+                                <i class="fas fa-life-ring"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="400">
-                        <a href="manage-courses.php" class="text-decoration-none">
-                            <div class="card-modern stat-card clickable-card">
-                                <div>
-                                    <div class="stat-label">Courses Offered</div>
-                                    <div class="stat-value counter"><?php echo $counts['courses']; ?></div>
-                                    <div class="text-warning small fw-700"><i class="fas fa-book me-1"></i>Active programs</div>
-                                </div>
-                                <div class="stat-icon bg-warning text-white">
-                                    <i class="fas fa-graduation-cap"></i>
-                                </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card-modern stat-card clickable-card">
+                            <a href="manage-students.php?status=Pending" class="card-link" title="Vetting Hub"></a>
+                            <div>
+                                <div class="stat-label">Vetting Pipeline</div>
+                                <div class="stat-value counter"><?php echo $counts['pending_students']; ?></div>
+                                <div class="text-warning small fw-700"><i class="fas fa-clock me-1"></i>Registration Vetting</div>
                             </div>
-                        </a>
+                            <div class="stat-icon bg-warning text-white">
+                                <i class="fas fa-shield-virus"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -288,9 +314,12 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                     <div class="col-lg-8" data-aos="fade-right">
                         <div class="card-modern chart-card">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h5 class="fw-800 mb-0">Security & Support Trends</h5>
+                                <div>
+                                    <h5 class="fw-800 mb-0">Hostel Growth & Collection Performance</h5>
+                                    <p class="text-muted small fw-600 mb-0">Monthly Admissions vs. Revenue Inflow</p>
+                                </div>
                                 <div class="dropdown">
-                                    <button class="btn btn-light rounded-pill dropdown-toggle fw-700 small" data-bs-toggle="dropdown">History (6 Months)</button>
+                                    <button class="btn btn-light rounded-pill dropdown-toggle fw-700 small" data-bs-toggle="dropdown">Last 6 Months</button>
                                 </div>
                             </div>
                             <div style="height: 300px;">
@@ -355,38 +384,82 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
 
         // Chart Data
         const ctx = document.getElementById('trendsChart').getContext('2d');
-        const months = <?php echo json_encode(array_reverse(array_keys($monthly_data))); ?>;
-        const data = <?php echo json_encode(array_reverse(array_values($monthly_data))); ?>;
+        const months = <?php echo json_encode(array_reverse(array_keys($chart_occupancy))); ?>;
+        const revenueData = <?php echo json_encode(array_reverse(array_values($chart_revenue))); ?>;
+        const occupancyData = <?php echo json_encode(array_reverse(array_values($chart_occupancy))); ?>;
         
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(67, 97, 238, 0.4)');
-        gradient.addColorStop(1, 'rgba(67, 97, 238, 0)');
+        const revGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        revGradient.addColorStop(0, 'rgba(67, 97, 238, 0.2)');
+        revGradient.addColorStop(1, 'rgba(67, 97, 238, 0)');
 
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: months,
-                datasets: [{
-                    label: 'Complaints Trend',
-                    data: data,
+                datasets: [
+                {
+                    label: 'Revenue (TSH)',
+                    data: revenueData,
                     borderColor: '#4361ee',
-                    backgroundColor: gradient,
+                    backgroundColor: revGradient,
                     borderWidth: 4,
                     tension: 0.4,
                     fill: true,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#4361ee',
-                    pointBorderWidth: 3,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
+                    yAxisID: 'yRevenue',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'New Occupancy',
+                    data: occupancyData,
+                    borderColor: '#06d6a0',
+                    borderWidth: 3,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    yAxisID: 'yOccupancy',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        position: 'top',
+                        labels: { font: { family: 'Plus Jakarta Sans', weight: '700', size: 11 } }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        padding: 12,
+                        backgroundColor: '#1e293b',
+                        titleFont: { family: 'Plus Jakarta Sans', weight: '800' },
+                        bodyFont: { family: 'Plus Jakarta Sans', weight: '600' }
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true, grid: { borderDash: [5, 5] }, ticks: { font: { weight: '600' } } },
+                    yRevenue: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { borderDash: [5, 5] },
+                        ticks: { 
+                            font: { weight: '600' },
+                            callback: function(value) { return (value/1000) + 'k'; }
+                        },
+                        title: { display: true, text: 'Revenue (TSH)', font: { weight: '700' } }
+                    },
+                    yOccupancy: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { font: { weight: '600' } },
+                        title: { display: true, text: 'Students', font: { weight: '700' } }
+                    },
                     x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
                 }
             }

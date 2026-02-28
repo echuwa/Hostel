@@ -7,11 +7,27 @@ check_login();
 $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
 
 if(isset($_POST['update'])) {
-    $fname = trim($_POST['fname']);
-    $mname = trim($_POST['mname']);
-    $lname = trim($_POST['lname']);
-    $gender = $_POST['gender'];
-    $contactno = trim($_POST['contact']);
+    // Core details
+    $fname = trim($_POST['fname'] ?? '');
+    $mname = trim($_POST['mname'] ?? '');
+    $lname = trim($_POST['lname'] ?? '');
+    $gender = $_POST['gender'] ?? '';
+    $contactno = trim($_POST['contact'] ?? '');
+    
+    // Additional details
+    $course = trim($_POST['course'] ?? '');
+    $guardianName = trim($_POST['guardianName'] ?? '');
+    $guardianRelation = trim($_POST['guardianRelation'] ?? '');
+    $egycontactno = trim($_POST['egycontactno'] ?? '');
+    
+    // Address Details
+    $pmntAddress = trim($_POST['pmntAddress'] ?? '');
+    $pmntState = trim($_POST['pmntState'] ?? '');
+    $pmntCountry = trim($_POST['pmntCountry'] ?? '');
+    $corresAddress = trim($_POST['corresAddress'] ?? '');
+    $corresState = trim($_POST['corresState'] ?? '');
+    $corresCountry = trim($_POST['corresCountry'] ?? '');
+    
     $udate = date('d-m-Y h:i:s', time());
     
     $query = "UPDATE userregistration SET firstName=?, middleName=?, lastName=?, gender=?, contactNo=?, updationDate=? WHERE id=?";
@@ -19,6 +35,28 @@ if(isset($_POST['update'])) {
     $stmt->bind_param('ssssisi', $fname, $mname, $lname, $gender, $contactno, $udate, $aid);
     
     if($stmt->execute()) {
+        $stmt->close();
+        
+        // Fetch regNo to update the registration table as well
+        $q2 = "SELECT regNo FROM userregistration WHERE id=?";
+        $st2 = $mysqli->prepare($q2);
+        $st2->bind_param('i', $aid);
+        $st2->execute();
+        $res2 = $st2->get_result();
+        $userRow = $res2->fetch_object();
+        $st2->close();
+        
+        if($userRow) {
+            $regNo = $userRow->regNo;
+            $updateReg = "UPDATE registration SET firstName=?, middleName=?, lastName=?, gender=?, contactno=?, course=?, guardianName=?, guardianRelation=?, egycontactno=?, pmntAddress=?, pmntState=?, pmntCountry=?, corresAddress=?, corresState=?, corresCountry=? WHERE regno = ? ORDER BY id DESC LIMIT 1";
+            $stmtReg = $mysqli->prepare($updateReg);
+            if($stmtReg) {
+                $stmtReg->bind_param('ssssssssssssssss', $fname, $mname, $lname, $gender, $contactno, $course, $guardianName, $guardianRelation, $egycontactno, $pmntAddress, $pmntState, $pmntCountry, $corresAddress, $corresState, $corresCountry, $regNo);
+                $stmtReg->execute();
+                $stmtReg->close();
+            }
+        }
+        
         $_SESSION['success'] = "Profile updated successfully!";
         header("Location: my-profile.php");
         exit();
@@ -98,7 +136,7 @@ if(isset($_POST['update'])) {
             <div class="container-fluid">
                 <?php
                 $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
-                $ret = "SELECT * FROM userregistration WHERE id=?";
+                $ret = "SELECT u.*, r.course, r.guardianName, r.guardianRelation, r.egycontactno, r.pmntAddress, r.pmntState, r.pmntCountry, r.corresAddress, r.corresState, r.corresCountry FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno WHERE u.id=? ORDER BY r.id DESC LIMIT 1";
                 $stmt = $mysqli->prepare($ret);
                 $stmt->bind_param('i', $aid);
                 $stmt->execute();
@@ -129,9 +167,9 @@ if(isset($_POST['update'])) {
                             </p>
                         </div>
                         <div class="col-md-auto mt-4 mt-md-0 d-flex gap-2">
-                             <div class="bg-white bg-opacity-20 p-3 rounded-4 text-center" style="min-width: 120px;">
-                                <div class="small fw-700 opacity-75">STATUS</div>
-                                <div class="h5 fw-800 mb-0">Active</div>
+                             <div class="p-3 rounded-4 text-center text-white" style="background: rgba(255,255,255,0.2); min-width: 120px;">
+                                <div class="small fw-700 opacity-75 text-white">STATUS</div>
+                                <div class="h5 fw-800 mb-0 text-white">Active</div>
                             </div>
                         </div>
                     </div>
@@ -192,6 +230,78 @@ if(isset($_POST['update'])) {
                                                 <input type="tel" name="contact" class="form-control form-control-modern" value="<?php echo $row->contactNo; ?>" required>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Additional Information Section -->
+                                        <div class="col-12 mt-4">
+                                            <h6 class="fw-800 border-bottom pb-2">Academic & Guardian Details</h6>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Course Applied</label>
+                                                <input type="text" name="course" class="form-control form-control-modern" placeholder="e.g. Bachelor of IT" value="<?php echo htmlspecialchars($row->course ?? ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Emergency Contact No.</label>
+                                                <input type="tel" name="egycontactno" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->egycontactno ?? ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Guardian Full Name</label>
+                                                <input type="text" name="guardianName" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->guardianName ?? ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Guardian Relation</label>
+                                                <input type="text" name="guardianRelation" class="form-control form-control-modern" placeholder="e.g. Father, Mother, Uncle" value="<?php echo htmlspecialchars($row->guardianRelation ?? ''); ?>">
+                                            </div>
+                                        </div>
+
+                                        <!-- Addresses Section -->
+                                        <div class="col-12 mt-4">
+                                            <h6 class="fw-800 border-bottom pb-2">Address Information</h6>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Permanent Address</label>
+                                                <textarea name="pmntAddress" class="form-control form-control-modern" rows="2"><?php echo htmlspecialchars($row->pmntAddress ?? ''); ?></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Permanent City/State</label>
+                                                <input type="text" name="pmntState" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->pmntState ?? ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Permanent Country</label>
+                                                <input type="text" name="pmntCountry" class="form-control form-control-modern" value="Tanzania" readonly required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-12">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Correspondence Address</label>
+                                                <textarea name="corresAddress" class="form-control form-control-modern" rows="2" placeholder="Leave blank if same as permanent address"><?php echo htmlspecialchars($row->corresAddress ?? ''); ?></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Correspondence City/State</label>
+                                                <input type="text" name="corresState" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->corresState ?? ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Correspondence Country</label>
+                                                <input type="text" name="corresCountry" class="form-control form-control-modern" value="Tanzania" readonly required>
+                                            </div>
+                                        </div>
+                                        
                                         <div class="col-12 mt-5">
                                             <div class="p-4 rounded-4 bg-light mb-4">
                                                 <div class="row align-items-center">

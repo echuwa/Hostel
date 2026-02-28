@@ -237,6 +237,13 @@ if (!$data) {
                                     <div class="small fw-800 text-muted">TSH <?php echo number_format($data->accommodation_paid); ?> PAID</div>
                                 </div>
                             </div>
+                            <div class="control-pill">
+                                <div class="metric-label">Registration Deposit</div>
+                                <div class="d-flex justify-content-between align-items-end mt-2">
+                                    <div class="metric-value text-primary font-monospace"><?php echo $data->reg_control_no ?: 'PENDING_GEN'; ?></div>
+                                    <div class="small fw-800 text-muted">TSH <?php echo number_format($data->registration_paid); ?> PAID</div>
+                                </div>
+                            </div>
                             
                             <div class="mt-4 p-4 rounded-4 bg-light">
                                 <div class="d-flex align-items-center gap-3 mb-3">
@@ -251,6 +258,55 @@ if (!$data) {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- TRANSACTION AUDIT LOG - New Section for Oversights -->
+                <div class="card-modern mt-5 border-0 shadow-sm overflow-hidden" style="border-radius: 30px;">
+                    <div class="card-header bg-white p-4 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-800 mb-0"><i class="fas fa-file-invoice-dollar text-primary me-2"></i> Verified Transaction Audit Trail</h5>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-800">OFFICIAL RECORDS</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr class="text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">
+                                    <th class="ps-4">Timestamp</th>
+                                    <th>Verification Reference</th>
+                                    <th>Fee Category</th>
+                                    <th>Control No</th>
+                                    <th>Amount (TSH)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                $logs = $mysqli->query("SELECT * FROM payment_logs WHERE regNo = '$data->regNo' ORDER BY created_at DESC");
+                                if($logs->num_rows > 0):
+                                    while($log = $logs->fetch_object()):
+                                ?>
+                                <tr style="font-size: 0.9rem;">
+                                    <td class="ps-4">
+                                        <div class="fw-700"><?php echo date('d M Y', strtotime($log->created_at)); ?></div>
+                                        <div class="small text-muted"><?php echo date('H:i', strtotime($log->created_at)); ?></div>
+                                    </td>
+                                    <td><code class="text-primary fw-800"><?php echo $log->transaction_id; ?></code></td>
+                                    <td><span class="badge rounded-pill bg-light text-dark fw-700"><?php echo $log->payment_type; ?></span></td>
+                                    <td class="text-muted fw-600"><?php echo $log->control_no; ?></td>
+                                    <td class="fw-800"><?php echo number_format($log->amount); ?></td>
+                                    <td>
+                                        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-800">
+                                            <i class="fas fa-check-circle me-1"></i> VERIFIED
+                                        </span>
+                                    </td>
+                                </tr>
+                                <?php endwhile; else: ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted fw-600">No verified transactions found in the ledger.</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

@@ -101,7 +101,7 @@ while ($row = $res->fetch_object()) {
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Modern CSS -->
-    <link rel="stylesheet" href="css/modern.css">
+    <link rel="stylesheet" href="css/admin-modern.css">
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -116,58 +116,36 @@ while ($row = $res->fetch_object()) {
 
         /* ── Page layout ── */
         .room-creation-page {
-            min-height: 100vh;
-            padding: 30px 0;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
         }
 
-        /* ── Card ── */
         .room-form-card {
             background: #fff;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(67,97,238,.12);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(0,0,0,0.02);
             overflow: hidden;
-            max-width: 900px;
-            margin: 0 auto;
+            margin-bottom: 40px;
         }
 
-        /* ── Card header ── */
         .room-card-header {
-            background: linear-gradient(135deg, #4361ee 0%, #7b2ff7 100%);
-            padding: 32px 36px;
+            background: var(--gradient-primary);
+            padding: 40px;
+            color: #fff;
             position: relative;
             overflow: hidden;
-        }
-
-        .room-card-header::before {
-            content: '';
-            position: absolute;
-            top: -50px; right: -50px;
-            width: 200px; height: 200px;
-            background: rgba(255,255,255,.08);
-            border-radius: 50%;
-        }
-
-        .room-card-header::after {
-            content: '';
-            position: absolute;
-            bottom: -60px; left: -40px;
-            width: 180px; height: 180px;
-            background: rgba(255,255,255,.06);
-            border-radius: 50%;
         }
 
         .room-card-header h2 {
-            color: #fff;
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: 800;
-            margin: 0;
-            position: relative;
-            z-index: 1;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
         }
 
         .room-card-header p {
-            color: rgba(255,255,255,.75);
-            margin: 6px 0 0;
             font-size: 0.9rem;
             position: relative;
             z-index: 1;

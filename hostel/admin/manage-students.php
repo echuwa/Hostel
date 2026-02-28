@@ -64,6 +64,91 @@ if(isset($_GET['toggle_fee']))
         $stmt->close();	   
     }
 }
+
+// ==========================================
+// NEW LOGIC: PROCESS PAYMENT FORM
+// ==========================================
+if(isset($_POST['submit_payment']))
+{
+    if(!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $_SESSION['error_msg'] = "Security token mismatch. Action aborted.";
+    } else {
+        $regNo = $_POST['pay_regNo'];
+        $payment_type = $_POST['payment_type'] ?? 'Other';
+        $amount = $_POST['amount'] ?? 0;
+        $transaction_id = $_POST['transaction_id'] ?? '-';
+        $mark_eligible = isset($_POST['mark_eligible']) ? 1 : 0;
+        
+        $sql = "INSERT INTO payment_logs (regNo, amount, payment_type, transaction_id, status) VALUES (?, ?, ?, ?, 'Success')";
+        if($stmt = $mysqli->prepare($sql)) {
+            $stmt->bind_param('sdss', $regNo, $amount, $payment_type, $transaction_id);
+            if($stmt->execute()) {
+                
+                // BEST PRODUCTION LOGIC: Accumulate the paid amount into the specific category
+                $col = "";
+                if ($payment_type === 'Accommodation') $col = "accommodation_paid";
+                elseif ($payment_type === 'Registration') $col = "registration_paid";
+                elseif ($payment_type === 'Tuition') $col = "fees_paid";
+                
+                if (!empty($col)) {
+                    $acc_upd = $mysqli->prepare("UPDATE userregistration SET $col = $col + ? WHERE regNo = ?");
+                    if($acc_upd) {
+                        $acc_upd->bind_param('ds', $amount, $regNo);
+                        $acc_upd->execute();
+                        $acc_upd->close();
+                    }
+                }
+
+                // NEW AUTO-CALCULATION LOGIC: System decides if ELIGIBLE based on thresholds
+                $chk_query = "SELECT fees_paid, accommodation_paid, registration_paid FROM userregistration WHERE regNo = ?";
+                $chk_stmt = $mysqli->prepare($chk_query);
+                if($chk_stmt) {
+                    $chk_stmt->bind_param('s', $regNo);
+                    $chk_stmt->execute();
+                    $chk_stmt->bind_result($fees_paid, $accommodation_paid, $registration_paid);
+                    if($chk_stmt->fetch()) {
+                        $chk_stmt->close();
+                        
+                        // Define Target Business Rules (Thresholds)
+                        $target_registration = 50000;
+                        $target_accommodation = 178500;
+                        $target_tuition = 750000; // 50% of 1,500,000
+                        
+                        // Check if all thresholds have been met or exceeded
+                        if($registration_paid >= $target_registration && 
+                           $accommodation_paid >= $target_accommodation && 
+                           $fees_paid >= $target_tuition) {
+                            
+                            $upd = $mysqli->prepare("UPDATE userregistration SET fee_status = 1 WHERE regNo = ?");
+                            if($upd) {
+                                $upd->bind_param('s', $regNo);
+                                $upd->execute();
+                                $upd->close();
+                            }
+                        } else {
+                            // Enforce INELIGIBLE if thresholds are not met
+                            $upd = $mysqli->prepare("UPDATE userregistration SET fee_status = 0 WHERE regNo = ?");
+                            if($upd) {
+                                $upd->bind_param('s', $regNo);
+                                $upd->execute();
+                                $upd->close();
+                            }
+                        }
+                    } else {
+                        $chk_stmt->close();
+                    }
+                }
+                
+                $_SESSION['success_msg'] = "Payment verified and recorded successfully.";
+            } else {
+                $_SESSION['error_msg'] = "Error recording payment. Please try again.";
+            }
+            $stmt->close();
+        }
+        echo "<script>window.location.href='manage-students.php';</script>";
+        exit();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -158,7 +243,9 @@ if(isset($_GET['toggle_fee']))
                 <!-- STUDENT GRID -->
                 <div id="studentGrid" class="row g-4">
                     <?php 
-                    $query = "SELECT u.id, u.firstName, u.lastName, u.regNo, u.gender, u.email, u.status, u.regDate, r.roomno, r.seater 
+                    $query = "SELECT u.id, u.firstName, u.lastName, u.regNo, u.gender, u.email, u.status, u.regDate, 
+                             u.fee_status, u.fees_paid, u.accommodation_paid, u.registration_paid, 
+                             r.roomno, r.seater 
                              FROM userregistration u 
                              LEFT JOIN registration r ON u.regNo = r.regno";
                     
@@ -173,6 +260,11 @@ if(isset($_GET['toggle_fee']))
                     while($row = $res->fetch_object()):
                         $gender_class = $row->gender == 'female' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary';
                         $status_class = 'status-' . strtolower($row->status);
+                        
+                        // Payment Calculation
+                        $total_paid = $row->fees_paid + $row->accommodation_paid + $row->registration_paid;
+                        $total_expected = 1500000 + 178500 + 50000;
+                        $pay_perc = ($total_paid / $total_expected) * 100;
                     ?>
                     <div class="col-xl-4 col-md-6 student-item" 
                          data-gender="<?php echo strtolower($row->gender); ?>" 
@@ -191,12 +283,22 @@ if(isset($_GET['toggle_fee']))
                             <h5 class="fw-800 text-dark mb-1"><?php echo htmlspecialchars($row->firstName . ' ' . $row->lastName); ?></h5>
                             <p class="text-muted small fw-700 mb-3"><i class="fas fa-id-card me-1"></i> <?php echo $row->regNo; ?></p>
                             
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="small fw-700 text-muted">PAYMENT STATUS</span>
+                                    <span class="small fw-800 text-primary"><?php echo number_format($pay_perc, 0); ?>%</span>
+                                </div>
+                                <div class="progress rounded-pill" style="height: 6px;">
+                                    <div class="progress-bar rounded-pill" style="width: <?php echo $pay_perc; ?>%; background: var(--gradient-primary);"></div>
+                                </div>
+                            </div>
+
                             <div class="d-flex flex-wrap gap-2 mb-4">
                                 <div class="badge rounded-pill bg-light text-dark px-3 py-2 fw-700 small">
                                     <i class="fas fa-door-closed me-1"></i> <?php echo $row->roomno ? 'Room ' . $row->roomno : 'No Room'; ?>
                                 </div>
                                 <div class="badge rounded-pill bg-light text-dark px-3 py-2 fw-700 small">
-                                    <i class="fas fa-calendar-alt me-1"></i> <?php echo date('M Y', strtotime($row->regDate)); ?>
+                                    <i class="fas fa-coins me-1"></i> <?php echo number_format($total_paid/1000); ?>k
                                 </div>
                             </div>
                             
@@ -270,6 +372,71 @@ if(isset($_GET['toggle_fee']))
                 </div>
             </div>
         </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Comprehensive Payment Record Modal -->
+    <div class="modal fade" id="payFeeModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-success text-white p-4">
+                    <h5 class="modal-title fw-800"><i class="fas fa-money-bill-transfer me-2"></i> Register Payment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <!-- The Form targets the self page -->
+                <form method="POST" action="manage-students.php">
+                    <div class="modal-body p-4 text-start">
+                        <!-- CSRF Security -->
+                        <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+                        <input type="hidden" name="pay_regNo" id="pay_regNo">
+                        
+                        <div class="mb-4 text-center bg-light p-3 rounded-4">
+                            <div class="small fw-800 text-muted mb-1" style="letter-spacing: 1px;">RECORDING PAYMENT FOR</div>
+                            <h4 id="pay_student_name" class="fw-800 text-dark mb-0"></h4>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-800 text-muted small">PAYMENT CATEGORY</label>
+                            <select name="payment_type" class="form-select form-control fw-600" required style="border-radius: 12px; padding: 12px; border-color: #e2e8f0;">
+                                <option value="">Select Category...</option>
+                                <option value="Accommodation">Accommodation Fee (Kodi ya Chumba)</option>
+                                <option value="Registration">Registration Fee</option>
+                                <option value="Tuition">Tuition / Academic Fee</option>
+                                <option value="Other">Other / Miscellaneous</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-800 text-muted small">AMOUNT PAID (TSH)</label>
+                            <div class="input-group">
+                                <span class="input-group-text fw-800 text-muted bg-light border-end-0" style="border-radius: 12px 0 0 12px; border-color: #e2e8f0;">Tsh</span>
+                                <input type="number" name="amount" class="form-control fw-700 border-start-0" required placeholder="e.g. 150000" style="border-radius: 0 12px 12px 0; padding: 12px; border-color: #e2e8f0;">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-800 text-muted small">RECEIPT / TRANSACTION ID</label>
+                            <input type="text" name="transaction_id" class="form-control fw-700" required placeholder="e.g. REC-2023-XYZ" style="border-radius: 12px; padding: 12px; border-color: #e2e8f0;">
+                            <small class="text-muted d-block mt-2" style="font-size: 0.75rem;"><i class="fas fa-info-circle text-primary me-1"></i> Enter the bank or system receipt number for auditing purposes.</small>
+                        </div>
+                        
+                        <div class="alert alert-info border-0 rounded-4 small mb-0 d-flex align-items-center gap-3">
+                            <i class="fas fa-robot fa-2x opacity-50"></i>
+                            <div class="text-start">
+                                <strong>Smart Approval:</strong> The system will automatically mark the student as ELIGIBLE once they complete the required thresholds: Registration (50K), Accommodation (178.5K), and Tuition (750K).
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-800 text-muted" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="submit_payment" class="btn btn-success rounded-pill px-4 py-2 fw-800 shadow-sm">
+                            <i class="fas fa-check-circle me-2"></i> Confirm Setup
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
@@ -330,7 +497,18 @@ if(isset($_GET['toggle_fee']))
 
     function toggleFee() {
         if(!currentStudent) return;
-        window.location.href = `manage-students.php?toggle_fee=${currentStudent.regNo}&token=<?php echo generate_csrf_token(); ?>`;
+        
+        // Hide Student Brief Modal temporarily
+        const bModal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
+        if(bModal) bModal.hide();
+        
+        // Populate the Payment form with student's specific info
+        document.getElementById('pay_regNo').value = currentStudent.regNo;
+        document.getElementById('pay_student_name').innerText = currentStudent.firstName + ' ' + currentStudent.lastName;
+        
+        // Reveal Payment Modal
+        const payModal = new bootstrap.Modal(document.getElementById('payFeeModal'));
+        payModal.show();
     }
 
     function deleteStudent() {

@@ -68,14 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 
         if (empty($errors)) {
             $user_id = $_SESSION['user_id'] ?? $_SESSION['id'];
-            $pay_check = $mysqli->prepare("SELECT fees_paid, accommodation_paid FROM userregistration WHERE id = ?");
+            $pay_check = $mysqli->prepare("SELECT fees_paid, accommodation_paid, registration_paid FROM userregistration WHERE id = ?");
             $pay_check->bind_param('i', $user_id);
             $pay_check->execute();
             $pay_res = $pay_check->get_result()->fetch_object();
             $pay_check->close();
 
-            if (!$pay_res || $pay_res->fees_paid < 750000 || $pay_res->accommodation_paid < 178500) {
-                $errors[] = "❌ Usajili wa chumba umekataliwa: Hujakamilisha malipo ya kutosha. Unatakiwa uwe umelipa angalau TSH 750,000 (Ada) na TSH 178,500 (Accommodation).";
+            if (!$pay_res || $pay_res->fees_paid < 750000 || $pay_res->accommodation_paid < 178500 || $pay_res->registration_paid < 50000) {
+                $errors[] = "❌ Usajili wa chumba umekataliwa: Hujakamilisha malipo ya kutosha. Unatakiwa uwe umelipa angalau TSH 750,000 (Ada), TSH 178,500 (Accommodation), na TSH 50,000 (Registration).";
             } else {
                 // Room availability and transaction
                 $room_check = $mysqli->prepare("SELECT (seater - (SELECT COUNT(*) FROM registration WHERE roomno = ?)) as available FROM rooms WHERE room_no = ?");
@@ -154,7 +154,7 @@ $user = $mysqli->query("SELECT * FROM userregistration WHERE email = '$uid' OR r
 
 $booking_exists = $mysqli->query("SELECT id FROM registration WHERE emailid = '$uid' OR regno = '$uid'")->num_rows > 0;
 
-if (!$booking_exists && ($user->fees_paid < 750000 || $user->accommodation_paid < 178500)) {
+if (!$booking_exists && ($user->fees_paid < 750000 || $user->accommodation_paid < 178500 || $user->registration_paid < 50000)) {
     header("Location: pay-fees.php?msg=eligibility");
     exit();
 }
@@ -446,14 +446,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                 <div class="col-md-6">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Country</label>
-                                        <select name="country" id="cor-country" class="form-select form-control-modern" required>
-                                            <option value="">Choose Country</option>
-                                            <option value="Tanzania">Tanzania</option>
-                                            <option value="Kenya">Kenya</option>
-                                            <option value="Uganda">Uganda</option>
-                                            <option value="Rwanda">Rwanda</option>
-                                            <option value="Zambia">Zambia</option>
-                                        </select>
+                                        <input type="text" name="country" id="cor-country" class="form-control form-control-modern" value="Tanzania" readonly required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -483,12 +476,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                 <div class="col-md-6">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Permanent Country</label>
-                                        <select name="pcountry" id="perm-country" class="form-select form-control-modern" required>
-                                            <option value="">Choose Country</option>
-                                            <option value="Tanzania">Tanzania</option>
-                                            <option value="Kenya">Kenya</option>
-                                            <option value="Uganda">Uganda</option>
-                                        </select>
+                                        <input type="text" name="pcountry" id="perm-country" class="form-control form-control-modern" value="Tanzania" readonly required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
