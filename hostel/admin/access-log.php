@@ -205,9 +205,16 @@ $top_country_name = $top_country['country'] ?? 'N/A';
                                         <div class="date-text"><?php echo date('d M, Y', strtotime($row->loginTime)); ?></div>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-light rounded-3" onclick='showLogDetail(<?php echo json_encode($row); ?>)'>
-                                            <i class="fas fa-info-circle text-primary"></i>
-                                        </button>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button class="btn btn-sm btn-light rounded-3" onclick='showLogDetail(<?php echo json_encode($row); ?>)' title="View Details">
+                                                <i class="fas fa-info-circle text-primary"></i>
+                                            </button>
+                                            <?php if(isset($_SESSION['is_superadmin'])): ?>
+                                            <button class="btn btn-sm btn-outline-danger border-0 rounded-3" onclick="deleteAccessLog(<?php echo $row->id; ?>)" title="Delete Log">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                                 <?php endwhile; ?>
@@ -270,6 +277,7 @@ $top_country_name = $top_country['country'] ?? 'N/A';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         $(document).ready(function() {
@@ -291,6 +299,50 @@ $top_country_name = $top_country['country'] ?? 'N/A';
             document.getElementById('modalUid').innerText = data.userId;
             document.getElementById('modalLoc').innerText = data.city + ', ' + data.country;
             modal.show();
+        }
+
+        function deleteAccessLog(logId) {
+            Swal.fire({
+                title: 'Delete Access Log?',
+                text: "This action will permanently remove this login record.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef233c',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash-alt me-2"></i>Delete',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: 'rounded-pill px-4 fw-800',
+                    cancelButton: 'rounded-pill px-4 fw-800'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'ajax/delete-access-log-ajax.php',
+                        type: 'POST',
+                        data: { id: logId },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: response.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        },
+                        error: function() {
+                            Swal.fire('Failed', 'Could not reach the server.', 'error');
+                        }
+                    });
+                }
+            });
         }
     </script>
 </body>

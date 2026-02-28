@@ -246,11 +246,17 @@ $adminUsers = $mysqli->query("SELECT id, username FROM admins ORDER BY username"
                                             <td class="text-muted small fw-600"><?= htmlspecialchars($log['description']) ?></td>
                                             <td><span class="badge rounded-pill bg-light text-muted fw-700"><?= htmlspecialchars($log['ip_address']) ?></span></td>
                                             <td class="pe-4 text-center">
-                                                <button class="btn btn-sm btn-light rounded-pill px-3 fw-800 border-0 view-details" 
-                                                        data-bs-toggle="modal" data-bs-target="#logDetailsModal"
-                                                        data-log='<?= htmlspecialchars(json_encode($log)) ?>' style="font-size:0.7rem;">
-                                                    DETAILS
-                                                </button>
+                                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <button class="btn btn-sm btn-light rounded-pill px-3 fw-800 border-0 view-details" 
+                                                            data-bs-toggle="modal" data-bs-target="#logDetailsModal"
+                                                            data-log='<?= htmlspecialchars(json_encode($log)) ?>' style="font-size:0.75rem;">
+                                                        DETAILS
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger rounded-circle border-0 text-danger" 
+                                                            onclick="deleteAuditLog(<?= $log['id'] ?>)" title="Delete Log">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
@@ -340,6 +346,7 @@ $adminUsers = $mysqli->query("SELECT id, username FROM admins ORDER BY username"
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(function() {
         $('#logDetailsModal').on('show.bs.modal', function(event) {
@@ -361,6 +368,59 @@ $adminUsers = $mysqli->query("SELECT id, username FROM admins ORDER BY username"
             $('#detailAdditional').text(additionalData);
         });
     });
+
+    function deleteAuditLog(logId) {
+        Swal.fire({
+            title: 'Are you absolutely sure?',
+            text: "You won't be able to revert this! This action deletes system tracking history.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef233c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash-alt me-2"></i>Yes, delete it',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'rounded-pill px-4 fw-800',
+                cancelButton: 'rounded-pill px-4 fw-800'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'ajax/delete-audit-log-ajax.php',
+                    type: 'POST',
+                    data: { id: logId },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: response.message,
+                                customClass: { confirmButton: 'btn btn-primary rounded-pill px-4 fw-800' }
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed',
+                                text: response.message,
+                                customClass: { confirmButton: 'btn btn-primary rounded-pill px-4 fw-800' }
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'System Error',
+                            text: 'Could not communicate with the server.',
+                            customClass: { confirmButton: 'btn btn-primary rounded-pill px-4 fw-800' }
+                        });
+                    }
+                });
+            }
+        });
+    }
     </script>
 </body>
 </html>

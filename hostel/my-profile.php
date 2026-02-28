@@ -142,6 +142,10 @@ if(isset($_POST['update'])) {
                 $stmt->execute();
                 $res = $stmt->get_result();
                 
+                // Fetch states and courses for dropdowns
+                $states = $mysqli->query("SELECT State FROM states");
+                $courses = $mysqli->query("SELECT * FROM courses");
+                
                 if($row = $res->fetch_object()):
                 ?>
                 
@@ -238,7 +242,12 @@ if(isset($_POST['update'])) {
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Course Applied</label>
-                                                <input type="text" name="course" class="form-control form-control-modern" placeholder="e.g. Bachelor of IT" value="<?php echo htmlspecialchars($row->course ?? ''); ?>">
+                                                <select name="course" class="form-select form-control-modern">
+                                                    <option value="">Select Course</option>
+                                                    <?php $courses->data_seek(0); while($c = $courses->fetch_object()): ?>
+                                                        <option value="<?php echo htmlspecialchars($c->course_fn); ?>" <?php if(($row->course ?? '') == $c->course_fn) echo 'selected'; ?>><?php echo htmlspecialchars($c->course_sn); ?></option>
+                                                    <?php endwhile; ?>
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -256,7 +265,16 @@ if(isset($_POST['update'])) {
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Guardian Relation</label>
-                                                <input type="text" name="guardianRelation" class="form-control form-control-modern" placeholder="e.g. Father, Mother, Uncle" value="<?php echo htmlspecialchars($row->guardianRelation ?? ''); ?>">
+                                                <select name="guardianRelation" class="form-select form-control-modern">
+                                                    <option value="">Select Relation</option>
+                                                    <?php 
+                                                    $relations = ['Father', 'Mother', 'Brother', 'Sister', 'Uncle', 'Aunt', 'Legal Guardian'];
+                                                    foreach($relations as $rel) {
+                                                        $selected = (($row->guardianRelation ?? '') == $rel) ? 'selected' : '';
+                                                        echo "<option value=\"$rel\" $selected>$rel</option>";
+                                                    }
+                                                    ?>
+                                                </select>
                                             </div>
                                         </div>
 
@@ -264,41 +282,58 @@ if(isset($_POST['update'])) {
                                         <div class="col-12 mt-4">
                                             <h6 class="fw-800 border-bottom pb-2">Address Information</h6>
                                         </div>
-                                        <div class="col-md-12">
-                                            <div class="form-group-modern">
-                                                <label class="form-label-modern">Permanent Address</label>
-                                                <textarea name="pmntAddress" class="form-control form-control-modern" rows="2"><?php echo htmlspecialchars($row->pmntAddress ?? ''); ?></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group-modern">
-                                                <label class="form-label-modern">Permanent City/State</label>
-                                                <input type="text" name="pmntState" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->pmntState ?? ''); ?>">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group-modern">
-                                                <label class="form-label-modern">Permanent Country</label>
-                                                <input type="text" name="pmntCountry" class="form-control form-control-modern" value="Tanzania" readonly required>
-                                            </div>
-                                        </div>
                                         
                                         <div class="col-md-12">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Correspondence Address</label>
-                                                <textarea name="corresAddress" class="form-control form-control-modern" rows="2" placeholder="Leave blank if same as permanent address"><?php echo htmlspecialchars($row->corresAddress ?? ''); ?></textarea>
+                                                <textarea name="corresAddress" id="cor-addr" class="form-control form-control-modern" rows="2" placeholder="P.O Box / Street Name..."><?php echo htmlspecialchars($row->corresAddress ?? ''); ?></textarea>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Correspondence City/State</label>
-                                                <input type="text" name="corresState" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->corresState ?? ''); ?>">
+                                                <select name="corresState" id="cor-state" class="form-select form-control-modern">
+                                                    <option value="">Select Region</option>
+                                                    <?php $states->data_seek(0); while($s = $states->fetch_object()): ?>
+                                                        <option value="<?php echo htmlspecialchars($s->State); ?>" <?php if(($row->corresState ?? '') == $s->State) echo 'selected'; ?>><?php echo htmlspecialchars($s->State); ?></option>
+                                                    <?php endwhile; ?>
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Correspondence Country</label>
-                                                <input type="text" name="corresCountry" class="form-control form-control-modern" value="Tanzania" readonly required>
+                                                <input type="text" name="corresCountry" id="cor-country" class="form-control form-control-modern" value="Tanzania" readonly>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-12 pt-3">
+                                            <div class="form-check mb-4">
+                                                <input class="form-check-input" type="checkbox" id="copyAddr">
+                                                <label class="form-check-label fw-800 text-primary" for="copyAddr">Permanent address is same as Correspondence Address</label>
+                                            </div>
+                                            <hr class="mb-4 opacity-25">
+                                            
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Permanent Address</label>
+                                                <textarea name="pmntAddress" id="perm-addr" class="form-control form-control-modern" rows="2"><?php echo htmlspecialchars($row->pmntAddress ?? ''); ?></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Permanent City/State</label>
+                                                <select name="pmntState" id="perm-state" class="form-select form-control-modern">
+                                                    <option value="">Select Region</option>
+                                                    <?php $states->data_seek(0); while($s = $states->fetch_object()): ?>
+                                                        <option value="<?php echo htmlspecialchars($s->State); ?>" <?php if(($row->pmntState ?? '') == $s->State) echo 'selected'; ?>><?php echo htmlspecialchars($s->State); ?></option>
+                                                    <?php endwhile; ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Permanent Country</label>
+                                                <input type="text" name="pmntCountry" id="perm-country" class="form-control form-control-modern" value="Tanzania" readonly>
                                             </div>
                                         </div>
                                         
@@ -424,6 +459,19 @@ if(isset($_POST['update'])) {
             }, false);
         });
     })();
+    
+    $(document).ready(function(){
+        $('#copyAddr').click(function(){
+            if(this.checked) {
+                $('#perm-addr').val($('#cor-addr').val());
+                $('#perm-state').val($('#cor-state').val());
+                $('#perm-country').val($('#cor-country').val());
+            } else {
+                $('#perm-addr').val('');
+                $('#perm-state').val('');
+            }
+        });
+    });
     </script>
 </body>
 </html>
