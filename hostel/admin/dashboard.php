@@ -109,27 +109,31 @@ for ($i = 0; $i < 6; $i++) {
     $stmt->close();
 }
 
-// Get recent activities
-$recent_activities = [];
-$recentQ = "SELECT 
-    'complaint' as type, 
-    c.id, 
-    c.complaintType as title,
-    c.complaintDetails as message,
-    c.registrationDate as date, 
-    c.complaintStatus as status 
-FROM complaints c $block_join_complaints 
-WHERE 1=1 $block_cond_complaints
-ORDER BY c.registrationDate DESC 
-LIMIT 5";
+// ==================== ANALYTICS DATA ====================
+// Occupancy Stats
+$total_rooms = $mysqli->query("SELECT COUNT(*) FROM rooms $block_cond_rooms")->fetch_row()[0];
+$total_capacity_q = $mysqli->query("SELECT SUM(seater) FROM rooms $block_cond_rooms");
+$total_capacity = $total_capacity_q->fetch_row()[0] ?? 0;
+$total_occupied_q = $mysqli->query("SELECT COUNT(*) FROM registration $block_cond_reg");
+$total_occupied = $total_occupied_q->fetch_row()[0] ?? 0;
+$total_vacant = max(0, $total_capacity - $total_occupied);
+$occupancy_pct = $total_capacity > 0 ? round(($total_occupied / $total_capacity) * 100) : 0;
 
-$stmt = $mysqli->prepare($recentQ);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $recent_activities[] = $row;
-}
-$stmt->close();
+// Revenue totals
+$rev_total_q = $mysqli->query("SELECT SUM(u.fees_paid + u.accommodation_paid + u.registration_paid) FROM userregistration u");
+$total_revenue = $rev_total_q->fetch_row()[0] ?? 0;
+
+// Full rooms vs partial
+$full_q = "SELECT COUNT(*) FROM rooms r WHERE (SELECT COUNT(*) FROM registration rg WHERE rg.roomno = r.room_no) >= r.seater" . (empty($block_cond_rooms) ? '' : str_replace(' WHERE ',' AND r.',$block_cond_rooms));
+$full_rooms = $mysqli->query("SELECT COUNT(*) FROM rooms r JOIN registration rg ON rg.roomno = r.room_no WHERE r.seater <= (SELECT COUNT(*) FROM registration rg2 WHERE rg2.roomno = r.room_no)" . (empty($block_cond_rooms) ? '' : " AND r.room_no LIKE '{$_SESSION['assigned_block']}%'"))->fetch_row()[0] ?? 0;
+$partial_rooms = $total_rooms - $full_rooms - ($total_rooms - (int)$mysqli->query("SELECT COUNT(DISTINCT roomno) FROM registration $block_cond_reg")->fetch_row()[0]);
+$empty_rooms_cnt = $total_rooms - (int)$mysqli->query("SELECT COUNT(DISTINCT roomno) FROM registration $block_cond_reg")->fetch_row()[0];
+
+// Complaints by type
+$comp_types = [];
+$comp_q = $mysqli->query("SELECT c.complaintType, COUNT(*) as cnt FROM complaints c $block_join_complaints WHERE 1=1 $block_cond_complaints GROUP BY c.complaintType ORDER BY cnt DESC LIMIT 5");
+while($cr = $comp_q->fetch_assoc()) { $comp_types[] = $cr; }
+$max_comp = !empty($comp_types) ? $comp_types[0]['cnt'] : 1;
 
 // Get username safely
 $display_name = $_SESSION['username'] ?? $_SESSION['login'] ?? $_SESSION['name'] ?? $_SESSION['user'] ?? 'Admin';
@@ -171,7 +175,81 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
         }
         .activity-item:hover { transform: translateX(5px); background: #f1f5f9; }
         
-        .chart-card { min-height: 400px; padding: 30px; }
+        /* ======== PREMIUM ANALYTICS ======== */
+        .analytics-section { margin-top: 32px; }
+
+        .analytics-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 4px 24px rgba(67,97,238,0.07);
+            border: 1px solid rgba(67,97,238,0.07);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .analytics-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4361ee, #7209b7, #f72585);
+        }
+        .analytics-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .analytics-heading {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0;
+        }
+
+        /* Donut center text */
+        .donut-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+        .donut-center .pct { font-size: 2rem; font-weight: 900; color: #1e293b; line-height: 1; }
+        .donut-center .lbl { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+
+        /* Donut legend */
+        .donut-legend { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+        .donut-legend-item { display: flex; align-items: center; gap: 10px; }
+        .donut-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .donut-legend-label { font-size: 0.78rem; font-weight: 700; color: #334155; }
+        .donut-legend-val { font-size: 0.78rem; font-weight: 800; color: #1e293b; margin-left: auto; }
+
+        /* Complaint bars */
+        .comp-bar-wrap { margin-bottom: 18px; }
+        .comp-bar-label { font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .comp-bar-track { height: 10px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+        .comp-bar-fill { height: 100%; border-radius: 99px; transition: width 1.4s cubic-bezier(.23,1,.32,1); width: 0; }
+
+        /* Revenue KPI strip */
+        .kpi-strip {
+            display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .kpi-pill {
+            flex: 1; min-width: 100px;
+            background: linear-gradient(135deg, #f8fafc, #eef2ff);
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px 16px;
+            text-align: center;
+        }
+        .kpi-pill .kpi-num { font-size: 1.05rem; font-weight: 900; color: #4361ee; }
+        .kpi-pill .kpi-lbl { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+
+        .chart-card { padding: 28px; }
         .greeting-card {
             background: var(--gradient-primary); color: #fff;
             padding: 40px; border-radius: 24px; margin-bottom: 30px;
@@ -309,171 +387,261 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
                     </div>
                 </div>
 
-                <div class="row g-4">
-                    <!-- TRENDS CHART -->
-                    <div class="col-lg-8" data-aos="fade-right">
-                        <div class="card-modern chart-card">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <div>
-                                    <h5 class="fw-800 mb-0">Hostel Growth & Collection Performance</h5>
-                                    <p class="text-muted small fw-600 mb-0">Monthly Admissions vs. Revenue Inflow</p>
-                                </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-light rounded-pill dropdown-toggle fw-700 small" data-bs-toggle="dropdown">Last 6 Months</button>
-                                </div>
-                            </div>
-                            <div style="height: 300px;">
-                                <canvas id="trendsChart"></canvas>
-                            </div>
+                <!-- ============================================================
+                     PREMIUM ANALYTICS SECTION
+                     3-panel: Occupancy Donut | Monthly Bar | Complaint Breakdown
+                ============================================================ -->
+                <div class="analytics-section" data-aos="fade-up" data-aos-delay="100">
+
+                    <!-- Section Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <div class="analytics-title">Live Intelligence</div>
+                            <h5 class="analytics-heading">Hostel Performance Analytics</h5>
                         </div>
+                        <span class="badge rounded-pill px-3 py-2 fw-700" style="background:linear-gradient(135deg,#4361ee,#7209b7);color:#fff;font-size:0.7rem;">
+                            <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>
+                            <?php echo date('F Y'); ?>
+                        </span>
                     </div>
 
-                    <!-- RECENT FEEDBACKS/ACTIVITIES -->
-                    <div class="col-lg-4" data-aos="fade-left">
-                        <div class="card-modern p-4 h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h5 class="fw-800 mb-0">Recent Activities</h5>
-                                <a href="access-log.php" class="text-primary small fw-800">Logs</a>
+                    <div class="row g-4">
+
+                        <!-- ── PANEL 1: Occupancy Donut ── -->
+                        <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="150">
+                            <div class="analytics-card h-100">
+                                <div class="analytics-title">Panel 01</div>
+                                <div class="analytics-heading mb-3">Room Occupancy</div>
+
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <span class="badge rounded-pill fw-800" style="background:rgba(67,97,238,0.1);color:#4361ee;font-size:0.75rem;">
+                                        <?php echo $occupancy_pct; ?>% Occupied
+                                    </span>
+                                    <span class="badge rounded-pill fw-700 bg-light text-muted" style="font-size:0.7rem;">
+                                        <?php echo $total_rooms; ?> Total Rooms
+                                    </span>
+                                </div>
+
+                                <!-- Donut Chart -->
+                                <div class="position-relative" style="height:200px;">
+                                    <div id="donutOccupancy"></div>
+                                    <div class="donut-center">
+                                        <div class="pct"><?php echo $occupancy_pct; ?>%</div>
+                                        <div class="lbl">Filled</div>
+                                    </div>
+                                </div>
+
+                                <!-- Legend -->
+                                <div class="donut-legend mt-3 pt-3 border-top">
+                                    <div class="donut-legend-item">
+                                        <div class="donut-dot" style="background:#4361ee;"></div>
+                                        <span class="donut-legend-label">Occupied Beds</span>
+                                        <span class="donut-legend-val"><?php echo $total_occupied; ?></span>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="donut-dot" style="background:#06d6a0;"></div>
+                                        <span class="donut-legend-label">Available Beds</span>
+                                        <span class="donut-legend-val"><?php echo $total_vacant; ?></span>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="donut-dot" style="background:#f8fafc;border:2px solid #e2e8f0;"></div>
+                                        <span class="donut-legend-label">Total Capacity</span>
+                                        <span class="donut-legend-val"><?php echo $total_capacity; ?></span>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="activities-list">
-                                <?php if(empty($recent_activities)): ?>
+                        </div>
+
+                        <!-- ── PANEL 2: Monthly Bar Chart ── -->
+                        <div class="col-lg-5" data-aos="zoom-in" data-aos-delay="200">
+                            <div class="analytics-card h-100">
+                                <div class="analytics-title">Panel 02</div>
+                                <div class="analytics-heading mb-1">Monthly Trend</div>
+                                <p class="text-muted" style="font-size:0.75rem;font-weight:600;margin-bottom:16px;">Admissions &amp; Revenue (Last 6 Months)</p>
+
+                                <!-- KPI Pills -->
+                                <div class="kpi-strip">
+                                    <div class="kpi-pill">
+                                        <div class="kpi-num"><?php echo $counts['students']; ?></div>
+                                        <div class="kpi-lbl">Residents</div>
+                                    </div>
+                                    <div class="kpi-pill" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#bbf7d0;">
+                                        <div class="kpi-num" style="color:#059669;">TSH <?php echo number_format($total_revenue/1000000, 1); ?>M</div>
+                                        <div class="kpi-lbl">Collected</div>
+                                    </div>
+                                    <div class="kpi-pill" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa;">
+                                        <div class="kpi-num" style="color:#d97706;"><?php echo $counts['pending_students']; ?></div>
+                                        <div class="kpi-lbl">Pending</div>
+                                    </div>
+                                </div>
+
+                                <div id="barMonthly" style="height:220px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- ── PANEL 3: Complaint Breakdown ── -->
+                        <div class="col-lg-3" data-aos="zoom-in" data-aos-delay="250">
+                            <div class="analytics-card h-100">
+                                <div class="analytics-title">Panel 03</div>
+                                <div class="analytics-heading mb-1">Issue Radar</div>
+                                <p class="text-muted" style="font-size:0.75rem;font-weight:600;margin-bottom:20px;">Complaints by Category</p>
+
+                                <?php
+                                $bar_colors = ['#4361ee','#f72585','#fb8500','#06d6a0','#7209b7'];
+                                if(empty($comp_types)): ?>
                                     <div class="text-center py-5">
-                                        <i class="fas fa-clipboard-check fa-3x text-light mb-3"></i>
-                                        <p class="text-muted fw-600">No recent transactions</p>
+                                        <i class="fas fa-check-circle fa-3x mb-3" style="color:#06d6a0;"></i>
+                                        <p class="fw-700 text-muted small">No complaints recorded</p>
                                     </div>
-                                <?php else: ?>
-                                    <?php foreach($recent_activities as $activity): ?>
-                                    <div class="activity-item">
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <span class="badge rounded-pill bg-primary-light text-primary small fw-800"><?php echo htmlspecialchars($activity['title']); ?></span>
-                                            <small class="text-muted fw-600"><?php echo date('H:i', strtotime($activity['date'])); ?></small>
+                                <?php else: foreach($comp_types as $ci => $ct): ?>
+                                    <div class="comp-bar-wrap">
+                                        <div class="comp-bar-label">
+                                            <span><?php echo htmlspecialchars($ct['complaintType']); ?></span>
+                                            <span style="color:<?php echo $bar_colors[$ci % 5]; ?>;"><?php echo $ct['cnt']; ?></span>
                                         </div>
-                                        <div class="text-dark small fw-700 text-truncate" style="max-width: 250px;">
-                                            <?php echo htmlspecialchars($activity['message'] ?: 'System event updated'); ?>
+                                        <div class="comp-bar-track">
+                                            <div class="comp-bar-fill" style="background:<?php echo $bar_colors[$ci % 5]; ?>;" data-width="<?php echo round(($ct['cnt']/$max_comp)*100); ?>"></div>
                                         </div>
                                     </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <div class="mt-4 pt-3 border-top">
-                                <div class="d-flex align-items-center gap-3 mb-2">
-                                    <div class="bg-success-light text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                        <i class="fas fa-check-circle small"></i>
+                                <?php endforeach; endif; ?>
+
+                                <!-- Status Summary -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="fw-700 text-success" style="font-size:0.78rem;"><i class="fas fa-check-circle me-1"></i>Resolved</span>
+                                        <span class="fw-900" style="font-size:0.85rem;color:#059669;"><?php echo $counts['closed_complaints']; ?></span>
                                     </div>
-                                    <span class="text-muted small fw-600">All systems are running smoothly</span>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="fw-700 text-warning" style="font-size:0.78rem;"><i class="fas fa-spinner me-1"></i>In Process</span>
+                                        <span class="fw-900" style="font-size:0.85rem;color:#d97706;"><?php echo $counts['inprocess_complaints']; ?></span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-700 text-danger" style="font-size:0.78rem;"><i class="fas fa-exclamation-circle me-1"></i>New / Open</span>
+                                        <span class="fw-900" style="font-size:0.85rem;color:#ef233c;"><?php echo $counts['new_complaints']; ?></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-            </div>
-        </div>
-    </div>
+                    </div><!-- /row -->
+                </div><!-- /analytics-section -->
 
-    <!-- Scripts -->
+            </div><!-- /content-wrapper -->
+        </div><!-- /main-content -->
+    </div><!-- /app-container -->
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <!-- ApexCharts for premium charts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <script>
         AOS.init({ duration: 800, once: true });
 
-        // Chart Data
-        const ctx = document.getElementById('trendsChart').getContext('2d');
-        const months = <?php echo json_encode(array_reverse(array_keys($chart_occupancy))); ?>;
-        const revenueData = <?php echo json_encode(array_reverse(array_values($chart_revenue))); ?>;
-        const occupancyData = <?php echo json_encode(array_reverse(array_values($chart_occupancy))); ?>;
-        
-        const revGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        revGradient.addColorStop(0, 'rgba(67, 97, 238, 0.2)');
-        revGradient.addColorStop(1, 'rgba(67, 97, 238, 0)');
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: months,
-                datasets: [
-                {
-                    label: 'Revenue (TSH)',
-                    data: revenueData,
-                    borderColor: '#4361ee',
-                    backgroundColor: revGradient,
-                    borderWidth: 4,
-                    tension: 0.4,
-                    fill: true,
-                    yAxisID: 'yRevenue',
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                },
-                {
-                    label: 'New Occupancy',
-                    data: occupancyData,
-                    borderColor: '#06d6a0',
-                    borderWidth: 3,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    yAxisID: 'yOccupancy',
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
-                        display: true,
-                        position: 'top',
-                        labels: { font: { family: 'Plus Jakarta Sans', weight: '700', size: 11 } }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        padding: 12,
-                        backgroundColor: '#1e293b',
-                        titleFont: { family: 'Plus Jakarta Sans', weight: '800' },
-                        bodyFont: { family: 'Plus Jakarta Sans', weight: '600' }
+        // ==================== DONUT: Occupancy ====================
+        const donutOpts = {
+            series: [<?php echo $total_occupied; ?>, <?php echo max(1, $total_vacant); ?>],
+            chart: { type: 'donut', height: 200, sparkline: { enabled: true } },
+            labels: ['Occupied', 'Vacant'],
+            colors: ['#4361ee', '#e2e8f0'],
+            dataLabels: { enabled: false },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '72%',
+                        labels: { show: false }
                     }
-                },
-                scales: {
-                    yRevenue: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        grid: { borderDash: [5, 5] },
-                        ticks: { 
-                            font: { weight: '600' },
-                            callback: function(value) { return (value/1000) + 'k'; }
-                        },
-                        title: { display: true, text: 'Revenue (TSH)', font: { weight: '700' } }
-                    },
-                    yOccupancy: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        ticks: { font: { weight: '600' } },
-                        title: { display: true, text: 'Students', font: { weight: '700' } }
-                    },
-                    x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
                 }
+            },
+            stroke: { width: 0 },
+            legend: { show: false },
+            tooltip: {
+                y: { formatter: val => val + ' beds' },
+                style: { fontFamily: 'Plus Jakarta Sans' }
             }
+        };
+        new ApexCharts(document.getElementById('donutOccupancy'), donutOpts).render();
+
+        // ==================== BAR: Monthly Admissions + Revenue ====================
+        const months      = <?php echo json_encode(array_reverse(array_keys($chart_occupancy))); ?>;
+        const admissions  = <?php echo json_encode(array_reverse(array_values($chart_occupancy))); ?>;
+        const revenueData = <?php echo json_encode(array_map(fn($v) => round($v/1000, 1), array_reverse(array_values($chart_revenue)))); ?>;
+
+        const barOpts = {
+            series: [
+                {
+                    name: 'New Students',
+                    type: 'bar',
+                    data: admissions
+                },
+                {
+                    name: 'Revenue (K TSH)',
+                    type: 'line',
+                    data: revenueData
+                }
+            ],
+            chart: {
+                height: 220,
+                type: 'line',
+                toolbar: { show: false },
+                fontFamily: 'Plus Jakarta Sans, sans-serif'
+            },
+            stroke: { width: [0, 3], curve: 'smooth' },
+            plotOptions: {
+                bar: {
+                    columnWidth: '50%',
+                    borderRadius: 8,
+                    distributed: false
+                }
+            },
+            fill: {
+                type: ['gradient', 'solid'],
+                gradient: {
+                    type: 'vertical',
+                    shadeIntensity: 0.5,
+                    gradientToColors: ['#7209b7'],
+                    stops: [0, 100]
+                }
+            },
+            colors: ['#4361ee', '#f72585'],
+            labels: months,
+            yaxis: [
+                { title: { text: 'Students', style: { fontWeight: 700 } }, min: 0 },
+                { opposite: true, title: { text: 'Revenue (K TSH)', style: { fontWeight: 700 } }, min: 0 }
+            ],
+            xaxis: { labels: { style: { fontWeight: 700, fontSize: '11px' } } },
+            legend: { position: 'top', fontWeight: 700, fontSize: '11px' },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+            tooltip: {
+                shared: true,
+                intersect: false,
+                y: [
+                    { formatter: val => val + ' students' },
+                    { formatter: val => 'TSH ' + (val * 1000).toLocaleString() }
+                ]
+            }
+        };
+        new ApexCharts(document.getElementById('barMonthly'), barOpts).render();
+
+        // ==================== Animate complaint progress bars ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.querySelectorAll('.comp-bar-fill').forEach(bar => {
+                    bar.style.width = bar.dataset.width + '%';
+                });
+            }, 600);
         });
-        
-        // Counter animation
+
+        // ==================== Counter animation ====================
         $('.counter').each(function () {
             $(this).prop('Counter', 0).animate({
-                Counter: $(this).text()
+                Counter: $(this).text().replace('%','').replace(/,/g,'')
             }, {
                 duration: 2000,
                 easing: 'swing',
                 step: function (now) {
-                    $(this).text(Math.ceil(now));
+                    $(this).text(Math.ceil(now) + ($(this).text().indexOf('%') > -1 ? '%' : ''));
                 }
             });
         });

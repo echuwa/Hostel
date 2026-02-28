@@ -176,7 +176,7 @@ $stmt->close();
                                             $color = $perc >= 100 ? 'bg-danger' : ($perc >= 50 ? 'bg-warning' : 'bg-success');
                                         ?>
                                         <div class="col-xl-3 col-lg-4 col-md-6">
-                                            <div class="room-card-modern" onclick="showRoomDetails('<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>)">
+                                            <div class="room-card-modern" data-room-no="<?php echo $rm->room_no; ?>" data-seater="<?php echo $rm->seater; ?>" onclick="showRoomDetails('<?php echo $rm->room_no; ?>', <?php echo $rm->seater; ?>)">
                                                 <span class="room-tag <?php echo $rm->is_full ? 'tag-full' : 'tag-available'; ?>">
                                                     <?php echo $rm->is_full ? 'CAPACITY REACHED' : ($rm->seater - $rm->occupied) . ' VACANCY'; ?>
                                                 </span>
@@ -287,6 +287,23 @@ $stmt->close();
             }
         })
     }
+
+    // Auto-open room modal when coming from search (e.g. ?open_room=1A-G01)
+    document.addEventListener('DOMContentLoaded', function() {
+        const params = new URLSearchParams(window.location.search);
+        const openRoom = params.get('open_room');
+        if (openRoom) {
+            // Find the seater from the rendered room cards
+            let seater = 4; // default fallback
+            document.querySelectorAll('[data-room-no]').forEach(card => {
+                if (card.dataset.roomNo === openRoom) {
+                    seater = parseInt(card.dataset.seater) || 4;
+                }
+            });
+            // Small delay to let Bootstrap JS initialize
+            setTimeout(() => showRoomDetails(openRoom, seater), 350);
+        }
+    });
     </script>
 </body>
 </html>

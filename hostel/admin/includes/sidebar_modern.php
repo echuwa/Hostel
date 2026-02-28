@@ -396,18 +396,33 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
 
+                        // Build color map per type
+                        const typeColors = {
+                            'Student':     { bg: 'bg-primary bg-opacity-10', text: 'text-primary' },
+                            'Room':        { bg: 'bg-success bg-opacity-10', text: 'text-success' },
+                            'Complaint':   { bg: 'bg-danger bg-opacity-10',  text: 'text-danger' },
+                            'Admin User':  { bg: 'bg-warning bg-opacity-10', text: 'text-warning' },
+                        };
+
                         let html = '<div class="list-group list-group-flush">';
                         data.forEach(item => {
+                            const colors = typeColors[item.type] || { bg: 'bg-secondary bg-opacity-10', text: 'text-secondary' };
+                            const badgeHtml = item.badge
+                                ? `<span class="badge rounded-pill bg-light text-muted ms-1 fw-700" style="font-size:0.6rem;">${item.badge}</span>`
+                                : '';
                             html += `
-                                <a href="${item.url}" class="list-group-item list-group-item-action border-0 rounded-4 mb-2 p-3 d-flex align-items-center gap-3">
-                                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                <a href="${item.url}" class="list-group-item list-group-item-action border-0 rounded-4 mb-1 p-3 d-flex align-items-center gap-3" style="transition: background 0.15s;">
+                                    <div class="${colors.bg} ${colors.text} rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
                                         <i class="fas ${item.icon}"></i>
                                     </div>
-                                    <div style="flex: 1; overflow: hidden;">
-                                        <div class="fw-800 text-dark small text-truncate">${item.title}</div>
-                                        <div class="text-muted text-truncate" style="font-size: 0.7rem;">${item.type} • ${item.subtitle}</div>
+                                    <div style="flex: 1; overflow: hidden; min-width: 0;">
+                                        <div class="fw-800 text-dark small text-truncate">${item.title} ${badgeHtml}</div>
+                                        <div class="text-muted text-truncate" style="font-size: 0.7rem;">
+                                            <span class="badge rounded-pill bg-light text-muted fw-700 me-1" style="font-size:0.6rem;">${item.type}</span>
+                                            ${item.subtitle}
+                                        </div>
                                     </div>
-                                    <i class="fas fa-arrow-right ms-auto opacity-25 small"></i>
+                                    <i class="fas fa-chevron-right ms-auto opacity-20 text-muted" style="font-size: 0.65rem;"></i>
                                 </a>
                             `;
                         });
