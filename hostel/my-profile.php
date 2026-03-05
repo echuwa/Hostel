@@ -8,17 +8,18 @@ $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
 
 if(isset($_POST['update'])) {
     // Core details
-    $fname = trim($_POST['fname'] ?? '');
-    $mname = trim($_POST['mname'] ?? '');
-    $lname = trim($_POST['lname'] ?? '');
-    $gender = $_POST['gender'] ?? '';
-    $contactno = trim($_POST['contact'] ?? '');
+    $fname = htmlspecialchars($_POST['fname']);
+    $mname = htmlspecialchars($_POST['mname']);
+    $lname = htmlspecialchars($_POST['lname']);
+    $gender = htmlspecialchars($_POST['gender']);
+    $contactno = '255' . preg_replace('/[^0-9]/', '', $_POST['contact']);
     
     // Additional details
-    $course = trim($_POST['course'] ?? '');
-    $guardianName = trim($_POST['guardianName'] ?? '');
-    $guardianRelation = trim($_POST['guardianRelation'] ?? '');
-    $egycontactno = trim($_POST['egycontactno'] ?? '');
+    $course = htmlspecialchars($_POST['course'] ?? '');
+    $guardianName = htmlspecialchars($_POST['guardianName'] ?? '');
+    $guardianRelation = htmlspecialchars($_POST['guardianRelation'] ?? '');
+    $egycontactno = '255' . preg_replace('/[^0-9]/', '', $_POST['egycontactno']);
+    $guardianContactno = '255' . preg_replace('/[^0-9]/', '', $_POST['guardianContactno']);
     
     // Address Details
     $pmntAddress = trim($_POST['pmntAddress'] ?? '');
@@ -28,15 +29,68 @@ if(isset($_POST['update'])) {
     $corresState = trim($_POST['corresState'] ?? '');
     $corresCountry = trim($_POST['corresCountry'] ?? '');
     
+    $latitude = !empty($_POST['latitude']) ? $_POST['latitude'] : null;
+    $longitude = !empty($_POST['longitude']) ? $_POST['longitude'] : null;
+    $city = !empty($_POST['city']) ? htmlspecialchars($_POST['city']) : null;
+    $state_new = !empty($_POST['state']) ? htmlspecialchars($_POST['state']) : $corresState;
+    $country_new = !empty($_POST['country']) ? htmlspecialchars($_POST['country']) : $corresCountry;
+    $location_captured_at = (!empty($latitude) && !empty($longitude)) ? date('Y-m-d H:i:s') : null;
     $udate = date('d-m-Y h:i:s', time());
     
-    $query = "UPDATE userregistration SET firstName=?, middleName=?, lastName=?, gender=?, contactNo=?, updationDate=? WHERE id=?";
+    $query = "UPDATE userregistration SET firstName=?, middleName=?, lastName=?, gender=?, contactNo=?, updationDate=?, latitude=?, longitude=?, city=?, state=?, country=?, location_captured_at=? WHERE id=?";
     $stmt = $mysqli->prepare($query);
-    $stmt->bind_param('ssssisi', $fname, $mname, $lname, $gender, $contactno, $udate, $aid);
+    $stmt->bind_param('ssssssddssssi', $fname, $mname, $lname, $gender, $contactno, $udate, $latitude, $longitude, $city, $state_new, $country_new, $location_captured_at, $aid);
     
     if($stmt->execute()) {
         $stmt->close();
         
+        // Handle Profile Picture Upload
+        if(isset($_FILES["profilePic"]) && $_FILES["profilePic"]["error"] == 0){
+            $allowed = array("jpg" => "image/jpg", "jpeg" => "image/jpeg", "png" => "image/png");
+            $filename = $_FILES["profilePic"]["name"];
+            $filetype = $_FILES["profilePic"]["type"];
+            $filesize = $_FILES["profilePic"]["size"];
+        
+            // Verify file extension
+            $ext = pathinfo($filename, PATHINFO_EXTENSION);
+            if(!array_key_exists($ext, $allowed)) {
+                $_SESSION['error'] = "Error: Please select a valid file format (JPG, JPEG, PNG).";
+                header("Location: my-profile.php");
+                exit();
+            }
+        
+            // Verify file size - 5MB max
+            $maxsize = 5 * 1024 * 1024;
+            if($filesize > $maxsize) {
+                $_SESSION['error'] = "Error: File size is larger than the allowed limit (5MB).";
+                header("Location: my-profile.php");
+                exit();
+            }
+        
+            // Verify MYME type of the file
+            if(in_array($filetype, $allowed)){
+                // Check whether file exists before uploading it
+                $new_filename = "student_" . $aid . "_" . time() . "." . $ext;
+                $upload_path = "uploads/profiles/" . $new_filename;
+                
+                if(move_uploaded_file($_FILES["profilePic"]["tmp_name"], $upload_path)){
+                    // Update database
+                    $update_pic = $mysqli->prepare("UPDATE userregistration SET profile_pic = ? WHERE id = ?");
+                    $update_pic->bind_param("si", $upload_path, $aid);
+                    $update_pic->execute();
+                    $update_pic->close();
+                } else{
+                    $_SESSION['error'] = "Error: There was a problem uploading your file. Please try again.";
+                    header("Location: my-profile.php");
+                    exit();
+                } 
+            } else{
+                $_SESSION['error'] = "Error: There was a problem with your file type.";
+                header("Location: my-profile.php");
+                exit();
+            }
+        }
+
         // Fetch regNo to update the registration table as well
         $q2 = "SELECT regNo FROM userregistration WHERE id=?";
         $st2 = $mysqli->prepare($q2);
@@ -48,10 +102,10 @@ if(isset($_POST['update'])) {
         
         if($userRow) {
             $regNo = $userRow->regNo;
-            $updateReg = "UPDATE registration SET firstName=?, middleName=?, lastName=?, gender=?, contactno=?, course=?, guardianName=?, guardianRelation=?, egycontactno=?, pmntAddress=?, pmntState=?, pmntCountry=?, corresAddress=?, corresState=?, corresCountry=? WHERE regno = ? ORDER BY id DESC LIMIT 1";
+            $updateReg = "UPDATE registration SET firstName=?, middleName=?, lastName=?, gender=?, contactno=?, course=?, guardianName=?, guardianRelation=?, egycontactno=?, guardianContactno=?, pmntAddress=?, pmntState=?, pmntCountry=?, corresAddress=?, corresState=?, corresCountry=? WHERE regno = ? ORDER BY id DESC LIMIT 1";
             $stmtReg = $mysqli->prepare($updateReg);
             if($stmtReg) {
-                $stmtReg->bind_param('ssssssssssssssss', $fname, $mname, $lname, $gender, $contactno, $course, $guardianName, $guardianRelation, $egycontactno, $pmntAddress, $pmntState, $pmntCountry, $corresAddress, $corresState, $corresCountry, $regNo);
+                $stmtReg->bind_param('sssssssssssssssss', $fname, $mname, $lname, $gender, $contactno, $course, $guardianName, $guardianRelation, $egycontactno, $guardianContactno, $pmntAddress, $pmntState, $pmntCountry, $corresAddress, $corresState, $corresCountry, $regNo);
                 $stmtReg->execute();
                 $stmtReg->close();
             }
@@ -124,7 +178,27 @@ if(isset($_POST['update'])) {
             align-items: center;
             gap: 8px;
         }
+        
+        /* Map Styles */
+        .map_container {
+            width: 100%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            transition: height 0.3s ease;
+            margin-bottom: 0px;
+            border: 1px solid #e2e8f0;
+        }
+        .map_container.active {
+            height: 250px;
+            margin-bottom: 15px;
+        }
     </style>
+    <!-- Leaflet Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <?php include('includes/header.php'); ?>
@@ -136,7 +210,7 @@ if(isset($_POST['update'])) {
             <div class="container-fluid">
                 <?php
                 $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
-                $ret = "SELECT u.*, r.course, r.guardianName, r.guardianRelation, r.egycontactno, r.pmntAddress, r.pmntState, r.pmntCountry, r.corresAddress, r.corresState, r.corresCountry FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno WHERE u.id=? ORDER BY r.id DESC LIMIT 1";
+                $ret = "SELECT u.*, r.course, r.guardianName, r.guardianRelation, r.egycontactno, r.guardianContactno, r.pmntAddress, r.pmntState, r.pmntCountry, r.corresAddress, r.corresState, r.corresCountry FROM userregistration u LEFT JOIN registration r ON u.regNo = r.regno WHERE u.id=? ORDER BY r.id DESC LIMIT 1";
                 $stmt = $mysqli->prepare($ret);
                 $stmt->bind_param('i', $aid);
                 $stmt->execute();
@@ -153,9 +227,31 @@ if(isset($_POST['update'])) {
                 <div class="profile-hero animate__animated animate__fadeInDown">
                     <div class="row align-items-center">
                         <div class="col-md-auto text-center text-md-start mb-4 mb-md-0">
-                            <div class="avatar-container">
-                                <div class="avatar-lg">
-                                    <i class="fas fa-user-graduate"></i>
+                            <div class="avatar-container" style="width: 120px; height: 120px;">
+                                <?php 
+                                $pic_src = '';
+                                if (!empty($row->profile_pic)) {
+                                    if (substr($row->profile_pic, 0, 4) === 'http') {
+                                        $pic_src = $row->profile_pic;
+                                    } else {
+                                        $pic_src = '/' . ltrim($row->profile_pic, '/');
+                                    }
+                                }
+                                $initial = strtoupper(substr($row->firstName, 0, 1));
+                                ?>
+                                <div id="avatar_display_box" class="position-relative" style="width: 120px; height: 120px;">
+                                    <?php if (!empty($pic_src)): ?>
+                                        <img src="<?php echo htmlspecialchars($pic_src); ?>" alt="Avatar" class="rounded-circle shadow" style="width: 100%; height: 100%; object-fit: cover; border: 4px solid rgba(255,255,255,0.3);">
+                                    <?php else: ?>
+                                        <div class="avatar-lg d-flex align-items-center justify-content-center h-100 rounded-circle" style="background: rgba(255,255,255,0.2); border: 4px solid rgba(255,255,255,0.3); color: white;">
+                                            <span style="font-weight: 800;"><?php echo $initial; ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Change Photo Overlay -->
+                                    <label for="profilePic" class="position-absolute bottom-0 end-0 bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 38px; height: 38px; cursor: pointer; border: 3px solid var(--primary); transform: translate(5px, 5px); transition: 0.3s;">
+                                        <i class="fas fa-camera" style="font-size: 0.9rem;"></i>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -198,7 +294,33 @@ if(isset($_POST['update'])) {
                                     </div>
                                 <?php endif; ?>
 
-                                <form method="post" action="" class="needs-validation" novalidate>
+                                <form method="post" action="" enctype="multipart/form-data" class="needs-validation" novalidate>
+                                    
+                                    <!-- Profile Picture Upload Section -->
+                                    <div class="row mb-5">
+                                        <div class="col-12 text-center text-md-start d-flex flex-column flex-md-row align-items-center">
+                                            <div class="position-relative me-md-4 mb-3 mb-md-0">
+                                                <?php if(!empty($row->profile_pic)): ?>
+                                                    <img src="<?php echo htmlspecialchars($row->profile_pic); ?>" alt="Profile Picture" class="rounded-circle img-thumbnail shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
+                                                <?php else: ?>
+                                                    <div class="bg-primary-light text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 120px; height: 120px; font-size: 3rem;">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <label for="profilePic" class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 cursor-pointer shadow" style="cursor: pointer;" title="Change Photo">
+                                                    <i class="fas fa-camera"></i>
+                                                </label>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-800 mb-1">Profile Photo</h6>
+                                                <p class="small text-muted mb-2">Allowed formats: JPG, JPEG, PNG. Max size: 5MB.</p>
+                                                <input type="file" id="profilePic" name="profilePic" class="form-control form-control-modern d-none" accept=".jpg,.jpeg,.png">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('profilePic').click()">Choose Image</button>
+                                                <span id="fileNameDisplay" class="small ms-2 text-muted fw-600"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="row g-4">
                                         <div class="col-md-4">
                                             <div class="form-group-modern">
@@ -231,7 +353,10 @@ if(isset($_POST['update'])) {
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Contact Number</label>
-                                                <input type="tel" name="contact" class="form-control form-control-modern" value="<?php echo $row->contactNo; ?>" required>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white border-end-0 fw-800 text-primary">+255</span>
+                                                    <input type="tel" name="contact" class="form-control form-control-modern border-start-0 ps-0 tel-validate" value="<?php echo (str_starts_with($row->contactNo, '255') ? substr($row->contactNo, 3) : $row->contactNo); ?>" required maxlength="9">
+                                                </div>
                                             </div>
                                         </div>
                                         
@@ -253,13 +378,25 @@ if(isset($_POST['update'])) {
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Emergency Contact No.</label>
-                                                <input type="tel" name="egycontactno" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->egycontactno ?? ''); ?>">
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white border-end-0 fw-800 text-primary">+255</span>
+                                                    <input type="tel" name="egycontactno" class="form-control form-control-modern border-start-0 ps-0 tel-validate" value="<?php echo (str_starts_with($row->egycontactno ?? '', '255') ? substr($row->egycontactno, 3) : htmlspecialchars($row->egycontactno ?? '')); ?>" maxlength="9">
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group-modern">
                                                 <label class="form-label-modern">Guardian Full Name</label>
                                                 <input type="text" name="guardianName" class="form-control form-control-modern" value="<?php echo htmlspecialchars($row->guardianName ?? ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group-modern">
+                                                <label class="form-label-modern">Guardian Contact No.</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white border-end-0 fw-800 text-primary">+255</span>
+                                                    <input type="tel" name="guardianContactno" class="form-control form-control-modern border-start-0 ps-0 tel-validate" value="<?php echo (str_starts_with($row->guardianContactno ?? '', '255') ? substr($row->guardianContactno, 3) : htmlspecialchars($row->guardianContactno ?? '')); ?>" maxlength="9">
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -275,6 +412,41 @@ if(isset($_POST['update'])) {
                                                     }
                                                     ?>
                                                 </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- GPS Data Intelligence -->
+                                        <div class="col-12 mt-4">
+                                            <h6 class="fw-800 border-bottom pb-2 text-primary"><i class="fas fa-satellite-dish me-2"></i>Resident Data Intelligence (GPS)</h6>
+                                            <div class="p-4 rounded-4 bg-light border border-opacity-25 border-primary mb-3">
+                                                <div class="d-flex gap-2 mb-3">
+                                                    <button type="button" class="btn btn-modern btn-light border w-100 fw-800" onclick="toggleMap()" style="border-radius: 12px; font-size: 0.8rem; background: #fff;">
+                                                        <i class="fas fa-map-marked-alt text-primary me-2"></i>
+                                                        <span id="map-btn-text">Update Residential GPS Point</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-modern btn-primary px-4 shadow-sm" onclick="locateMe()" style="border-radius: 12px;" title="Auto-Detect GPS">
+                                                        <i class="fas fa-crosshairs"></i>
+                                                    </button>
+                                                </div>
+                                                
+                                                <div id="map-collapsible" style="display: none;">
+                                                    <div id="map" class="map_container"></div>
+                                                    <div id="address-preview" class="small fw-700 text-muted p-2">
+                                                        <?php if($row->latitude): ?>
+                                                            <div class='mb-1 text-primary'><i class='fas fa-check-circle me-1'></i> GPS Point and Geodata Encoded</div>
+                                                            <div class='mb-1'><i class='fas fa-map-location me-2 text-primary'></i><?php echo $row->state; ?> • <?php echo $row->city; ?></div>
+                                                            <div class='small opacity-75'><i class='fas fa-clock me-1'></i>Last Sync: <?php echo $row->location_captured_at; ?></div>
+                                                        <?php else: ?>
+                                                            No GPS intelligence point encoded. Click button to pinpoint.
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                                
+                                                <input type="hidden" id="latitude" name="latitude" value="<?php echo $row->latitude; ?>">
+                                                <input type="hidden" id="longitude" name="longitude" value="<?php echo $row->longitude; ?>">
+                                                <input type="hidden" id="city_field" name="city" value="<?php echo $row->city; ?>">
+                                                <input type="hidden" id="state_field" name="state" value="<?php echo $row->state; ?>">
+                                                <input type="hidden" id="country_field" name="country" value="<?php echo $row->country; ?>">
                                             </div>
                                         </div>
 
@@ -472,6 +644,119 @@ if(isset($_POST['update'])) {
             }
         });
     });
+
+    // Leaflet Map Logic
+    let map, marker;
+    function initMap() {
+        const defaultLat = <?php echo $row->latitude ?: -6.7924; ?>;
+        const defaultLng = <?php echo $row->longitude ?: 39.2083; ?>;
+        
+        map = L.map('map').setView([defaultLat, defaultLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        marker = L.marker([defaultLat, defaultLng], {draggable: true}).addTo(map);
+
+        map.on('click', function(e) {
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        marker.on('dragend', function(e) {
+            const { lat, lng } = marker.getLatLng();
+            updateLocation(lat, lng);
+        });
+    }
+
+    let mapVisible = false;
+    function toggleMap() {
+        const wrap = document.getElementById("map-collapsible");
+        const btnText = document.getElementById("map-btn-text");
+        mapVisible = !mapVisible;
+        wrap.style.display = mapVisible ? "block" : "none";
+        btnText.innerText = mapVisible ? "Close Intelligence Map" : "Pinpoint Residential Location";
+        if (mapVisible) {
+            if (!map) initMap();
+            else map.invalidateSize();
+            document.querySelector(".map_container").classList.add("active");
+        }
+    }
+
+    // Auto-submit profile pic on change
+    const profilePicInput = document.getElementById('profilePic');
+    if (profilePicInput) {
+        profilePicInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                Swal.fire({
+                    title: 'Processing Photo...',
+                    text: 'Updating your profile picture',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                const updateBtn = document.querySelector('button[name="update"]');
+                if (updateBtn) updateBtn.click();
+            }
+        });
+    }
+
+
+    function updateLocation(lat, lng) {
+        marker.setLatLng([lat, lng]);
+        document.getElementById("latitude").value = lat;
+        document.getElementById("longitude").value = lng;
+        
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.address) {
+                    const city = data.address.city || data.address.town || data.address.village || data.address.suburb || "N/A";
+                    const state = data.address.state || data.address.region || "N/A";
+                    const country = data.address.country || "N/A";
+                    
+                    document.getElementById("city_field").value = city;
+                    document.getElementById("state_field").value = state;
+                    document.getElementById("country_field").value = country;
+                    
+                    // Pre-fill address fields if they are empty
+                    if(!document.getElementById("cor-addr").value) {
+                         document.getElementById("cor-addr").value = city + " - (GPS Intelligence)";
+                         document.getElementById("cor-country").value = country;
+                         document.getElementById("cor-state").value = state;
+                    }
+                    
+                    const timeStr = new Date().toLocaleString();
+                    document.getElementById("address-preview").innerHTML = `
+                        <div class='mb-1'><i class='fas fa-earth-africa text-primary me-2'></i>${country}</div>
+                        <div class='mb-1'><i class='fas fa-map-location text-primary me-2'></i>${state} • ${city}</div>
+                        <div class='mt-2 small opacity-75'><i class='fas fa-clock me-1'></i>Captured: ${timeStr}</div>
+                    `;
+                }
+            });
+    }
+
+    function locateMe() {
+        if (!mapVisible) toggleMap();
+        if (navigator.geolocation) {
+            Swal.fire({ title: 'Locating...', text: 'Finding your GPS point', icon: 'info', showConfirmButton: false, timer: 1500 });
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                map.setView([latitude, longitude], 17);
+                updateLocation(latitude, longitude);
+            });
+        }
+    }
+    document.querySelectorAll('.tel-validate').forEach(input => {
+            input.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 9) this.value = this.value.substring(0, 9);
+            });
+        });
+
+        // Profile Picture File Name Display
+        document.getElementById('profilePic').addEventListener('change', function(e) {
+            var fileName = e.target.files[0] ? e.target.files[0].name : '';
+            document.getElementById('fileNameDisplay').textContent = fileName;
+        });
     </script>
 </body>
 </html>

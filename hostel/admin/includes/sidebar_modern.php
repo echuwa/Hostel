@@ -63,6 +63,30 @@ if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
 } else if(isset($_SESSION['assigned_block']) && !empty($_SESSION['assigned_block'])) {
     $role_label = 'Debtor - ' . htmlspecialchars($_SESSION['assigned_block']);
 }
+
+// Fetch admin profile pic
+$adm_pic_src = '';
+if (isset($mysqli) && isset($_SESSION['id'])) {
+    $adm_uid = intval($_SESSION['id']);
+    $adm_stmt = $mysqli->prepare("SELECT profile_pic FROM admins WHERE id = ? LIMIT 1");
+    if ($adm_stmt) {
+        $adm_stmt->bind_param('i', $adm_uid);
+        $adm_stmt->execute();
+        $adm_res = $adm_stmt->get_result();
+        if ($adm_row = $adm_res->fetch_object()) {
+            $adm_pic_raw = $adm_row->profile_pic ?? '';
+            if (!empty($adm_pic_raw)) {
+                if (substr($adm_pic_raw, 0, 4) === 'http') {
+                    $adm_pic_src = $adm_pic_raw;
+                } else {
+                    $adm_pic_src = '/' . ltrim($adm_pic_raw, '/');
+                }
+            }
+        }
+        $adm_stmt->close();
+    }
+}
+$adm_initial = strtoupper(substr($dn, 0, 1));
 ?>
 <!-- Include Global Assets -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -92,9 +116,21 @@ if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
     <!-- Admin Profile Mini -->
     <div class="sidebar-profile" style="padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
         <div style="display: flex; align-items: center; gap: 12px; transition: 0.3s; overflow: hidden;">
-            <div style="flex-shrink: 0; width: 44px; height: 44px; background: linear-gradient(135deg, #4361ee, #7b2ff7); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <?php echo strtoupper(substr($dn, 0, 1)); ?>
+            <?php 
+            $is_super_border = (isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) ? 'border: 2px solid #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.3);' : 'border: 2px solid rgba(255,255,255,0.2);';
+            ?>
+            <?php if (!empty($adm_pic_src)): ?>
+            <div style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; overflow: hidden; <?php echo $is_super_border; ?>">
+                <img src="<?php echo htmlspecialchars($adm_pic_src); ?>" 
+                     alt="Profile" 
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                     onerror="this.parentElement.style.background='linear-gradient(135deg,#4361ee,#7b2ff7)'; this.parentElement.innerHTML='<span style=\'display:flex;align-items:center;justify-content:center;height:100%;font-weight:800;color:white;font-size:1.1rem;\'><?php echo $adm_initial; ?></span>'">
             </div>
+            <?php else: ?>
+            <div style="flex-shrink: 0; width: 44px; height: 44px; background: linear-gradient(135deg, #4361ee, #7b2ff7); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 1.1rem; <?php echo $is_super_border; ?>">
+                <?php echo $adm_initial; ?>
+            </div>
+            <?php endif; ?>
             <div class="profile-text" style="overflow: hidden;">
                 <div style="font-weight: 700; font-size: 0.95rem; color: #fff; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"><?php echo htmlspecialchars($dn); ?></div>
                 <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; margin-top: 4px; white-space: nowrap;"><?php echo $role_label; ?></div>
@@ -211,7 +247,7 @@ if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
             </a>
         </li>
         <li>
-            <a href="superadmin-dashboard.php#debtor-section" class="" style="color: #4361ee !important; background: rgba(67, 97, 238, 0.05);">
+            <a href="javascript:void(0)" onclick="openAddDebtorModal()" style="color: #4361ee !important; background: rgba(67, 97, 238, 0.05);">
                 <i class="fas fa-user-shield"></i>
                 <span>Block Debtors</span>
             </a>
@@ -295,6 +331,135 @@ if(isset($_SESSION['is_superadmin']) && $_SESSION['is_superadmin'] == 1) {
 </div>
 
 <script>
+// Open Add Debtor Modal (Super Admin only)
+function openAddDebtorModal() {
+    Swal.fire({
+        title: '<div class="fw-800 text-dark">Deploy Block Debtor</div>',
+        html: `
+            <div class="text-start px-3">
+                <p class="small text-muted mb-4 text-center">Register a new administrator with specific block oversight.</p>
+                <div class="mb-3">
+                    <label class="form-label small fw-800 text-muted mb-1 text-uppercase">Username</label>
+                    <input type="text" id="swal-username" class="form-control rounded-3" placeholder="e.g. debtor_a">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-800 text-muted mb-1 text-uppercase">Email Address</label>
+                    <input type="email" id="swal-email" class="form-control rounded-3" placeholder="admin@hostel.com">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-800 text-muted mb-1 text-uppercase">Assigned Block</label>
+                    <input type="text" id="swal-block" class="form-control rounded-3" placeholder="e.g. Block A">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-800 text-muted mb-1 text-uppercase">Vault Password</label>
+                    <input type="password" id="swal-password" class="form-control rounded-3" placeholder="••••••••">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-800 text-primary mb-2 text-uppercase d-block border-bottom pb-1">Assign Authority Tiers</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="form-check form-switch small">
+                                <input class="form-check-input" type="checkbox" id="role-students" checked>
+                                <label class="form-check-label fw-700 text-muted" for="role-students">Students</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch small">
+                                <input class="form-check-input" type="checkbox" id="role-rooms" checked>
+                                <label class="form-check-label fw-700 text-muted" for="role-rooms">Rooms</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch small">
+                                <input class="form-check-input" type="checkbox" id="role-complaints" checked>
+                                <label class="form-check-label fw-700 text-muted" for="role-complaints">Complaints</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch small">
+                                <input class="form-check-input" type="checkbox" id="role-reports" checked>
+                                <label class="form-check-label fw-700 text-muted" for="role-reports">Reports</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-rocket me-2"></i>Deploy Account',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#4361ee',
+        cancelButtonColor: '#f1f5f9',
+        focusConfirm: false,
+        customClass: {
+            confirmButton: 'rounded-pill px-4 py-2 fw-800',
+            cancelButton: 'rounded-pill px-4 py-2 fw-800 text-dark border-0'
+        },
+        preConfirm: () => {
+            return {
+                username: Swal.getPopup().querySelector('#swal-username').value,
+                email: Swal.getPopup().querySelector('#swal-email').value,
+                block: Swal.getPopup().querySelector('#swal-block').value,
+                password: Swal.getPopup().querySelector('#swal-password').value,
+                perms: {
+                    manage_students: Swal.getPopup().querySelector('#role-students').checked,
+                    manage_rooms: Swal.getPopup().querySelector('#role-rooms').checked,
+                    manage_complaints: Swal.getPopup().querySelector('#role-complaints').checked,
+                    view_reports: Swal.getPopup().querySelector('#role-reports').checked
+                }
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const data = result.value;
+            if (!data.username || !data.email || !data.block || !data.password) {
+                Swal.fire('Incomplete Data', 'All fields are required to secure the deployment.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Deploying...',
+                html: 'Securing credentials and configuring block access...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // AJAX Submission
+            $.ajax({
+                url: 'includes/add_debtor_api.php',
+                type: 'POST',
+                data: result.value,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deployment Successful',
+                            text: response.message,
+                            timer: 3000,
+                            showConfirmButton: false,
+                            timerProgressBar: true
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Deployment Failed',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server Error',
+                        text: 'Unable to connect to the mission control API.'
+                    });
+                }
+            });
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Sidebar Toggle
     const sidebar = document.getElementById('sidebar');

@@ -8,10 +8,37 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @media print {
+            .brand, .ts-sidebar, .sidebar, #sidebar, .sidebar-mobile-toggle,
+            .header-page-info, .btn-modern, .print-hidden,
+            nav, .ts-profile-nav {
+                display: none !important;
+            }
+            body { background: white !important; margin: 0 !important; }
+            .content-wrapper, .main-content {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .card, .profile-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+        }
+        .notif-dot {
+            position: absolute; top: 0; right: 0; width: 10px; height: 10px;
+            background: #ef4444; border-radius: 50%; border: 2px solid #fff;
+        }
+        .header-action-btn {
+            position: relative; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            color: #fff; width: 40px; height: 40px; border-radius: 10px; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+        }
+        .header-action-btn:hover { background: rgba(255,255,255,0.25); }
         body {
             font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
             margin: 0;
             background: #f4f6fb;
+        }
+        .main-content {
+            padding-top: 64px !important;
         }
         .brand {
             display: flex;
@@ -288,6 +315,19 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             <button class="sidebar-mobile-toggle" id="adminMobileSidebarToggle" aria-label="Toggle Menu">
                 <i class="fas fa-bars"></i>
             </button>
+            <?php
+            // Global counts for notification bell
+            $pending_stud_count = 0;
+            $new_compl_count = 0;
+            if (isset($mysqli)) {
+                $ps_res = $mysqli->query("SELECT COUNT(*) as c FROM userregistration WHERE status = 'Pending'");
+                if($ps_res) $pending_stud_count = $ps_res->fetch_object()->c;
+                
+                $nc_res = $mysqli->query("SELECT COUNT(*) as c FROM complaints WHERE complaintStatus IS NULL OR complaintStatus='' OR complaintStatus='new'");
+                if($nc_res) $new_compl_count = $nc_res->fetch_object()->c;
+            }
+            $total_alerts = $pending_stud_count + $new_compl_count;
+            ?>
             <div class="header-page-info" style="margin-left: 10px; display: flex; align-items: center; gap: 20px;">
                 <div style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-th-large" style="font-size: 1.1rem; opacity: 0.9;"></i> 
@@ -300,16 +340,86 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             </div>
         </div>
         
-        <ul class="ts-profile-nav">
+        <ul class="ts-profile-nav" style="display:flex; align-items:center; gap:15px;">
+            <!-- Notification Bell -->
+            <li class="dropdown d-none d-md-block" style="position:relative;">
+                <button class="header-action-btn" data-bs-toggle="dropdown" aria-expanded="false" id="notifBell">
+                    <i class="fas fa-bell"></i>
+                    <?php if($total_alerts > 0): ?>
+                        <span class="notif-dot"></span>
+                    <?php endif; ?>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3 mt-2" style="width: 300px;">
+                    <h6 class="fw-800 mb-3 px-2">System Alerts</h6>
+                    <?php if($pending_stud_count > 0): ?>
+                    <a href="manage-students.php" class="dropdown-item p-2 rounded-3 mb-2 d-flex align-items-center gap-3">
+                        <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                            <i class="fas fa-user-clock" style="font-size:0.8rem;"></i>
+                        </div>
+                        <div>
+                            <div class="fw-800 small text-dark"><?php echo $pending_stud_count; ?> Pending Approvals</div>
+                            <div class="text-muted" style="font-size: 0.65rem;">Action required</div>
+                        </div>
+                    </a>
+                    <?php endif; ?>
+                    <?php if($new_compl_count > 0): ?>
+                    <a href="new-complaints.php" class="dropdown-item p-2 rounded-3 mb-2 d-flex align-items-center gap-3">
+                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:0.8rem;"></i>
+                        </div>
+                        <div>
+                            <div class="fw-800 small text-dark"><?php echo $new_compl_count; ?> New Complaints</div>
+                            <div class="text-muted" style="font-size: 0.65rem;">New support tickets</div>
+                        </div>
+                    </a>
+                    <?php endif; ?>
+                    <?php if($total_alerts == 0): ?>
+                    <div class="text-center py-3 text-muted small fw-600">No new alerts</div>
+                    <?php endif; ?>
+                    <hr class="my-2">
+                    <div class="text-center"><a href="dashboard.php" class="text-primary small fw-800 text-decoration-none">View All Dashboard</a></div>
+                </div>
+            </li>
+
             <li class="ts-account">
                 <a href="#" id="adminProfileToggle">
-                    <div class="avatar-circle">
-                        <?php
-                        $aname = $_SESSION['username'] ?? 'Admin';
-                        $adminDisplay = ucfirst($aname);
-                        echo strtoupper(substr($aname, 0, 1));
-                        ?>
+                    <?php
+                    $aname = $_SESSION['username'] ?? 'Admin';
+                    $adminDisplay = ucfirst($aname);
+                    $hdr_initial = strtoupper(substr($aname, 0, 1));
+                    $hdr_pic_src = '';
+                    
+                    if (isset($mysqli) && isset($_SESSION['id'])) {
+                        $aid = $_SESSION['id'];
+                        $stmt = $mysqli->prepare("SELECT profile_pic FROM admins WHERE id = ? LIMIT 1");
+                        if ($stmt) {
+                            $stmt->bind_param("i", $aid);
+                            $stmt->execute();
+                            $res = $stmt->get_result();
+                            if ($row = $res->fetch_object()) {
+                                $hdr_profile_pic = $row->profile_pic ?? '';
+                                if (!empty($hdr_profile_pic)) {
+                                    if (substr($hdr_profile_pic, 0, 4) === 'http') {
+                                        $hdr_pic_src = $hdr_profile_pic;
+                                    } else {
+                                        $hdr_pic_src = '../' . ltrim($hdr_profile_pic, '/');
+                                    }
+                                }
+                            }
+                            $stmt->close();
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($hdr_pic_src)): ?>
+                    <div class="avatar-circle" style="background: none; padding: 2px; overflow: hidden; border: 2px solid rgba(255,255,255,0.4);">
+                        <img src="<?php echo htmlspecialchars($hdr_pic_src); ?>" 
+                             alt="Profile" 
+                             style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;"
+                             onerror="this.parentElement.innerHTML='<?php echo $hdr_initial; ?>'; this.parentElement.style.background='linear-gradient(135deg, #b5179e, #7209b7)';">
                     </div>
+                    <?php else: ?>
+                    <div class="avatar-circle"><?php echo $hdr_initial; ?></div>
+                    <?php endif; ?>
                     <div class="user-info">
                         <span class="user-label">Admin</span>
                         <span class="username"><?php echo htmlspecialchars($adminDisplay); ?></span>

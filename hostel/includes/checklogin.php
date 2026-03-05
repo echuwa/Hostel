@@ -118,4 +118,40 @@ function get_current_username() {
 function require_login() {
     check_login();
 }
+/**
+ * Log student access activity
+ */
+function log_student_access($userId, $email) {
+    global $mysqli;
+    $ip = $_SERVER['REMOTE_ADDR'];
+    
+    // Default values
+    $city = "Unknown";
+    $country = "Unknown";
+    
+    // Free Geo-location API (ip-api.com)
+    try {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "http://ip-api.com/json/$ip");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        
+        $data = json_decode($result, true);
+        if ($data && $data['status'] === 'success') {
+            $city = $data['city'] ?? "Unknown";
+            $country = $data['country'] ?? "Unknown";
+        }
+    } catch (Exception $e) {
+        // Fallback to unknown
+    }
+
+    $stmt = $mysqli->prepare("INSERT INTO userlog (userId, userEmail, userIp, city, country) VALUES (?, ?, ?, ?, ?)");
+    if ($stmt) {
+        $stmt->bind_param("issss", $userId, $email, $ip, $city, $country);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
 ?>

@@ -29,6 +29,54 @@ if ($result->num_rows === 0) {
 $admin = $result->fetch_assoc();
 $stmt->close();
 
+// Handle profile picture upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_pic'])) {
+    if (isset($_FILES['adminPic']) && $_FILES['adminPic']['error'] == 0) {
+        $allowed_exts = ['jpg' => 'image/jpg', 'jpeg' => 'image/jpeg', 'png' => 'image/png'];
+        $ext = strtolower(pathinfo($_FILES['adminPic']['name'], PATHINFO_EXTENSION));
+        $filesize = $_FILES['adminPic']['size'];
+        $filetype = $_FILES['adminPic']['type'];
+        
+        if (!array_key_exists($ext, $allowed_exts)) {
+            $error = "Please select JPG, JPEG or PNG format only.";
+        } elseif ($filesize > 5 * 1024 * 1024) {
+            $error = "File size must be under 5MB.";
+        } else {
+            $upload_dir = dirname(__DIR__) . '/uploads/profiles/admin/';
+            if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+            $new_filename = 'admin_' . $admin_id . '_' . time() . '.' . $ext;
+            $upload_path_rel = 'tupo_kazin/Hostel-Management-Syste-Updated-Code/hostel/uploads/profiles/admin/' . $new_filename;
+            $upload_full = $upload_dir . $new_filename;
+            if (move_uploaded_file($_FILES['adminPic']['tmp_name'], $upload_full)) {
+                // Delete old pic if it's a local file
+                if (!empty($admin['profile_pic']) && substr($admin['profile_pic'], 0, 4) !== 'http') {
+                    @unlink(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . ltrim($admin['profile_pic'], '/'));
+                }
+                $store_path = 'uploads/profiles/admin/' . $new_filename;
+                $upd = $mysqli->prepare("UPDATE admins SET profile_pic = ? WHERE id = ?");
+                $upd->bind_param("si", $store_path, $admin_id);
+                $upd->execute();
+                $upd->close();
+                $admin['profile_pic'] = $store_path;
+                $success = "Profile picture updated successfully!";
+            } else {
+                $error = "Failed to upload image. Please check folder permissions.";
+            }
+        }
+    }
+}
+
+// Re-fetch profile_pic in case it was updated above
+$admin['profile_pic'] = $admin['profile_pic'] ?? '';
+$adm_header_pic = '';
+if (!empty($admin['profile_pic'])) {
+    if (substr($admin['profile_pic'], 0, 4) === 'http') {
+        $adm_header_pic = $admin['profile_pic'];
+    } else {
+        $adm_header_pic = '/' . ltrim($admin['profile_pic'], '/');
+    }
+}
+
 // Handle profile update
 $error = '';
 $success = '';
@@ -167,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
 
         <!-- MAIN CONTENT -->
         <div class="main-content">
+            <?php include('includes/header.php'); ?>
             <div class="content-wrapper">
                 
                 <!-- Header -->
@@ -185,9 +234,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
                         <div class="profile-card">
                             <div class="profile-cover">
                                 <div class="profile-avatar-wrapper">
-                                    <div class="profile-avatar">
-                                        <?php echo substr($admin['username'], 0, 1); ?>
+                                    <?php if (!empty($adm_header_pic)): ?>
+                                    <div class="profile-avatar" style="background: none; padding: 0; overflow: hidden;">
+                                        <img src="<?php echo htmlspecialchars($adm_header_pic); ?>" 
+                                             alt="Profile" 
+                                             style="width: 100%; height: 100%; object-fit: cover;"
+                                             onerror="this.parentElement.style.background='#eff6ff'; this.parentElement.innerHTML='<span style=\'font-size:2.5rem;color:#4361ee;font-weight:800;\'><?php echo strtoupper(substr($admin['username'],0,1)); ?></span>'">
                                     </div>
+                                    <?php else: ?>
+                                    <div class="profile-avatar">
+                                        <?php echo strtoupper(substr($admin['username'], 0, 1)); ?>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             
@@ -237,6 +295,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
                                         </div>
                                     </div>
                                 </form>
+
+                                        <!-- Profile Picture Upload -->
+                                        <hr class="my-4">
+                                        <h6 class="fw-bold text-dark mb-3"><i class="fas fa-camera me-2 text-primary"></i>Update Profile Picture</h6>
+                                        <form method="POST" enctype="multipart/form-data">
+                                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                <?php if (!empty($adm_header_pic)): ?>
+                                                <img src="<?php echo htmlspecialchars($adm_header_pic); ?>" 
+                                                     style="width:60px;height:60px;border-radius:14px;object-fit:cover;border:3px solid #e2e8f0;" 
+                                                     alt="Current pic">
+                                                <?php else: ?>
+                                                <div style="width:60px;height:60px;background:#eff6ff;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#4361ee;font-weight:800;border:3px solid #e2e8f0;">
+                                                    <?php echo strtoupper(substr($admin['username'],0,1)); ?>
+                                                </div>
+                                                <?php endif; ?>
+                                                <div style="flex:1;">
+                                                    <label for="adminPicInput" style="display:block;font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Choose Image (JPG/PNG, max 5MB)</label>
+                                                    <div class="d-flex gap-2 align-items-center">
+                                                        <input type="file" id="adminPicInput" name="adminPic" accept="image/jpeg,image/png" 
+                                                               class="form-control" style="border-radius:12px;" 
+                                                               onchange="document.getElementById('adminPicName').textContent=this.files[0]?.name||''">
+                                                        <button type="submit" name="upload_pic" class="btn btn-primary rounded-pill px-4 fw-bold" style="white-space:nowrap;">
+                                                            <i class="fas fa-upload me-1"></i> Upload
+                                                        </button>
+                                                    </div>
+                                                    <small id="adminPicName" class="text-muted mt-1 d-block"></small>
+                                                </div>
+                                            </div>
+                                        </form>
                             </div>
                         </div>
                     </div>

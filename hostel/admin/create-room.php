@@ -102,6 +102,8 @@ while ($row = $res->fetch_object()) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Modern CSS -->
     <link rel="stylesheet" href="css/admin-modern.css">
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -116,18 +118,19 @@ while ($row = $res->fetch_object()) {
 
         /* ── Page layout ── */
         .room-creation-page {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 20px;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         .room-form-card {
             background: #fff;
-            border-radius: 24px;
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(0,0,0,0.02);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
             overflow: hidden;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
+            height: 100%;
         }
 
         .room-card-header {
@@ -490,6 +493,29 @@ while ($row = $res->fetch_object()) {
         .custom-nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: #475569; padding: 10px 28px; transition: all 0.3s ease; font-size: 0.95rem; }
         .custom-nav-pills .nav-link:hover { background: #e2e8f0; color: #1e293b; }
         .custom-nav-pills .nav-link.active { background: #4361ee; color: #fff; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35); }
+
+        /* Modern Accordion / Drop Down View */
+        .modern-accordion .accordion-item { border: none; background: transparent; margin-bottom: 12px; }
+        .modern-accordion .accordion-header .accordion-button {
+            background: #fff; border-radius: 12px !important; border: 1px solid #e2e8f0;
+            padding: 18px 24px; font-weight: 800; color: #1e293b; transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .modern-accordion .accordion-header .accordion-button:not(.collapsed) {
+            color: #4361ee; background: #f8fafc; border-color: #4361ee;
+            box-shadow: 0 4px 12px rgba(67,97,238,0.1);
+        }
+        .modern-accordion .accordion-header .accordion-button::after { filter: grayscale(1); transform: scale(0.8); }
+        .modern-accordion .accordion-body {
+            padding: 20px; background: #fff; border: 1px solid #e2e8f0; border-top: none;
+            border-radius: 0 0 12px 12px; margin-top: -10px;
+        }
+
+        /* Custom Scrollbar for Room Grid */
+        .room-grid::-webkit-scrollbar { width: 6px; }
+        .room-grid::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .room-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .room-grid::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 
@@ -518,7 +544,50 @@ while ($row = $res->fetch_object()) {
                 </div>
 
                 <div class="room-creation-page">
-                    <div class="room-form-card">
+                    <!-- Quick Stats Header -->
+                    <div class="row g-4 mb-5" data-aos="fade-up">
+                        <div class="col-md-3">
+                            <div class="p-4 rounded-4 bg-white shadow-sm border-start border-4 border-primary">
+                                <div class="small fw-800 text-muted opacity-75">TOTAL LISTED</div>
+                                <div class="h3 fw-800 mb-0"><?php echo $res->num_rows; ?> <span class="small fw-600 opacity-50">Rooms</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-4 rounded-4 bg-white shadow-sm border-start border-4 border-success">
+                                <div class="small fw-800 text-muted opacity-75">BLOCKS ACTIVE</div>
+                                <div class="h3 fw-800 mb-0"><?php echo count($rooms_by_block); ?> <span class="small fw-600 opacity-50">Units</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <?php
+                                $total_capacity = 0;
+                                $res->data_seek(0);
+                                while($r = $res->fetch_object()) $total_capacity += $r->seater;
+                            ?>
+                            <div class="p-4 rounded-4 bg-white shadow-sm border-start border-4 border-info">
+                                <div class="small fw-800 text-muted opacity-75">BED CAPACITY</div>
+                                <div class="h3 fw-800 mb-0"><?php echo $total_capacity; ?> <span class="small fw-600 opacity-50">Slots</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-end d-flex align-items-center justify-content-end">
+                             <button type="button" onclick="showInventoryModal()" class="btn btn-white shadow-sm rounded-4 p-3 border-0" style="transition: all 0.3s; background: #fff;">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                                        <i class="fas fa-warehouse text-primary"></i>
+                                    </div>
+                                    <div class="text-start">
+                                        <div class="small fw-800 text-muted lh-1 mb-1">VIEW</div>
+                                        <div class="fw-800 text-primary lh-1">INVENTORY</div>
+                                    </div>
+                                </div>
+                             </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 justify-content-center">
+                        <!-- Main Column: Generator Form -->
+                        <div class="col-xl-7">
+                            <div class="room-form-card" data-aos="fade-up">
                         
                         <!-- Card Header -->
                         <div class="room-card-header">
@@ -684,75 +753,72 @@ while ($row = $res->fetch_object()) {
                                         <i class="fas fa-redo"></i> Reset Form
                                     </button>
                                     <button type="submit" name="submit" class="btn-create" id="createBtn">
-                                        <i class="fas fa-cogs"></i> Generate Rooms
+                                        <i class="fas fa-magic me-2"></i> Generate Rooms
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Already Added Rooms Display -->
-                    <div class="room-form-card mt-5">
-                        <div class="room-card-header" style="padding: 24px 36px; background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
-                            <h2><i class="fas fa-list"></i> Already Added Rooms</h2>
-                            <p>View the existing room layout to avoid duplicating rooms.</p>
-                        </div>
-                        <div class="room-card-body">
-                            <?php if (empty($rooms_by_block)): ?>
-                                <div class="alert alert-info border-0 shadow-sm" style="border-radius:10px;"><i class="fas fa-info-circle me-2"></i>No rooms have been added to the system yet. Use the form above to generate your first blocks!</div>
-                            <?php else: ?>
-                                <!-- Blocks Tabs -->
-                                <ul class="nav nav-tabs custom-nav-tabs" id="blockTabs" role="tablist">
-                                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link <?php echo $i===0?'active':''; ?>" id="tab-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" data-bs-toggle="tab" data-bs-target="#pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($block_name); ?></button>
-                                        </li>
-                                    <?php $i++; endforeach; ?>
-                                </ul>
+                <!-- Hidden Template for Room Inventory (Pop-up Content) -->
+                <div id="inventory-template" style="display: none;">
+                    <div class="text-start p-2">
+                        <?php if (empty($rooms_by_block)): ?>
+                            <div class="alert alert-info border-0 shadow-sm"><i class="fas fa-info-circle me-2"></i>No rooms added yet.</div>
+                        <?php else: ?>
+                            <div class="accordion modern-accordion" id="modalAccordion">
+                                <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): 
+                                    $block_id = preg_replace('/[^a-zA-Z0-9]/','',$block_name);
+                                ?>
+                                    <div class="accordion-item shadow-none border-0 mb-3">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button <?php echo $i!==0?'collapsed':''; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#m-collapse-<?php echo $block_id; ?>" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+                                                <div class="d-flex align-items-center justify-content-between w-100 me-3">
+                                                    <span class="fw-800"><i class="fas fa-building text-primary me-2"></i><?php echo htmlspecialchars($block_name); ?></span>
+                                                    <span class="badge bg-white text-primary border rounded-pill px-3"><?php 
+                                                        $count = 0;
+                                                        foreach($block_wings as $w) $count += count($w);
+                                                        echo $count;
+                                                    ?> Units</span>
+                                                </div>
+                                            </button>
+                                        </h2>
+                                        <div id="m-collapse-<?php echo $block_id; ?>" class="accordion-collapse collapse <?php echo $i===0?'show':''; ?>" data-bs-parent="#modalAccordion">
+                                            <div class="accordion-body p-0 pt-3">
+                                                <ul class="nav nav-pills mb-3 gap-2 px-2" role="tablist">
+                                                    <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                        <li class="nav-item">
+                                                            <button class="btn btn-sm <?php echo $j===0?'btn-primary':'btn-light'; ?> rounded-pill px-3 fw-700 wing-toggle-btn" 
+                                                                    data-target="m-spane-<?php echo $block_id . $j; ?>" 
+                                                                    onclick="toggleWing(this, '<?php echo $block_id; ?>')">
+                                                                <?php echo htmlspecialchars($side_name); ?>
+                                                            </button>
+                                                        </li>
+                                                    <?php $j++; endforeach; ?>
+                                                </ul>
 
-                                <!-- Blocks Content -->
-                                <div class="tab-content pt-3" id="blockTabsContent">
-                                    <?php $i=0; foreach ($rooms_by_block as $block_name => $block_wings): ?>
-                                        <div class="tab-pane fade <?php echo $i===0?'show active':''; ?>" id="pane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tabpanel">
-                                            
-                                            <!-- Sides Pills -->
-                                            <ul class="nav nav-pills custom-nav-pills mb-3" id="pills-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>" role="tablist">
-                                                <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
-                                                    <li class="nav-item" role="presentation">
-                                                        <button class="nav-link <?php echo $j===0?'active':''; ?>" id="pill-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" data-bs-toggle="pill" data-bs-target="#spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" type="button" role="tab"><?php echo htmlspecialchars($side_name); ?></button>
-                                                    </li>
-                                                <?php $j++; endforeach; ?>
-                                            </ul>
-                                            
-                                            <!-- Sides Content -->
-                                            <div class="tab-content" id="pills-Content-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name); ?>">
-                                                <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
-                                                    <div class="tab-pane fade <?php echo $j===0?'show active':''; ?>" id="spane-<?php echo preg_replace('/[^a-zA-Z0-9]/','',$block_name . $side_name); ?>" role="tabpanel">
-                                                        
-                                                        <div class="room-grid border rounded p-3 bg-light">
-                                                            <?php foreach ($side_rooms as $rm): ?>
-                                                            <div class="room-card" title="Room already exists">
-                                                                <div class="room-number"><?php echo htmlspecialchars($rm->room_no); ?></div>
-                                                                <div class="room-meta">
-                                                                    <span><i class="fas fa-users"></i> <?php echo $rm->seater; ?> Bed</span>
-                                                                    <span><i class="fas fa-money-bill-wave"></i> <?php echo number_format($rm->fees); ?>/=</span>
+                                                <div class="wing-panes-container p-2">
+                                                    <?php $j=0; foreach ($block_wings as $side_name => $side_rooms): ?>
+                                                        <div class="wing-pane <?php echo $j===0?'':'d-none'; ?>" id="m-spane-<?php echo $block_id . $j; ?>">
+                                                            <div class="room-grid" style="max-height: 350px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">
+                                                                <?php foreach ($side_rooms as $rm): ?>
+                                                                <div class="p-2 border rounded-3 text-center bg-white shadow-sm">
+                                                                    <div class="fw-800 text-primary small"><?php echo htmlspecialchars($rm->room_no); ?></div>
+                                                                    <div class="text-muted" style="font-size: 0.65rem;"><i class="fas fa-bed"></i> <?php echo $rm->seater; ?> Bed</div>
                                                                 </div>
-                                                                <div class="room-badge avail-badge"><i class="fas fa-check-circle"></i> ADDED</div>
+                                                                <?php endforeach; ?>
                                                             </div>
-                                                            <?php endforeach; ?>
                                                         </div>
-
-                                                    </div>
-                                                <?php $j++; endforeach; ?>
+                                                    <?php $j++; endforeach; ?>
+                                                </div>
                                             </div>
-
                                         </div>
-                                    <?php $i++; endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                                    </div>
+                                <?php $i++; endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
-
                 </div>
 
             </div>
@@ -762,8 +828,10 @@ while ($row = $res->fetch_object()) {
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
     <script>
+        AOS.init({ duration: 800, once: true });
         // Show success modal on page load if just created
         <?php if(isset($_GET['created']) && isset($_SESSION['room_success'])): 
             $rs = $_SESSION['room_success'];
@@ -837,6 +905,37 @@ while ($row = $res->fetch_object()) {
 
         // Init preview
         updatePreview();
+
+        function showInventoryModal() {
+            const content = document.getElementById('inventory-template').innerHTML;
+            Swal.fire({
+                title: '<i class="fas fa-warehouse text-primary me-2"></i>Unit Inventory Explorer',
+                html: content,
+                width: '800px',
+                showConfirmButton: false,
+                showCloseButton: true,
+                customClass: {
+                    container: 'inventory-modal-container',
+                    popup: 'rounded-4'
+                }
+            });
+        }
+
+        function toggleWing(btn, blockId) {
+            const targetId = btn.getAttribute('data-target');
+            // Reset all buttons and panes in this block context
+            const parent = btn.closest('.accordion-body');
+            parent.querySelectorAll('.wing-toggle-btn').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-light');
+            });
+            parent.querySelectorAll('.wing-pane').forEach(p => p.classList.add('d-none'));
+            
+            // Activate selected
+            btn.classList.remove('btn-light');
+            btn.classList.add('btn-primary');
+            document.getElementById(targetId).classList.remove('d-none');
+        }
     </script>
 </body>
 </html>

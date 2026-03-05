@@ -34,9 +34,17 @@ if(isset($_POST['submit'])) {
     $mname = isset($_POST['mname']) ? htmlspecialchars(trim($_POST['mname'])) : '';
     $lname = isset($_POST['lname']) ? htmlspecialchars(trim($_POST['lname'])) : '';
     $gender = $_POST['gender'] ?? '';
-    $contactno = isset($_POST['contact']) ? preg_replace('/[^0-9]/', '', $_POST['contact']) : '';
+    $contactno = isset($_POST['contact']) ? '255' . preg_replace('/[^0-9]/', '', $_POST['contact']) : '';
     $emailid = isset($_POST['email']) ? filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL) : '';
     $password = isset($_POST['password']) ? password_hash($_POST['password'], PASSWORD_DEFAULT) : '';
+    
+    // GPS Data
+    $latitude = !empty($_POST['latitude']) ? $_POST['latitude'] : null;
+    $longitude = !empty($_POST['longitude']) ? $_POST['longitude'] : null;
+    $city = !empty($_POST['city']) ? htmlspecialchars($_POST['city']) : null;
+    $state_gps = !empty($_POST['state_gps']) ? htmlspecialchars($_POST['state_gps']) : null;
+    $country_gps = !empty($_POST['country_gps']) ? htmlspecialchars($_POST['country_gps']) : null;
+    $location_captured_at = (!empty($latitude) && !empty($longitude)) ? date('Y-m-d H:i:s') : null;
     
     // Validate inputs
     $errors = [];
@@ -72,12 +80,12 @@ if(isset($_POST['submit'])) {
             $payment_status = "Pending";
             $fee_status = 0;
 
-            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,fees_paid,accommodation_paid,registration_paid,payment_status,fee_status,fee_control_no,acc_control_no,reg_control_no) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            $query = "INSERT INTO userregistration(regNo,firstName,middleName,lastName,gender,contactNo,email,password,fees_paid,accommodation_paid,registration_paid,payment_status,fee_status,fee_control_no,acc_control_no,reg_control_no,latitude,longitude,city,state,country,location_captured_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             $stmt = $mysqli->prepare($query);
             if(!$stmt) {
                 $_SESSION['error'] = "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
             } else {
-                $stmt->bind_param('ssssssssdddsisss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $fees_paid, $accommodation_paid, $registration_paid, $payment_status, $fee_status, $fee_ctrl, $acc_ctrl, $reg_ctrl);
+                $stmt->bind_param('ssssssssdddsisssddssss', $regno, $fname, $mname, $lname, $gender, $contactno, $emailid, $password, $fees_paid, $accommodation_paid, $registration_paid, $payment_status, $fee_status, $fee_ctrl, $acc_ctrl, $reg_ctrl, $latitude, $longitude, $city, $state_gps, $country_gps, $location_captured_at);
                 
                 if($stmt->execute()) {
                     $room = isset($_POST['room']) ? htmlspecialchars(trim($_POST['room'])) : '';
@@ -102,11 +110,11 @@ if(isset($_POST['submit'])) {
                                 $empty, // guardianRelation
                                 $empty, // guardianContactno
                                 $empty, // corresAddress
-                                $empty, // corresCountry
-                                $empty, // corresState
+                                $country_gps ?: 'Tanzania', // corresCountry
+                                $state_gps ?: $empty, // corresState
                                 $empty, // pmntAddress
-                                $empty, // pmntCountry
-                                $empty  // pmntState
+                                $country_gps ?: 'Tanzania', // pmntCountry
+                                $state_gps ?: $empty  // pmntState
                             );
                             $regStmt->execute();
                             $regStmt->close();
@@ -233,7 +241,48 @@ foreach($rooms_by_block as $b => $s) {
             font-size: 1.8rem;
             margin-right: 20px;
         }
+
+        /* GPS Map Styling */
+        #admin-map { width: 100%; transition: all 0.3s ease; }
+        .gps-active { border-color: #4361ee !important; box-shadow: 0 0 0 4px rgba(67,97,238,0.1) !important; }
+
+        /* Premium GPS Button Styling */
+        .btn-gps-trigger {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 12px 18px;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 16px;
+            text-align: left;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .btn-gps-trigger:hover {
+            border-color: #4361ee;
+            background: #f8faff;
+            transform: translateY(-2px);
+        }
+        .gps-icon-box {
+            width: 40px; height: 40px;
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-right: 12px; color: #4361ee; font-size: 1.1rem;
+        }
+        .btn-gps-trigger:hover .gps-icon-box {
+            background: #4361ee; color: #ffffff;
+        }
+        .gps-text-box { flex-grow: 1; }
+        .gps-label { display: block; font-size: 0.6rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase; }
+        .gps-sub { display: block; font-size: 0.8rem; font-weight: 700; color: #1e293b; }
     </style>
+    <!-- Leaflet Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -302,7 +351,10 @@ foreach($rooms_by_block as $b => $s) {
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small fw-800 text-muted">MOBILE NUMBER</label>
-                                        <input type="tel" name="contact" id="contact" class="form-control" placeholder="255XXXXXXXXX" required value="<?php echo $_POST['contact'] ?? ''; ?>">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0 fw-800 text-primary">+255</span>
+                                            <input type="tel" name="contact" id="contact" class="form-control border-start-0 ps-0" placeholder="7XXXXXXXX" required value="<?php echo isset($_POST['contact']) ? (str_starts_with($_POST['contact'], '255') ? substr($_POST['contact'], 3) : htmlspecialchars($_POST['contact'])) : ''; ?>">
+                                        </div>
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label small fw-800 text-muted">EMAIL ADDRESS (FOR LOGIN)</label>
@@ -315,6 +367,41 @@ foreach($rooms_by_block as $b => $s) {
                                     <div class="col-md-6">
                                         <label class="form-label small fw-800 text-muted">REPEAT PASSWORD</label>
                                         <input type="password" name="cpassword" id="cpassword" class="form-control" placeholder="••••••••" required>
+                                    </div>
+                                    
+                                    <!-- GPS Intelligence integration -->
+                                    <div class="col-12 mt-4 pt-4 border-top">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <h6 class="fw-800 text-primary mb-0"><i class="fas fa-satellite-dish me-2"></i>Resident Data GPS Intelligence</h6>
+                                        </div>
+                                        
+                                        <div class="d-flex gap-2 mb-3">
+                                            <button type="button" class="btn-gps-trigger" onclick="toggleGPSMap()">
+                                                <div class="gps-icon-box">
+                                                    <i class="fas fa-map-location-dot"></i>
+                                                </div>
+                                                <div class="gps-text-box">
+                                                    <span class="gps-label">LOCATION INTEL</span>
+                                                    <span class="gps-sub" id="gpsBtnText">Pin Residential Location</span>
+                                                </div>
+                                                <div class="px-2 text-muted opacity-50">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </div>
+                                            </button>
+                                        </div>
+                                        
+                                        <div id="gps-collapsible" style="display: none;">
+                                            <div id="admin-map" style="height: 250px; border-radius: 16px; border: 2px solid #eef2ff;" class="mb-3 shadow-sm"></div>
+                                            <div id="gps-preview" class="p-3 bg-light rounded-4 small fw-600 text-muted">
+                                                Click map to pinpoint residential address.
+                                            </div>
+                                        </div>
+                                        
+                                        <input type="hidden" id="latitude" name="latitude">
+                                        <input type="hidden" id="longitude" name="longitude">
+                                        <input type="hidden" id="city" name="city">
+                                        <input type="hidden" id="state_gps" name="state_gps">
+                                        <input type="hidden" id="country_gps" name="country_gps">
                                     </div>
                                 </div>
                             </div>
@@ -541,9 +628,71 @@ foreach($rooms_by_block as $b => $s) {
     if (contactInput) {
         contactInput.addEventListener('input', function() { 
             this.value = this.value.replace(/[^0-9]/g, ''); 
-            if (!this.value.startsWith('255') && this.value.length > 0) this.value = '255' + this.value; 
-            if (this.value.length > 12) this.value = this.value.substring(0, 12); 
+            if (this.value.length > 9) this.value = this.value.substring(0, 9); 
         });
+    }
+
+    // GPS Map Intelligence for Admin
+    let adminMap, adminMarker;
+    let gpsVisible = false;
+
+    function toggleGPSMap() {
+        gpsVisible = !gpsVisible;
+        const wrap = document.getElementById('gps-collapsible');
+        const btnText = document.getElementById('gpsBtnText');
+        wrap.style.display = gpsVisible ? 'block' : 'none';
+        btnText.innerText = gpsVisible ? 'Close Map' : 'Pin Location';
+        
+        if (gpsVisible) {
+            if (!adminMap) {
+                adminMap = L.map('admin-map').setView([-6.7924, 39.2083], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap);
+                adminMarker = L.marker([-6.7924, 39.2083], {draggable: true}).addTo(adminMap);
+                
+                adminMap.on('click', function(e) {
+                    updateGPS(e.latlng.lat, e.latlng.lng);
+                });
+                adminMarker.on('dragend', function() {
+                    const {lat, lng} = adminMarker.getLatLng();
+                    updateGPS(lat, lng);
+                });
+
+                // Auto-detect current location if possible
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        const {latitude, longitude} = pos.coords;
+                        adminMap.setView([latitude, longitude], 15);
+                        updateGPS(latitude, longitude);
+                    });
+                }
+            }
+            setTimeout(() => adminMap.invalidateSize(), 200);
+        }
+    }
+
+    function updateGPS(lat, lng) {
+        adminMarker.setLatLng([lat, lng]);
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+        
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.address) {
+                    const city = data.address.city || data.address.town || data.address.village || "N/A";
+                    const state = data.address.state || data.address.region || "N/A";
+                    const country = data.address.country || "N/A";
+                    
+                    document.getElementById('city').value = city;
+                    document.getElementById('state_gps').value = state;
+                    document.getElementById('country_gps').value = country;
+                    
+                    document.getElementById('gps-preview').innerHTML = `
+                        <div class='text-dark fw-800 mb-1'><i class='fas fa-map-pin text-primary me-2'></i>${city}, ${state}</div>
+                        <div class='text-muted small'>${country} • Captured at ${new Date().toLocaleString()}</div>
+                    `;
+                }
+            });
     }
     </script>
 </body>

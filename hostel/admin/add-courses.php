@@ -25,6 +25,12 @@ if(isset($_POST['submit'])) {
         $_SESSION['error'] = "Error adding course. Please try again.";
     }
 }
+
+// Fetch existing courses for the inventory popup
+$ret = "SELECT * FROM courses ORDER BY posting_date DESC";
+$stmt = $mysqli->prepare($ret);
+$stmt->execute();
+$all_courses = $stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -167,13 +173,12 @@ if(isset($_POST['submit'])) {
                         </h1>
                     </div>
                     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <button type="button" onclick="showCourseInventory()" class="btn btn-white shadow-sm border-0" style="background: white; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 10px; color: #4361ee; font-weight: 700; transition: all 0.3s;">
+                            <i class="fas fa-eye"></i> View Current Courses
+                        </button>
                         <a href="manage-courses.php" class="btn btn-primary" style="background: linear-gradient(135deg, #4361ee, #7b2ff7); border: none; padding: 10px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; box-shadow: 0 4px 15px rgba(67,97,238,0.2); color: white;">
-                            <i class="fas fa-list"></i> Manage Courses
+                            <i class="fas fa-list"></i> Manage
                         </a>
-                        <div class="date-filter" style="background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 8px; color: #4a5568; font-weight: 500;">
-                            <i class="fas fa-calendar-alt" style="color: #4361ee;"></i>
-                            <span><?php echo date('F d, Y'); ?></span>
-                        </div>
                     </div>
                 </div>
 
@@ -220,6 +225,38 @@ if(isset($_POST['submit'])) {
         </div>
     </div>
 
+    <!-- Hidden Template for Course Inventory (Pop-up Content) -->
+    <div id="course-inventory-template" style="display: none;">
+        <div class="text-start p-2">
+            <?php if ($all_courses->num_rows === 0): ?>
+                <div class="alert alert-info border-0 shadow-sm"><i class="fas fa-info-circle me-2"></i>No courses added yet.</div>
+            <?php else: ?>
+                <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                    <table class="table table-hover border-0">
+                        <thead class="sticky-top bg-white">
+                            <tr class="text-muted small fw-800" style="border-bottom: 2px solid #f1f5f9;">
+                                <th class="py-3 border-0">CODE</th>
+                                <th class="py-3 border-0">COURSE NAME</th>
+                                <th class="py-3 border-0 text-end">DATE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $all_courses->data_seek(0);
+                            while($row = $all_courses->fetch_object()): ?>
+                                <tr style="border-bottom: 1px solid #f8fafc;">
+                                    <td class="py-3 border-0"><span class="badge bg-primary bg-opacity-10 text-primary fw-800 px-3"><?php echo htmlspecialchars($row->course_code); ?></span></td>
+                                    <td class="py-3 border-0 fw-700 text-dark"><?php echo htmlspecialchars($row->course_sn); ?></td>
+                                    <td class="py-3 border-0 text-end text-muted small"><?php echo date('d M, Y', strtotime($row->posting_date)); ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -249,6 +286,20 @@ if(isset($_POST['submit'])) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
             btn.disabled = true;
         });
+
+        function showCourseInventory() {
+            const content = document.getElementById('course-inventory-template').innerHTML;
+            Swal.fire({
+                title: '<i class="fas fa-book-reader text-primary me-2"></i>Current Course Catalog',
+                html: content,
+                width: '750px',
+                showConfirmButton: false,
+                showCloseButton: true,
+                customClass: {
+                    popup: 'rounded-4'
+                }
+            });
+        }
     </script>
 </body>
 </html>

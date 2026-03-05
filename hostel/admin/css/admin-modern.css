@@ -92,6 +92,22 @@ body {
     pointer-events: auto !important;
 }
 
+.card-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--primary);
+    opacity: 0;
+    transition: 0.3s;
+}
+
+.clickable-card:hover .card-link::before {
+    opacity: 1;
+}
+
 /* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
@@ -104,6 +120,7 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--primary) !important;
 }
 
 .sidebar.collapsed {
@@ -348,6 +365,7 @@ body {
     letter-spacing: 0.5px;
     padding: 16px;
     border-bottom: 2px solid #f1f5f9;
+    border-left: 3px solid var(--primary);
 }
 
 .table-modern td {

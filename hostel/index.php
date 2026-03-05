@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 session_start();
 
 require_once('includes/config.php');
+require_once('includes/checklogin.php');
 
 // Redirect if already logged in
 if (isset($_SESSION['user_id']) || isset($_SESSION['id'])) {
@@ -91,6 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                         $_SESSION['name'] = $studentRow['firstName'] . ' ' . $studentRow['lastName'];
                         $_SESSION['user_role'] = 'student';
                         
+                        // Log the access
+                        log_student_access($studentRow['id'], $studentRow['email']);
+                        
                         header("Location: dashboard.php");
                         exit();
                     }
@@ -113,8 +117,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Login | HostelMS</title>
     
-    <!-- Favicon -->
-    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Favicon (Data URI to prevent 404) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏨</text></svg>">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -124,6 +132,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     
     <!-- Custom Auth Modern CSS -->
     <link rel="stylesheet" href="css/auth-modern.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <style>
+        /* Optimize font loading */
+        * { font-display: swap; }
+        
+        .google_login_container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
 </head>
 <body>
     <div class="bg-blob blob-1"></div>
@@ -191,8 +215,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                         </button>
                     </div>
 
+                    <div class="auth_divider" data-aos="fade-up" data-aos-delay="650">OR</div>
+
+                    <div class="google_login_container" data-aos="fade-up" data-aos-delay="700">
+                        <div id="google_btn"></div>
+                    </div>
+
                     <div class="auth_footer" data-aos="fade-up" data-aos-delay="700">
-                        New student user? <a href="registration.php">Create Account</a>
+                        New student user? <a href="javascript:void(0)" onclick="openRegistrationModal()" class="fw-800 text-primary">Create Account</a>
                     </div>
                 </form>
             </div>
@@ -208,6 +238,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <script>
     AOS.init({ duration: 800, once: true });
 
+    window.onload = function () {
+        google.accounts.id.initialize({
+            client_id: "1017558814874-u6ve0qj0qjhoskriggokakum2l3g9hap.apps.googleusercontent.com",
+            callback: handleCredentialResponse
+        });
+        google.accounts.id.renderButton(
+            document.getElementById("google_btn"),
+            { 
+                theme: "outline", 
+                size: "large", 
+                width: 350, // Fixed numeric width to avoid GSI warnings
+                shape: "pill",
+                text: "signin_with",
+                logo_alignment: "left"
+            }
+        );
+    }
+
     function toggleLoginPassword() {
         const pass = document.getElementById("loginPassword");
         const icon = document.getElementById("toggleIcon");
@@ -220,6 +268,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             icon.classList.remove("fa-eye-slash");
             icon.classList.add("fa-eye");
         }
+    }
+
+    function handleCredentialResponse(response) {
+        // Send the ID token to your server
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'google-auth.php');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.status === 'success') {
+                    if (res.redirect) {
+                        window.location.href = res.redirect;
+                    } else {
+                        window.location.reload();
+                    }
+                } else if (res.status === 'pending') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Registration Successful!',
+                        text: res.message || 'Your account is pending admin approval.',
+                        confirmButtonColor: '#4361ee'
+                    });
+                } else if (res.status === 'register') {
+                    // Redirect to registration with prefilled data
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'registration.php';
+                    
+                    const fields = ['google_id', 'email', 'fname', 'lname', 'pic'];
+                    fields.forEach(field => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'google_' + field;
+                        input.value = res.data[field];
+                        form.appendChild(input);
+                    });
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Authentication Failed',
+                        text: res.message || 'Could not verify Google account.'
+                    });
+                }
+            } catch (e) {
+                console.error("Response error:", e);
+            }
+        };
+        xhr.send('idtoken=' + response.credential);
+    }
+
+    function openRegistrationModal() {
+        Swal.fire({
+            html: '<iframe src="registration.php" style="width:100%; height:88vh; border:none; border-radius:15px;" scrolling="yes"></iframe>',
+            width: '1000px',
+            padding: '0',
+            showConfirmButton: false,
+            showCloseButton: false,
+            background: '#ffffff', // Solid white to hide login page
+            backdrop: `rgba(15, 23, 42, 0.75)`, // Darker overlay
+            customClass: {
+                popup: 'rounded-4 shadow-2xl border-0 overflow-hidden'
+            },
+            showClass: {
+                popup: 'animate__animated animate__fadeInUp animate__fast'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__fadeOutDown animate__fast'
+            }
+        });
     }
     </script>
 </body>

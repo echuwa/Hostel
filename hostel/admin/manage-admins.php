@@ -74,6 +74,7 @@ if(isset($_GET['del'])) {
 
         <!-- MAIN CONTENT -->
         <div class="main-content">
+            <?php include('includes/header.php'); ?>
             <div class="content-wrapper">
                 
                 <!-- Header -->
@@ -127,8 +128,20 @@ if(isset($_GET['del'])) {
                                     <td><?php echo $cnt++; ?></td>
                                     <td>
                                         <div class="d-flex align-items-center gap-3">
-                                            <div class="admin-avatar">
-                                                <?php echo substr($row->username, 0, 1); ?>
+                                            <?php 
+                                            $adm_p = '';
+                                            if(!empty($row->profile_pic)) {
+                                                if(substr($row->profile_pic, 0, 4) === 'http') $adm_p = $row->profile_pic;
+                                                else $adm_p = '../' . ltrim($row->profile_pic, '/');
+                                            }
+                                            ?>
+                                            <div class="admin-avatar" style="<?php echo !empty($adm_p) ? 'background:none; overflow:hidden; border:1px solid #ddd;' : ''; ?>">
+                                                <?php if(!empty($adm_p)): ?>
+                                                    <img src="<?php echo htmlspecialchars($adm_p); ?>" style="width:100%; height:100%; object-fit:cover;" 
+                                                         onerror="this.parentElement.style.background='#eff6ff'; this.parentElement.innerHTML='<?php echo strtoupper(substr($row->username, 0, 1)); ?>'">
+                                                <?php else: ?>
+                                                    <?php echo strtoupper(substr($row->username, 0, 1)); ?>
+                                                <?php endif; ?>
                                             </div>
                                             <div>
                                                 <div class="fw-bold"><?php echo htmlspecialchars($row->username); ?></div>

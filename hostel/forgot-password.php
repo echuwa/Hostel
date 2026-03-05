@@ -26,12 +26,20 @@ if(isset($_POST['send_otp'])) {
             $_SESSION['otp_time'] = time();
             $_SESSION['otp_step'] = 'verify';
             
-            // SECURITY NOTE: In production, send this via email. 
-            // For this audit demonstration, we'll log it to a secure location 
-            // or (temporarily) display it in a less obvious way if requested.
-            // But NEVER display it on the same page for anyone to see.
-            // FOR NOW: We mimic sending and tell the user to check email.
-            $message = '<div class="alert alert-success">A security code has been sent to your registered email. Please enter it below.</div>';
+            // SECURITY NOTE: In production, send this via email.
+            // FOR NOW: We attempt mail, if fails we give dev-mode hint
+            $to = $email;
+            $subject = "Hostel Security Code: $otp";
+            $headers = "From: no-reply@hostelms.com";
+            $mail_sent = @mail($to, $subject, "Your security code is: $otp", $headers);
+            
+            if ($mail_sent) {
+                $message = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>A security code has been sent to your registered email. Please enter it below.</div>';
+            } else {
+                // If mail fails (common on local servers), we show a dev-mode notification
+                $_SESSION['dev_otp'] = $otp; // Temporarily store for Swall demonstration
+                $message = '<div class="alert alert-warning"><i class="fas fa-info-circle me-2"></i>Notice: Mail server not responding. (Dev Mode: Check browser console or use our demo tool)</div>';
+            }
             $showForm = false;
         } else {
             $message = '<div class="alert alert-danger">This email is not registered in our system.</div>';
@@ -185,7 +193,7 @@ if(isset($_POST['send_otp'])) {
                     </div>
                     
                     <div class="text-center mt-3" data-aos="fade-up" data-aos-delay="600">
-                        <button type="button" onclick="window.location.href='forgot-password.php'" class="btn btn-link fw-800 text-decoration-none small">
+                        <button type="button" onclick="window.location.href=\'forgot-password.php\'" class="btn-link-modern">
                             <i class="fas fa-rotate me-1"></i> Resend OTP
                         </button>
                     </div>
@@ -221,7 +229,10 @@ if(isset($_POST['send_otp'])) {
                 <?php endif; ?>
 
                 <div class="auth_footer" data-aos="fade-up" data-aos-delay="700">
-                    <a href="index.php"><i class="fas fa-arrow-left me-2"></i>Back to Sign In</a>
+                    <a href="index.php" class="auth_back_link">
+                        <i class="fas fa-chevron-left"></i>
+                        <span>Back to Sign In</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -230,8 +241,19 @@ if(isset($_POST['send_otp'])) {
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         AOS.init({ duration: 800, once: true });
+        
+        <?php if(isset($_SESSION['dev_otp'])): ?>
+        Swal.fire({
+            title: 'Development Access (Demo)',
+            html: 'Kwa ajili ya majaribio, tumia code hii: <b><?php echo $_SESSION['dev_otp']; ?></b> (Hii inaonekana hapa tu kwa sababu mail server haijatengenezwa)',
+            icon: 'info',
+            confirmButtonColor: '#4361ee'
+        });
+        <?php unset($_SESSION['dev_otp']); endif; ?>
     </script>
 </body>
 </html>

@@ -52,6 +52,9 @@ if (!$data) {
     <link rel="stylesheet" href="css/admin-modern.css">
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
         .profile-hero {
@@ -261,6 +264,44 @@ if (!$data) {
                     </div>
                 </div>
 
+                <!-- GEOGRAPHIC INTELLIGENCE (GPS Tracking) -->
+                <div class="row g-4 mt-2">
+                    <div class="col-12">
+                        <div class="data-card" style="min-height: 450px;">
+                            <div class="section-tag" style="background: #fff7ed; color: #f97316;"><i class="fas fa-satellite"></i> GEOGRAPHIC INTELLIGENCE (GPS)</div>
+                            <div class="row">
+                                <div class="col-lg-8">
+                                    <div id="student-map" style="height: 350px; border-radius: 20px; border: 1px solid #e2e8f0; z-index: 1;"></div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="p-4 bg-light rounded-4 h-100">
+                                        <h6 class="fw-800 mb-3">Location Metadata</h6>
+                                        <div class="metric-item">
+                                            <div class="metric-label">Latitude</div>
+                                            <div class="metric-value font-monospace text-primary"><?php echo $data->latitude ?: 'N/A'; ?></div>
+                                        </div>
+                                        <div class="metric-item">
+                                            <div class="metric-label">Longitude</div>
+                                            <div class="metric-value font-monospace text-primary"><?php echo $data->longitude ?: 'N/A'; ?></div>
+                                        </div>
+                                        <div class="mt-4">
+                                            <p class="small text-muted fw-600">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Hii ni location sahihi ya mwanafunzi aliyoiseta wakati wa usajili. Inatumika kurahisisha utambuzi wa mahali anapoishi kwa ajili ya usalama.
+                                            </p>
+                                            <?php if($data->latitude && $data->longitude): ?>
+                                            <a href="https://www.google.com/maps?q=<?php echo $data->latitude; ?>,<?php echo $data->longitude; ?>" target="_blank" class="btn btn-modern btn-primary text-white w-100 mt-2" style="background-color: #4361ee; border: none;">
+                                                <i class="fas fa-external-link-alt me-2"></i> Open in Google Maps
+                                            </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- TRANSACTION AUDIT LOG - New Section for Oversights -->
                 <div class="card-modern mt-5 border-0 shadow-sm overflow-hidden" style="border-radius: 30px;">
                     <div class="card-header bg-white p-4 border-0 d-flex justify-content-between align-items-center">
@@ -318,6 +359,33 @@ if (!$data) {
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init();
+
+        // Initialize Student Location Map
+        const lat = <?php echo $data->latitude ?: -6.7924; ?>;
+        const lng = <?php echo $data->longitude ?: 39.2083; ?>;
+        const hasLocation = <?php echo ($data->latitude && $data->longitude) ? 'true' : 'false'; ?>;
+
+        const map = L.map('student-map').setView([lat, lng], hasLocation ? 15 : 6);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        if (hasLocation) {
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('<b><?php echo addslashes($data->firstName . " " . $data->lastName); ?></b><br>Home Location')
+                .openPopup();
+        } else {
+            Swal.fire({
+                title: 'GPS Data Missing',
+                text: 'Mwanafunzi huyu hakuweka location yake wakati wa usajili.',
+                icon: 'warning',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000
+            });
+        }
 
         function terminateStudent(regNo, name) {
             Swal.fire({

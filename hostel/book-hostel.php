@@ -46,16 +46,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             'gender' => filter_input(INPUT_POST, 'gender', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'contactno' => preg_replace('/[^0-9]/', '', $_POST['contact'] ?? ''),
             'emailid' => filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL),
-            'egycontactno' => preg_replace('/[^0-9]/', '', $_POST['econtact'] ?? ''),
+            'egycontactno' => '255' . preg_replace('/[^0-9]/', '', $_POST['econtact'] ?? ''),
             'guardianName' => filter_input(INPUT_POST, 'gname', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'guardianRelation' => filter_input(INPUT_POST, 'grelation', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'guardianContactno' => preg_replace('/[^0-9]/', '', $_POST['gcontact'] ?? ''),
+            'guardianContactno' => '255' . preg_replace('/[^0-9]/', '', $_POST['gcontact'] ?? ''),
             'corresAddress' => filter_input(INPUT_POST, 'address', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'corresCountry' => filter_input(INPUT_POST, 'country', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'corresState' => filter_input(INPUT_POST, 'state', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'pmntAddress' => filter_input(INPUT_POST, 'paddress', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'pmntCountry' => filter_input(INPUT_POST, 'pcountry', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'pmntState' => filter_input(INPUT_POST, 'pstate', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
+            'latitude' => filter_input(INPUT_POST, 'latitude', FILTER_VALIDATE_FLOAT),
+            'longitude' => filter_input(INPUT_POST, 'longitude', FILTER_VALIDATE_FLOAT),
             'adcheck' => isset($_POST['adcheck']) ? 1 : 0
         ];
 
@@ -63,7 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         $required = ['roomno', 'seater', 'feespm', 'stayfrom', 'duration', 'course', 'regno', 'firstName', 'lastName', 'gender', 'contactno', 'emailid', 'egycontactno', 'guardianName', 'guardianRelation', 'guardianContactno', 'corresAddress', 'corresCountry', 'corresState', 'pmntAddress', 'pmntCountry', 'pmntState'];
         
         foreach ($required as $field) {
-            if (empty($form_data[$field])) $errors[] = ucfirst($field) . " is required.";
+            // Check if field is empty in form_data
+            if (!isset($form_data[$field]) || $form_data[$field] === '' || $form_data[$field] === null) {
+                // If it's pmnt fields and they checked 'same as above', don't error
+                if (in_array($field, ['pmntAddress', 'pmntCountry', 'pmntState']) && isset($_POST['copyAddr'])) {
+                    $form_data['pmntAddress'] = $form_data['corresAddress'];
+                    $form_data['pmntCountry'] = $form_data['corresCountry'];
+                    $form_data['pmntState'] = $form_data['corresState'];
+                    continue;
+                }
+                $errors[] = ucfirst($field) . " is required.";
+            }
         }
 
         if (empty($errors)) {
@@ -91,15 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                     try {
                         $query = "INSERT INTO registration(roomno, seater, feespm, foodstatus, stayfrom, duration, course, regno, firstName, middleName, lastName, gender, contactno, emailid, egycontactno, guardianName, guardianRelation, guardianContactno, corresAddress, corresCountry, corresState, pmntAddress, pmntCountry, pmntState) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                         $stmt = $mysqli->prepare($query);
-                        // Corrected parameter types: 
-                        // roomno(s), seater(i), feespm(d), foodstatus(i), stayfrom(s), duration(i), 
-                        // course(s), regno(s), firstName(s), middleName(s), lastName(s), gender(s), 
-                        // contactno(s), emailid(s), egycontactno(s), guardianName(s), guardianRelation(s), 
-                        // guardianContactno(s), corresAddress(s), corresCountry(s), corresState(s), 
-                        // pmntAddress(s), pmntCountry(s), pmntState(s)
-                        $types = "sidisiss ssss ssss ssss sss"; // Simplified grouping for counting: 5+4+4+4+4+3 = 24
-                        // Actually let's just write them clearly:
-                        $stmt->bind_param('sidisi' . 'ssssss' . 'ssssss' . 'ssssss', 
+                        $stmt->bind_param('sidisi' . 'ssssssss' . 'ssssssss' . 'ss', 
                             $form_data['roomno'], 
                             $form_data['seater'], 
                             $form_data['feespm'], 
@@ -127,6 +131,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                         );
                         $stmt->execute();
                         $stmt->close();
+                        
+                        // Update GPS coordinates in userregistration if they were provided/updated during booking
+                        if($form_data['latitude'] && $form_data['longitude']) {
+                            $upd_gps = $mysqli->prepare("UPDATE userregistration SET latitude=?, longitude=?, city=?, state=?, country=?, location_captured_at=NOW() WHERE id=?");
+                            $upd_gps->bind_param('ddsssi', $form_data['latitude'], $form_data['longitude'], $form_data['corresAddress'], $form_data['corresState'], $form_data['corresCountry'], $user_id);
+                            $upd_gps->execute();
+                            $upd_gps->close();
+                        }
+
                         $mysqli->commit();
 
                         $_SESSION['booking_success'] = ['room' => $form_data['roomno']];
@@ -150,7 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 
 // ==================== DATA FETCHING ====================
 $uid = $_SESSION['login'];
-$user = $mysqli->query("SELECT * FROM userregistration WHERE email = '$uid' OR regNo = '$uid'")->fetch_object();
+$user_query = "SELECT * FROM userregistration WHERE email = ? OR regNo = ?";
+$stmt = $mysqli->prepare($user_query);
+$stmt->bind_param('ss', $uid, $uid);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_object();
+$stmt->close();
 
 $booking_exists = $mysqli->query("SELECT id FROM registration WHERE emailid = '$uid' OR regno = '$uid'")->num_rows > 0;
 
@@ -203,14 +221,16 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         .success-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
         .success-overlay.show { display: flex; }
         .success-modal { background: #fff; border-radius: 30px; padding: 45px; max-width: 500px; width: 90%; text-align: center; animation: zoomIn 0.5s; }
-        .success-icon { width: 90px; height: 90px; background: var(--success); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 30px; box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3); }
-
-        .form-section-head { display: flex; align-items: center; gap: 15px; margin: 40px 0 25px; }
-        .form-section-head i { width: 45px; height: 45px; border-radius: 12px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
-        .form-section-head h4 { margin: 0; font-weight: 800; color: #1e293b; }
+        .avatar-lg { width: 64px; height: 64px; background: #fff; color: #4361ee; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-right: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
         
-        .read-only-field { background-color: #f8fafc !important; cursor: not-allowed; color: #64748b !important; border: 1px solid #e2e8f0 !important; }
+        /* GPS Map inside Booking form */
+        #booking-map { height: 250px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
+        .gps-meta-badge { background: #f0f7ff; color: #4361ee; padding: 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; border: 1px dashed #4361ee; }
     </style>
+    <!-- Leaflet Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="success-overlay" id="successOverlay">
@@ -418,13 +438,19 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                                 <div class="col-md-6">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Guardian Mobile Number</label>
-                                        <input type="tel" name="gcontact" class="form-control form-control-modern" required placeholder="e.g. 255712345678">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0 fw-800 text-primary">+255</span>
+                                            <input type="tel" name="gcontact" class="form-control form-control-modern border-start-0 ps-0 tel-validate" required placeholder="7XXXXXXXX" maxlength="9">
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Emergency Contact Number</label>
-                                        <input type="tel" name="econtact" class="form-control form-control-modern" required placeholder="In case of emergency">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0 fw-800 text-primary">+255</span>
+                                            <input type="tel" name="econtact" class="form-control form-control-modern border-start-0 ps-0 tel-validate" required placeholder="7XXXXXXXX" maxlength="9">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -437,33 +463,63 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                         </div>
                         <div class="card-modern border-0 p-5 mb-5">
                             <div class="row g-4">
+                                <!-- GPS Intelligence Integration -->
+                                <div class="col-12 mb-4">
+                                    <div class="p-4 rounded-4 bg-light border border-opacity-25 border-primary">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <h6 class="fw-800 text-primary mb-0"><i class="fas fa-satellite-dish me-2"></i>Resident GPS Location Intelligence</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="toggleBookingMap()">
+                                                <i class="fas fa-map-marked-alt me-1"></i> <span id="gpsBtnText">Detect Location</span>
+                                            </button>
+                                        </div>
+                                        
+                                        <div id="gps-collapsible" style="display: none;">
+                                            <div id="booking-map"></div>
+                                            <div id="gps-preview" class="gps-meta-badge mb-3">
+                                                Click detect or pin on map to capture residential address.
+                                            </div>
+                                        </div>
+                                        
+                                        <input type="hidden" id="latitude" name="latitude" value="<?php echo $user->latitude; ?>">
+                                        <input type="hidden" id="longitude" name="longitude" value="<?php echo $user->longitude; ?>">
+                                        
+                                        <div class="small text-muted mt-2">
+                                            <i class="fas fa-info-circle me-1"></i> Pinning your location automatically fills city and state details below.
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="col-12">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Correspondence Address</label>
-                                        <textarea name="address" id="cor-addr" class="form-control form-control-modern" rows="3" required placeholder="P.O Box / Street Name..."></textarea>
+                                        <textarea name="address" id="cor-addr" class="form-control form-control-modern" rows="3" required placeholder="P.O Box / Street Name..."><?php echo $user->city ? $user->city . " - (GPS Intelligence)" : ""; ?></textarea>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Country</label>
-                                        <input type="text" name="country" id="cor-country" class="form-control form-control-modern" value="Tanzania" readonly required>
+                                        <input type="text" name="country" id="cor-country" class="form-control form-control-modern" value="<?php echo $user->country ?: 'Tanzania'; ?>" readonly required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group-modern">
                                         <label class="form-label-modern">Region / State</label>
-                                        <select name="state" id="cor-state" class="form-select form-control-modern" required>
-                                            <option value="">Select Region</option>
-                                            <?php $states->data_seek(0); while($s = $states->fetch_object()): ?>
-                                                <option value="<?php echo $s->State; ?>"><?php echo $s->State; ?></option>
-                                            <?php endwhile; ?>
-                                        </select>
+                                        <?php if($user->state): ?>
+                                            <input type="text" name="state" id="cor-state" class="form-control form-control-modern" value="<?php echo $user->state; ?>" readonly required>
+                                        <?php else: ?>
+                                            <select name="state" id="cor-state" class="form-select form-control-modern" required>
+                                                <option value="">Select Region</option>
+                                                <?php $states->data_seek(0); while($s = $states->fetch_object()): ?>
+                                                    <option value="<?php echo $s->State; ?>"><?php echo $s->State; ?></option>
+                                                <?php endwhile; ?>
+                                            </select>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 
                                 <div class="col-12 pt-4">
                                     <div class="form-check mb-4">
-                                        <input class="form-check-input" type="checkbox" id="copyAddr">
+                                        <input class="form-check-input" type="checkbox" name="copyAddr" id="copyAddr">
                                         <label class="form-check-label fw-800 text-primary" for="copyAddr">Permanent address is same as above</label>
                                     </div>
                                     <hr class="mb-5 opacity-25">
@@ -524,7 +580,17 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 if(this.checked) {
                     $('#perm-addr').val($('#cor-addr').val());
                     $('#perm-country').val($('#cor-country').val());
-                    $('#perm-state').val($('#cor-state').val());
+                    
+                    // Copy state value correctly
+                    var stateVal = $('#cor-state').val();
+                    if ($('#perm-state option[value="' + stateVal + '"]').length > 0) {
+                        $('#perm-state').val(stateVal).change();
+                    } else {
+                        // If it's a new state from GPS not in list, add it temporarily
+                        if(stateVal) {
+                            $('#perm-state').append($('<option>', {value: stateVal, text: stateVal, selected: true}));
+                        }
+                    }
                 }
             });
 
@@ -532,7 +598,75 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 $('#res-room').text("<?php echo $_SESSION['booking_success']['room'] ?? ''; ?>");
                 $('#successOverlay').addClass('show');
             <?php unset($_SESSION['booking_success']); endif; ?>
+
+            document.querySelectorAll('.tel-validate').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                    if (this.value.length > 9) this.value = this.value.substring(0, 9);
+                });
+            });
         });
+
+        // GPS Logic for Booking Form
+        let bMap, bMarker;
+        let bGpsVisible = false;
+
+        function toggleBookingMap() {
+            bGpsVisible = !bGpsVisible;
+            const wrap = document.getElementById('gps-collapsible');
+            const btnText = document.getElementById('gpsBtnText');
+            wrap.style.display = bGpsVisible ? 'block' : 'none';
+            btnText.innerText = bGpsVisible ? 'Close Map' : 'Detect Location';
+            
+            if (bGpsVisible) {
+                if (!bMap) {
+                    const lat = <?php echo $user->latitude ?: -6.7924; ?>;
+                    const lng = <?php echo $user->longitude ?: 39.2083; ?>;
+                    bMap = L.map('booking-map').setView([lat, lng], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(bMap);
+                    bMarker = L.marker([lat, lng], {draggable: true}).addTo(bMap);
+                    
+                    bMap.on('click', (e) => updateBGPS(e.latlng.lat, e.latlng.lng));
+                    bMarker.on('dragend', () => {
+                        const {lat, lng} = bMarker.getLatLng();
+                        updateBGPS(lat, lng);
+                    });
+                }
+                setTimeout(() => bMap.invalidateSize(), 150);
+            }
+        }
+
+        function updateBGPS(lat, lng) {
+            bMarker.setLatLng([lat, lng]);
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.address) {
+                        const city = data.address.city || data.address.town || data.address.village || "N/A";
+                        const state = data.address.state || data.address.region || "N/A";
+                        const country = data.address.country || "N/A";
+                        
+                        // Update Fields
+                        $('#cor-addr').val(city + " - (GPS Intelligence)");
+                        $('#cor-country').val(country);
+                        
+                        // Handle State Input/Select
+                        if ($('#cor-state').is('input')) {
+                            $('#cor-state').val(state);
+                        } else {
+                            $('#cor-state').val(state);
+                        }
+                        
+                        document.getElementById('gps-preview').innerHTML = `
+                            <i class='fas fa-check-circle me-2'></i> GPS Point Encoded: ${city}, ${state} 
+                            <span class='mx-2 opacity-50'>|</span> Captured: ${new Date().toLocaleTimeString()}
+                        `;
+                    }
+                });
+        }
     </script>
 </body>
 </html>

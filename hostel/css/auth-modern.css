@@ -239,6 +239,22 @@ body {
     color: var(--primary);
 }
 
+.tel-prefix {
+    position: absolute;
+    left: 45px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.tel-input {
+    padding-left: 85px !important;
+}
+
 /* Grid Layout for Form */
 .auth_row {
     display: grid;
@@ -367,4 +383,151 @@ body {
 .alert-success-modern {
     background: #f0fdf4;
     color: #16a34a;
+}
+
+/* Google Login Style */
+.google_login_container {
+    width: 100%;
+    max-width: 400px;
+    margin: 15px auto 0 auto;
+    display: flex;
+    justify-content: center;
+}
+
+#google_btn {
+    width: 100%;
+    min-height: 44px;
+}
+
+.auth_divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 25px 0;
+    color: var(--gray);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.auth_divider::before,
+.auth_divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.auth_divider:not(:empty)::before {
+    margin-right: .75em;
+}
+
+.auth_divider:not(:empty)::after {
+    margin-left: .75em;
+}
+
+/* Map Styling */
+.map_wrapper {
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.map_container {
+    width: 100%;
+    height: 300px;
+    min-height: 300px;
+    border-radius: 18px;
+    background: #e2e8f0;
+    border: 2px solid var(--gray-light);
+    overflow: hidden;
+    transition: all 0.3s;
+    z-index: 1;
+}
+
+.map_container.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+}
+
+.location-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: var(--primary);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+}
+
+/* Forgot Password Enhancements */
+.btn-link-modern {
+    background: #f1f5f9;
+    color: var(--gray);
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-link-modern:hover {
+    background: #e2e8f0;
+    color: var(--dark);
+    transform: scale(1.02);
+}
+
+.auth_back_link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--gray);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.auth_back_link:hover {
+    color: var(--primary);
+    transform: translateX(-5px);
+}
+
+/* Find My Location Map Logic */
+.map_btn_locate {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    transition: all 0.2s;
+}
+
+.map_btn_locate:hover {
+    background: var(--primary);
+    color: white;
 }

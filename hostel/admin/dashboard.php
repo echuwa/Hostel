@@ -161,6 +161,9 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Admin Dashboard | Hostel Management System</title>
     
+    <!-- Favicon (Data URI to prevent 404) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏨</text></svg>">
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Font Awesome 6 -->
@@ -171,6 +174,9 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <!-- Unified Admin CSS -->
     <link rel="stylesheet" href="css/admin-modern.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         .header-action-btn {
@@ -263,13 +269,15 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
 
         .chart-card { padding: 28px; }
         .greeting-card {
-            background: var(--gradient-primary); color: #fff;
-            padding: 40px; border-radius: 24px; margin-bottom: 30px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
+            color: #fff;
+            padding: 25px 35px; border-radius: 20px; margin-bottom: 30px;
             position: relative; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
         }
         .greeting-card::after {
-            content: ''; position: absolute; top: -50px; right: -50px;
-            width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;
+            content: ''; position: absolute; top: -30px; right: -30px;
+            width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%;
         }
             /* ======== DRAWER & COMPLAINT STACKS ======== */
         .comp-bar-wrap { margin-bottom: 14px; }
@@ -312,51 +320,8 @@ $display_name = htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8');
 
         <!-- MAIN CONTENT -->
         <div class="main-content" id="mainContent">
+            <?php include('includes/header.php'); ?>
             <div class="content-wrapper">
-                
-                <!-- TOP HEADER -->
-                <div class="d-flex justify-content-between align-items-center mb-4" data-aos="fade-down" style="position: relative; z-index: 1050;">
-                    <div>
-                        <h4 class="fw-800 mb-1">Administrative Overview</h4>
-                        <p class="text-muted small fw-600 mb-0"><i class="fas fa-calendar-alt me-2"></i>Status updated as of <?php echo date('F d, Y - H:i'); ?></p>
-                    </div>
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="dropdown">
-                            <button class="header-action-btn" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell"></i>
-                                <?php if(($counts['new_complaints'] + $counts['pending_students']) > 0): ?>
-                                    <span class="notif-dot"></span>
-                                <?php endif; ?>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-3" style="width: 320px; z-index: 9999 !important; position: absolute !important;">
-                                <h6 class="fw-800 mb-3 px-2">Recent Notifications</h6>
-                                <?php if ($counts['pending_students'] > 0): ?>
-                                    <a href="manage-students.php" class="dropdown-item p-3 bg-light rounded-3 mb-2 d-flex align-items-center gap-3">
-                                        <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                            <i class="fas fa-user-clock"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-800 small text-dark"><?php echo $counts['pending_students']; ?> Pending Approvals</div>
-                                            <div class="text-muted" style="font-size: 0.7rem;">Action required for registration</div>
-                                        </div>
-                                    </a>
-                                <?php endif; ?>
-                                <?php if ($counts['new_complaints'] > 0): ?>
-                                    <a href="new-complaints.php" class="dropdown-item p-3 bg-light rounded-3 mb-2 d-flex align-items-center gap-3">
-                                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-800 small text-dark"><?php echo $counts['new_complaints']; ?> New Complaints</div>
-                                            <div class="text-muted" style="font-size: 0.7rem;">New support tickets reported</div>
-                                        </div>
-                                    </a>
-                                <?php endif; ?>
-                                <a href="all-complaints.php" class="dropdown-item text-center fw-700 text-primary small py-2">See Master Console</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- GREETING -->
                 <div class="greeting-card shadow-lg" data-aos="fade-up">

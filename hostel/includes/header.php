@@ -6,6 +6,20 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/student-theme.css?v=<?php echo time(); ?>">
     <style>
+        @media print {
+            .brand, .ts-sidebar, #sidebar, .sidebar-mobile-toggle,
+            .header-page-info, .btn-modern, .print-hidden,
+            nav, .ts-profile-nav {
+                display: none !important;
+            }
+            body { background: white !important; margin: 0 !important; }
+            .content-wrapper, .ts-main-content {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .card-modern { box-shadow: none !important; border: 1px solid #ddd !important; }
+        }
         body {
             font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
             background: #f4f6fb;
@@ -295,23 +309,49 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         $hdr_name = $_SESSION['login'] ?? 'Student';
         $hdr_display = $hdr_name;
         if (isset($mysqli)) {
-            $hdr_stmt = $mysqli->prepare("SELECT firstName, lastName FROM userregistration WHERE email=? OR regNo=? LIMIT 1");
+            $hdr_uid = $_SESSION['user_id'] ?? $_SESSION['id'];
+            $hdr_stmt = $mysqli->prepare("SELECT firstName, lastName, profile_pic FROM userregistration WHERE id=? LIMIT 1");
             if ($hdr_stmt) {
-                $hdr_stmt->bind_param('ss', $hdr_name, $hdr_name);
+                $hdr_stmt->bind_param('i', $hdr_uid);
                 $hdr_stmt->execute();
                 $hdr_res = $hdr_stmt->get_result();
                 if ($hdr_row = $hdr_res->fetch_object()) {
                     $hdr_display = trim($hdr_row->firstName . ' ' . $hdr_row->lastName);
+                    $hdr_profile_pic = $hdr_row->profile_pic ?? '';
                 }
                 $hdr_stmt->close();
             }
         }
         $hdr_initial = strtoupper(substr($hdr_display, 0, 1));
+        $hdr_profile_pic = $hdr_profile_pic ?? '';
     ?>
     <ul class="ts-profile-nav">
         <li class="ts-account">
             <a href="#" id="profileDropdownToggle">
+                <?php
+                // Determine picture src: external URL or local file
+                $hdr_pic_src = '';
+                if (!empty($hdr_profile_pic)) {
+                    if (substr($hdr_profile_pic, 0, 4) === 'http') {
+                        // External URL (Google profile photo or similar)
+                        $hdr_pic_src = $hdr_profile_pic;
+                    } else {
+                        // Local upload — check document root
+                        $hdr_local_abs = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/' . ltrim($hdr_profile_pic, '/');
+                        $hdr_pic_src = '/' . ltrim($hdr_profile_pic, '/'); // show anyway, let onerror handle missing
+                    }
+                }
+                ?>
+                <?php if (!empty($hdr_pic_src)): ?>
+                <div class="avatar-circle" style="background: none; padding: 2px; overflow: hidden; border: 2px solid rgba(255,255,255,0.5);">
+                    <img src="<?php echo htmlspecialchars($hdr_pic_src); ?>" 
+                         alt="Profile" 
+                         style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;"
+                         onerror="this.parentElement.innerHTML='<?php echo $hdr_initial; ?>'">
+                </div>
+                <?php else: ?>
                 <div class="avatar-circle"><?php echo $hdr_initial; ?></div>
+                <?php endif; ?>
                 <div class="user-info">
                     <span class="user-label">Student</span>
                     <span class="username"><?php echo htmlspecialchars($hdr_display); ?></span>

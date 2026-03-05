@@ -65,6 +65,11 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
         $logStmt->close();
     }
 }
+
+// Global Metrics for Architect View
+$total_students = $mysqli->query("SELECT COUNT(*) as c FROM userregistration")->fetch_object()->c;
+$total_rooms = $mysqli->query("SELECT COUNT(*) as c FROM rooms")->fetch_object()->c;
+$total_complaints = $mysqli->query("SELECT COUNT(*) as c FROM complaints")->fetch_object()->c;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -88,10 +93,10 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
             overflow: hidden;
         }
         .super-card::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--primary); opacity: 0; transition: 0.3s;
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--primary); opacity: 0; transition: 0.3s;
         }
-        .super-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(67, 97, 238, 0.1); }
-        .super-card:hover::before { opacity: 1; }
+        .super-card:hover { transform: translateY(-5px); border-color: rgba(67, 97, 238, 0.2); box-shadow: 0 10px 30px rgba(67, 97, 238, 0.08); }
+        .super-card:hover::before { opacity: 0.7; }
         
         .role-badge {
             padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 800;
@@ -120,15 +125,47 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
         
         .audit-entry {
             padding: 15px; border-radius: 16px; background: #f8fafc;
-            border-left: 4px solid #4361ee; margin-bottom: 15px;
+            border-left: 3px solid rgba(67, 97, 238, 0.3); margin-bottom: 15px;
+            transition: all 0.3s;
         }
+        .audit-entry:hover { border-left-color: var(--primary); background: #fff; }
         
         /* Stats hover effect */
         .metric-card { cursor: pointer; }
         .metric-card:hover i { transform: scale(1.2); transition: 0.3s; }
+        
+        /* Professional Executive Dashboard UI */
+        .main-content { padding-top: 70px; background: #f8fafc; }
+        .content-wrapper { padding: 25px 35px; }
 
-        .block-badge {
-            background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700;
+        .executive-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 20px; padding: 25px 35px; color: #fff;
+            position: relative; overflow: hidden; margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+        }
+        .executive-header::before {
+            content: ''; position: absolute; top: -50%; right: -10%; 
+            width: 400px; height: 400px; background: rgba(67, 97, 238, 0.1); 
+            border-radius: 50%; blur: 80px;
+        }
+        .eco-node-mini {
+            background: #fff; border-radius: 16px; padding: 15px;
+            border: 1px solid #eef2f6; text-align: center; transition: 0.3s;
+            height: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .eco-node-mini:hover { border-color: #4361ee; transform: translateY(-3px); }
+        .clock-box {
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px); color: #fff; padding: 10px 20px;
+            border-radius: 14px; font-family: 'Courier New', monospace;
+            text-align: center; min-width: 140px;
+        }
+        .badge-architect {
+            background: #4361ee; color: #fff; text-transform: uppercase;
+            font-size: 0.65rem; font-weight: 800; padding: 6px 12px;
+            border-radius: 6px; letter-spacing: 1px; display: inline-block;
+            margin-bottom: 12px;
         }
     </style>
 </head>
@@ -137,69 +174,87 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
         <?php include('includes/sidebar_modern.php'); ?>
 
         <div class="main-content">
+            <?php include('includes/header.php'); ?>
             <div class="content-wrapper">
                 
-                <!-- MISSION HEADER -->
-                <div class="mission-header animate_animated animate_fadeIn">
+                <!-- SLIM EXECUTIVE HEADER -->
+                <div class="executive-header" data-aos="fade-down">
                     <div class="row align-items-center">
                         <div class="col-lg-8">
-                            <span class="badge bg-white text-primary px-3 py-2 rounded-pill fw-800 mb-3">SUPER ARCHITECT VIEW</span>
-                            <h1 class="fw-800 mb-2">Internal Systems Controller</h1>
-                            <p class="opacity-75 fw-600 mb-0">Total system oversight: managing administrative tiers, security audit logs, and master data configurations.</p>
+                            <div class="badge-architect">Master Control Console</div>
+                            <h2 class="fw-800 mb-2" style="letter-spacing: -1px;">Architectural Infrastructure Control</h2>
+                            <p class="text-white text-opacity-75 mb-0 fw-500" style="font-size: 0.95rem;">
+                                Real-time oversight across administrative tiers, security audit logs, and global hostel master data.
+                            </p>
                         </div>
                         <div class="col-lg-4 text-end d-none d-lg-block">
-                            <button class="btn btn-light rounded-pill px-4 py-3 fw-800 text-primary shadow-sm hover-lift" data-bs-toggle="modal" data-bs-target="#newAdminModal">
-                                <i class="fas fa-user-plus me-2"></i> Deploy Debtor/Admin
-                            </button>
+                            <div class="clock-box d-inline-block">
+                                <div id="liveClock" style="font-size: 1.4rem; font-weight: 700;">00:00:00</div>
+                                <div style="font-size: 0.65rem; font-weight: 700; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">Session Time (EAT)</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- COMPACT ECOSYSTEM MINI-MAP -->
+                <div class="row g-3 mb-5" data-aos="fade-up">
+                    <div class="col-md-4">
+                        <div class="eco-node-mini">
+                            <div class="text-primary mb-2"><i class="fas fa-crown"></i></div>
+                            <h6 class="fw-800 small mb-1">Super Root Access</h6>
+                            <p style="font-size: 0.7rem;" class="text-muted mb-0">System configuration & Global logs</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="eco-node-mini">
+                            <div class="text-info mb-2"><i class="fas fa-user-shield"></i></div>
+                            <h6 class="fw-800 small mb-1">Tiered Administrators</h6>
+                            <p style="font-size: 0.7rem;" class="text-muted mb-0">Block oversight & verificaton hub</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="eco-node-mini">
+                            <div class="text-success mb-2"><i class="fas fa-graduation-cap"></i></div>
+                            <h6 class="fw-800 small mb-1">Student Interface</h6>
+                            <p style="font-size: 0.7rem;" class="text-muted mb-0">Self-service booking & residency</p>
+                        </div>
+                    </div>
+                </div>
+
+
                 <!-- STATS GRID -->
                 <div class="row g-4 mb-5">
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="0">
-                        <a href="#debtor-section" class="text-decoration-none h-100 d-block">
-                            <div class="super-card text-center metric-card">
-                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                    <i class="fas fa-shield-alt fa-xl"></i>
-                                </div>
-                                <div class="metric-label fw-800 text-muted small">TOTAL ADMINS</div>
-                                <div class="metric-value h2 fw-800 text-dark"><?php echo count($admins); ?></div>
-                            </div>
-                        </a>
+                        <div class="ecosystem-node text-center h-100 shadow-sm" style="border-bottom: 4px solid #4361ee;">
+                            <div class="text-primary mb-2"><i class="fas fa-users fa-2x"></i></div>
+                            <div class="metric-label fw-800 text-muted small">TOTAL RESIDENTS</div>
+                            <div class="metric-value h2 fw-800 text-dark"><?php echo $total_students; ?></div>
+                            <div class="progress mt-3" style="height: 4px;"><div class="progress-bar" style="width: 100%"></div></div>
+                        </div>
                     </div>
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="100">
-                        <a href="#debtor-section" class="text-decoration-none h-100 d-block">
-                            <div class="super-card text-center metric-card">
-                                <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                    <i class="fas fa-clipboard-list fa-xl"></i>
-                                </div>
-                                <div class="metric-label fw-800 text-muted small">PENDING TIERS</div>
-                                <div class="metric-value h2 fw-800 text-dark"><?php echo $pending_count; ?></div>
-                            </div>
-                        </a>
+                        <div class="ecosystem-node text-center h-100 shadow-sm" style="border-bottom: 4px solid #2ec4b6;">
+                            <div class="text-success mb-2"><i class="fas fa-door-open fa-2x"></i></div>
+                            <div class="metric-label fw-800 text-muted small">TOTAL ROOMS</div>
+                            <div class="metric-value h2 fw-800 text-dark"><?php echo $total_rooms; ?></div>
+                            <div class="progress mt-3" style="height: 4px;"><div class="progress-bar bg-success" style="width: 100%"></div></div>
+                        </div>
                     </div>
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="200">
-                        <a href="access-log.php" class="text-decoration-none h-100 d-block">
-                            <div class="super-card text-center metric-card">
-                                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                    <i class="fas fa-server fa-xl"></i>
-                                </div>
-                                <div class="metric-label fw-800 text-muted small">SYSTEM STATE</div>
-                                <div class="metric-value h2 fw-800 text-success">HEALTHY</div>
-                            </div>
-                        </a>
+                        <div class="ecosystem-node text-center h-100 shadow-sm" style="border-bottom: 4px solid #e71d36;">
+                            <div class="text-danger mb-2"><i class="fas fa-bullhorn fa-2x"></i></div>
+                            <div class="metric-label fw-800 text-muted small">TOTAL ISSUES</div>
+                            <div class="metric-value h2 fw-800 text-dark"><?php echo $total_complaints; ?></div>
+                            <div class="progress mt-3" style="height: 4px;"><div class="progress-bar bg-danger" style="width: 100%"></div></div>
+                        </div>
                     </div>
                     <div class="col-xl-3 col-md-6" data-aos="zoom-in" data-aos-delay="300">
-                        <a href="manage-students.php" class="text-decoration-none h-100 d-block">
-                            <div class="super-card text-center metric-card">
-                                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
-                                    <i class="fas fa-database fa-xl"></i>
-                                </div>
-                                <div class="metric-label fw-800 text-muted small">RECORDS LOAD</div>
-                                <div class="metric-value h2 fw-800 text-dark"><?php echo $mysqli->query("SELECT count(*) FROM registration")->fetch_row()[0]; ?></div>
-                            </div>
-                        </a>
+                        <div class="ecosystem-node text-center h-100 shadow-sm" style="border-bottom: 4px solid #ffd700;">
+                            <div class="text-warning mb-2"><i class="fas fa-user-shield fa-2x"></i></div>
+                            <div class="metric-label fw-800 text-muted small">ADMIN TIERS</div>
+                            <div class="metric-value h2 fw-800 text-dark"><?php echo count($admins); ?></div>
+                            <div class="progress mt-3" style="height: 4px;"><div class="progress-bar bg-warning" style="width: 100%"></div></div>
+                        </div>
                     </div>
                 </div>
 
@@ -410,11 +465,21 @@ if ($tableCheck && $tableCheck->num_rows > 0) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         AOS.init({ duration: 800, once: true });
         
+        // Real-time Professional Clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            const clockEl = document.getElementById('liveClock');
+            if(clockEl) clockEl.textContent = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
         $('#adminRegisterForm').submit(function(e) {
             e.preventDefault();
             const pass = $(this).find('input[name="password"]').val();

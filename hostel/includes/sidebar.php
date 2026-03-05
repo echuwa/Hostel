@@ -2,6 +2,33 @@
 // Determine current page for active state
 $current_page = basename($_SERVER['PHP_SELF']);
 $dn = $_SESSION['name'] ?? ($_SESSION['username'] ?? 'Student');
+
+// Fetch student profile pic for sidebar
+$sb_profile_pic = '';
+if (isset($mysqli) && isset($_SESSION['user_id'])) {
+    $sb_uid = $_SESSION['user_id'];
+    $sb_stmt = $mysqli->prepare("SELECT profile_pic FROM userregistration WHERE id = ? LIMIT 1");
+    if ($sb_stmt) {
+        $sb_stmt->bind_param('i', $sb_uid);
+        $sb_stmt->execute();
+        $sb_res = $sb_stmt->get_result();
+        if ($sb_row = $sb_res->fetch_object()) {
+            $sb_profile_pic = $sb_row->profile_pic ?? '';
+        }
+        $sb_stmt->close();
+    }
+}
+
+// Resolve pic src
+$sb_pic_src = '';
+if (!empty($sb_profile_pic)) {
+    if (substr($sb_profile_pic, 0, 4) === 'http') {
+        $sb_pic_src = $sb_profile_pic;
+    } else {
+        $sb_pic_src = '/' . ltrim($sb_profile_pic, '/');
+    }
+}
+$sb_initial = strtoupper(substr($dn, 0, 1));
 ?>
 <!-- Include Global Assets -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -22,9 +49,18 @@ $dn = $_SESSION['name'] ?? ($_SESSION['username'] ?? 'Student');
     <!-- Student Profile Mini -->
     <div class="sidebar-profile" style="padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
         <div style="display: flex; align-items: center; gap: 12px; transition: 0.3s; overflow: hidden;">
-            <div style="flex-shrink: 0; width: 44px; height: 44px; background: linear-gradient(135deg, #4361ee, #7b2ff7); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <?php echo strtoupper(substr($dn, 0, 1)); ?>
+            <?php if (!empty($sb_pic_src)): ?>
+            <div style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 2px solid rgba(255,255,255,0.2);">
+                <img src="<?php echo htmlspecialchars($sb_pic_src); ?>" 
+                     alt="Profile" 
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                     onerror="this.parentElement.style.background='linear-gradient(135deg,#4361ee,#7b2ff7)'; this.parentElement.innerHTML='<span style=\'display:flex;align-items:center;justify-content:center;height:100%;font-weight:800;color:white;font-size:1.1rem;\'><?php echo $sb_initial; ?></span>'">
             </div>
+            <?php else: ?>
+            <div style="flex-shrink: 0; width: 44px; height: 44px; background: linear-gradient(135deg, #4361ee, #7b2ff7); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <?php echo $sb_initial; ?>
+            </div>
+            <?php endif; ?>
             <div class="profile-text" style="overflow: hidden;">
                 <div style="font-weight: 700; font-size: 0.95rem; color: #fff; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"><?php echo htmlspecialchars($dn); ?></div>
                 <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; margin-top: 4px; white-space: nowrap;">Resident Student</div>

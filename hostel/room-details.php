@@ -67,18 +67,60 @@ check_login();
             font-size: 0.9rem;
         }
         @media print {
-            .ts-sidebar, .header-modern, .btn-modern, .print-hidden {
-                display: none !important;
+            /* Hide ALL navigation and UI chrome */
+            .brand, .ts-sidebar, #sidebar, nav, .sidebar-mobile-toggle,
+            .header-modern, .btn-modern, .print-hidden, .ts-profile-nav,
+            .col-xl-3, .d-flex.justify-content-between { 
+                display: none !important; 
             }
-            .content-wrapper {
+            
+            /* Full-page content */
+            body {
+                background: white !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
+            .ts-main-content, .content-wrapper {
+                margin: 0 !important;
+                padding: 10px !important;
+                width: 100% !important;
+                display: block !important;
+            }
+            
+            /* Row becomes full width */
+            .row.g-4#printContent { display: block !important; }
+            .col-xl-9 { width: 100% !important; max-width: 100% !important; flex: none !important; padding: 0 !important; }
+            
+            /* Cards */
             .card-modern {
                 box-shadow: none !important;
-                border: 1px solid #eee !important;
+                border: 1px solid #ccc !important;
+                break-inside: avoid;
+            }
+            
+            /* Colors preserved */
+            .bg-light {
+                background-color: #f8fafc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            /* Print header */
+            .print-header-show {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 15px;
+            }
+            
+            /* Signature block */
+            .print-signatures {
+                margin-top: 50px !important;
+                page-break-inside: avoid;
             }
         }
+        .print-header-show { display: none; }
     </style>
 </head>
 <body>
@@ -101,7 +143,7 @@ check_login();
 
                 <?php
                 $aid = $_SESSION['user_id'] ?? $_SESSION['id'];
-                $ret = "SELECT r.*, u.fee_status FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE u.id = ? ORDER BY r.id DESC LIMIT 1";
+                $ret = "SELECT r.*, u.fee_status, u.profile_pic FROM registration r JOIN userregistration u ON r.regno = u.regNo WHERE u.id = ? ORDER BY r.id DESC LIMIT 1";
                 $stmt = $mysqli->prepare($ret);
                 $stmt->bind_param('i', $aid);
                 $stmt->execute();
@@ -118,24 +160,41 @@ check_login();
                 
                 <div class="row g-4" id="printContent">
                     <div class="col-xl-9">
+                        
+                        <!-- Official Print Header (Only visible on print) -->
+                        <div class="print-header-show">
+                            <h2 style="margin: 0; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif;">Hostel Management System</h2>
+                            <p style="margin: 5px 0; font-size: 14px;"><strong>Official Room Allocation & Tenancy Agreement</strong></p>
+                            <p style="margin: 0; font-size: 12px; color: #666;">Issued on: <?php echo date('F j, Y'); ?></p>
+                        </div>
+
                         <!-- Primary Allocation Details -->
                         <div class="card-modern border-0 mb-4 animate__animated animate__fadeInUp">
                             <div class="p-4 rounded-top-4" style="background: var(--gradient-primary); color: white;">
                                 <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center">
-                                            <div class="p-3 rounded-circle me-4 text-white" style="background: rgba(255,255,255,0.2);">
-                                                <i class="fas fa-hotel fs-3"></i>
+                                    <div class="col-md-2 text-center text-md-start mb-3 mb-md-0">
+                                        <?php if (!empty($row->profile_pic)): ?>
+                                            <img src="<?php echo htmlspecialchars($row->profile_pic); ?>" alt="Profile Picture" class="rounded-circle img-thumbnail shadow-sm print-px" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); background-color: white;">
+                                        <?php else: ?>
+                                            <div class="p-3 rounded-circle d-inline-flex mx-auto text-white shadow-sm print-px" style="background: rgba(255,255,255,0.2); width: 100px; height: 100px; align-items: center; justify-content: center;">
+                                                <i class="fas fa-user-graduate" style="font-size: 3rem;"></i>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-6 text-center text-md-start">
+                                        <div class="d-flex align-items-center justify-content-center justify-content-md-start mb-2">
+                                            <div class="p-2 rounded-circle me-3 text-white" style="background: rgba(255,255,255,0.2);">
+                                                <i class="fas fa-hotel fs-4"></i>
                                             </div>
                                             <div>
-                                                <h4 class="mb-1 fw-800 text-white">Room <?php echo $row->roomno; ?></h4>
-                                                <div class="small fw-700 opacity-75 text-white">
-                                                    <i class="fas fa-calendar-check me-1"></i> Allocation Confirmed on <?php echo date('d M Y', strtotime($row->postingDate)); ?>
-                                                </div>
+                                                <h4 class="mb-0 fw-800 text-white">Room <?php echo htmlspecialchars($row->roomno); ?></h4>
                                             </div>
                                         </div>
+                                        <div class="small fw-700 opacity-75 text-white">
+                                            <i class="fas fa-calendar-check me-1"></i> Allocation Confirmed on <?php echo date('d M Y', strtotime($row->postingDate)); ?>
+                                        </div>
                                     </div>
-                                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                    <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
                                         <div class="d-inline-block p-3 rounded-4 text-white" style="background: rgba(255,255,255,0.2);">
                                             <div class="small fw-700 opacity-75 text-uppercase text-white">Total Fees</div>
                                             <div class="h4 mb-0 fw-800 text-white">TSH <?php echo number_format($totalFees); ?>/=</div>
@@ -242,6 +301,38 @@ check_login();
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <!-- Section 4: Contract Agreement -->
+                                <div class="info-section-title mt-5">
+                                    <i class="fas fa-file-contract"></i> Hostel Tenancy Agreement
+                                </div>
+                                <div class="p-4 rounded-4 bg-light mb-4 text-dark" style="font-size: 0.85rem; line-height: 1.6; border-left: 4px solid var(--primary);">
+                                    <h6 class="fw-800 text-uppercase mb-3">Terms and Conditions of Residency</h6>
+                                    <ol class="ps-3 mb-4 text-muted">
+                                        <li class="mb-2"><strong>Compliance with Rules:</strong> I, the undersigned student, agree to abide by all the rules and regulations of the Hostel Management as stipulated in the student handbook.</li>
+                                        <li class="mb-2"><strong>Payment of Fees:</strong> I understand that my allocation is contingent upon the full payment of prescribed fees. Failure to pay may result in immediate eviction.</li>
+                                        <li class="mb-2"><strong>Property Damage:</strong> I shall be held personally and financially responsible for any damages caused to hostel property, furniture, or fixtures allocated to me. The management reserves the right to impose fines for willful destruction.</li>
+                                        <li class="mb-2"><strong>Disciplinary Action:</strong> Any involvement in illegal activities, substance abuse, or acts that disrupt the peace of the hostel will lead to immediate expulsion and disciplinary action by the University disciplinary committee.</li>
+                                        <li class="mb-2"><strong>Right of Entry:</strong> Management reserves the right to enter and inspect the room at any time for maintenance, security, or disciplinary checks without prior notice.</li>
+                                    </ol>
+                                    
+                                    <div class="row mt-5 pt-3 border-top border-dark border-opacity-10 print-signatures">
+                                        <div class="col-6">
+                                            <div class="mb-4">______________________________________</div>
+                                            <div class="fw-800 text-uppercase"><?php echo htmlspecialchars($row->firstName . ' ' . $row->lastName); ?></div>
+                                            <div class="small fw-700 text-muted">Student Signature</div>
+                                            <div class="small text-muted mt-1">Date: ________________________</div>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <div class="mb-4 d-inline-block text-center">
+                                                <div style="width: 200px; border-bottom: 1px solid #000; margin-bottom: 5px;"></div>
+                                            </div>
+                                            <div class="fw-800 text-uppercase">Warden / Management</div>
+                                            <div class="small fw-700 text-muted">Authorized Signature & Stamp</div>
+                                            <div class="small text-muted mt-1">Date: ________________________</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -289,9 +380,11 @@ check_login();
                     </a>
                 </div>
                 <!-- END LOCK SCREEN -->
-                <?php endif; ?>
-                
-                <?php endwhile; else: ?>
+                <?php 
+                        endif; 
+                    endwhile; 
+                else: 
+                ?>
                 
                 <div class="card-modern border-0 p-5 text-center bg-white shadow-sm animate__animated animate__zoomIn">
                     <div class="bg-gray-light p-4 rounded-circle d-inline-flex mb-4">
@@ -306,7 +399,7 @@ check_login();
                     </a>
                 </div>
                 
-                <?php endif; ?>
+                <?php endif; // closes if($res->num_rows > 0) ?>
             </div>
         </div>
     </div>

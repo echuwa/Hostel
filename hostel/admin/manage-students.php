@@ -157,6 +157,9 @@ if(isset($_POST['submit_payment']))
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Student Directory | HostelMS</title>
     
+    <!-- Favicon (Data URI to prevent 404) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏨</text></svg>">
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Icons -->
@@ -165,6 +168,9 @@ if(isset($_POST['submit_payment']))
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Unified Admin CSS -->
     <link rel="stylesheet" href="css/admin-modern.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         .student-card {
@@ -207,6 +213,7 @@ if(isset($_POST['submit_payment']))
         <?php include('includes/sidebar_modern.php'); ?>
 
         <div class="main-content">
+            <?php include('includes/header.php'); ?>
             <div class="content-wrapper">
                 
                 <div class="d-flex justify-content-between align-items-end mb-5">
@@ -215,9 +222,9 @@ if(isset($_POST['submit_payment']))
                         <p class="text-muted fw-600 mb-0">Manage registrations, profiles, and account statuses from a single pane.</p>
                     </div>
                     <div>
-                        <a href="registration.php" class="btn btn-modern btn-modern-primary">
+                        <button onclick="openRegistrationModal()" class="btn btn-modern btn-modern-primary">
                             <i class="fas fa-plus"></i> New Enrollment
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -244,7 +251,7 @@ if(isset($_POST['submit_payment']))
                 <div id="studentGrid" class="row g-4">
                     <?php 
                     $query = "SELECT u.id, u.firstName, u.lastName, u.regNo, u.gender, u.email, u.status, u.regDate, 
-                             u.fee_status, u.fees_paid, u.accommodation_paid, u.registration_paid, 
+                             u.fee_status, u.fees_paid, u.accommodation_paid, u.registration_paid, u.profile_pic,
                              r.roomno, r.seater 
                              FROM userregistration u 
                              LEFT JOIN registration r ON u.regNo = r.regno";
@@ -276,8 +283,20 @@ if(isset($_POST['submit_payment']))
                                 <?php echo strtoupper($row->status); ?>
                             </span>
                             
-                            <div class="avatar-circle <?php echo $gender_class; ?>">
-                                <?php echo strtoupper(substr($row->firstName, 0, 1) . substr($row->lastName, 0, 1)); ?>
+                            <?php 
+                            $st_pic = '';
+                            if(!empty($row->profile_pic)) {
+                                if(substr($row->profile_pic, 0, 4) === 'http') $st_pic = $row->profile_pic;
+                                else $st_pic = '../' . ltrim($row->profile_pic, '/');
+                            }
+                            ?>
+                            <div class="avatar-circle <?php echo $gender_class; ?>" style="<?php echo !empty($st_pic) ? 'background:none; border:2px solid #eee; overflow:hidden; padding:2px;' : ''; ?>">
+                                <?php if(!empty($st_pic)): ?>
+                                    <img src="<?php echo htmlspecialchars($st_pic); ?>" style="width:100%; height:100%; object-fit:cover; border-radius:18px;" 
+                                         onerror="this.parentElement.style.background='var(--primary-light)'; this.parentElement.innerHTML='<?php echo strtoupper(substr($row->firstName, 0, 1) . substr($row->lastName, 0, 1)); ?>'">
+                                <?php else: ?>
+                                    <?php echo strtoupper(substr($row->firstName, 0, 1) . substr($row->lastName, 0, 1)); ?>
+                                <?php endif; ?>
                             </div>
                             
                             <h5 class="fw-800 text-dark mb-1"><?php echo htmlspecialchars($row->firstName . ' ' . $row->lastName); ?></h5>
@@ -581,6 +600,33 @@ if(isset($_POST['submit_payment']))
         });
     </script>
     <?php unset($_SESSION['error_msg']); endif; ?>
+
+    <script>
+    function openRegistrationModal() {
+        Swal.fire({
+            html: '<iframe src="registration.php" style="width:100%; height:88vh; border:none; border-radius:15px;" scrolling="yes"></iframe>',
+            width: '1000px',
+            padding: '0',
+            showConfirmButton: false,
+            showCloseButton: false,
+            background: '#ffffff',
+            backdrop: `rgba(15, 23, 42, 0.75)`,
+            customClass: {
+                popup: 'rounded-4 shadow-2xl border-0 overflow-hidden'
+            },
+            showClass: {
+                popup: 'animate__animated animate__fadeInUp animate__fast'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__fadeOutDown animate__fast'
+            },
+            didClose: () => {
+                // Refresh grid if registration might have happened
+                window.location.reload();
+            }
+        });
+    }
+    </script>
 </body>
 </html>
 

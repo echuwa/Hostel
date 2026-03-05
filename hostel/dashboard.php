@@ -61,9 +61,9 @@ $alert_res = $stmt->get_result();
 $latest_reply = $alert_res->fetch_object();
 $stmt->close();
 
-// Fetch Payment Data for Student
+// Fetch Profile and Payment Data for Student
 $pay_data = null;
-$pay_query = "SELECT fee_status, fees_paid, accommodation_paid, registration_paid, payment_status, fee_control_no FROM userregistration WHERE id = ?";
+$pay_query = "SELECT fee_status, fees_paid, accommodation_paid, registration_paid, payment_status, fee_control_no, contactNo, gender FROM userregistration WHERE id = ?";
 $stmt = $mysqli->prepare($pay_query);
 $stmt->bind_param('i', $user_id);
 $stmt->execute();
@@ -140,7 +140,7 @@ $stmt->close();
                 <div class="row">
                     <div class="col-12">
                         <?php if ($pay_data && empty($pay_data->fee_control_no)): ?>
-                        <div class="alert alert-warning border-0 shadow-sm mb-4 animate__animated animate__pulse animate__infinite animate__slower" style="border-radius: 20px; background-color: #fffbeb; border-left: 6px solid var(--warning) !important;">
+                        <div class="alert alert-warning border-0 shadow-sm mb-4 animate__animated animate__pulse animate__infinite animate__slower" style="border-radius: 20px; background-color: #fffbeb; border-left: 3px solid var(--warning) !important;">
                             <div class="d-flex align-items-center p-2">
                                 <div class="me-4 bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; flex-shrink: 0;">
                                     <i class="fas fa-id-card fs-4"></i>
@@ -155,7 +155,7 @@ $stmt->close();
                         <?php endif; ?>
                         
                         <?php if($latest_reply): ?>
-                        <div class="alert alert-info border-0 shadow-sm mb-5 animate__animated animate__fadeIn" style="border-radius: 20px; background-color: #f0f7ff; border-left: 6px solid var(--primary) !important;">
+                        <div class="alert alert-info border-0 shadow-sm mb-5 animate__animated animate__fadeIn" style="border-radius: 20px; background-color: #f0f7ff; border-left: 3px solid var(--primary) !important;">
                             <div class="d-flex align-items-start p-2">
                                 <div class="me-4 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; flex-shrink: 0;">
                                     <i class="fas fa-bell fs-4"></i>
@@ -407,5 +407,27 @@ $stmt->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/jquery.min.js"></script>
     <script src="js/main.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <?php if ($pay_data && (empty($pay_data->contactNo) || empty($pay_data->gender))): ?>
+    <script>
+        setTimeout(function() {
+            Swal.fire({
+                title: 'Kamilisha Profile Yako!',
+                text: 'Karibu katika mfumo wetu. Tafadhali kamilisha taarifa zako za msingi (Jinsia na Namba ya Simu) ili uweze kutambulika kikamilifu.',
+                icon: 'info',
+                confirmButtonText: 'Kamilisha Sasa',
+                confirmButtonColor: '#4361ee',
+                showCancelButton: true,
+                cancelButtonText: 'Baadaye'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'my-profile.php';
+                }
+            });
+        }, 1500);
+    </script>
+    <?php endif; ?>
 </body>
 </html>
