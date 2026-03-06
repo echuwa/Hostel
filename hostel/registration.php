@@ -185,29 +185,52 @@ if(isset($_POST['submit'])) {
         /* Modal specific scroll and display fixes - PROFESSIONAL ISOLATION */
         body.is-modal { 
             background: #ffffff !important; 
-            overflow: auto !important; 
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
+            overflow-y: auto !important; 
+            display: block !important;
+            height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
-        body.is-modal::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-        
+        body.is-modal .auth_wrapper {
+            display: block !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        body.is-modal .auth_card {
+            display: block !important;
+            min-height: auto !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+        }
+        body.is-modal .bg-blob, 
         body.is-modal .auth_hero { display: none !important; }
-        body.is-modal .auth_card { max-width: 100% !important; margin: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; height: auto !important; }
-        body.is-modal .auth_content { padding: 10px 40px !important; width: 100% !important; }
-        body.is-modal .auth_header { margin-bottom: 10px !important; }
-        body.is-modal .header_icon_circle { width: 40px !important; height: 40px !important; font-size: 1.1rem !important; margin-bottom: 8px !important; }
-        body.is-modal .auth_title { font-size: 1.4rem !important; letter-spacing: -0.5px !important; }
-        body.is-modal .auth_subtitle { font-size: 0.75rem !important; margin-bottom: 0 !important; }
-        body.is-modal .input_container { margin-bottom: 8px !important; }
-        body.is-modal .auth_row { margin-bottom: 8px !important; }
-        body.is-modal .form-label { font-size: 0.6rem !important; margin-bottom: 3px !important; color: #64748b !important; }
-        body.is-modal .input-group-modern input, body.is-modal .input-group-modern select { height: 42px !important; font-size: 0.8rem !important; }
-        body.is-modal .input-group-modern i { font-size: 0.85rem !important; }
-        body.is-modal .map_wrapper { margin-bottom: 12px !important; }
-        body.is-modal .btn-gps-trigger { padding: 8px 12px !important; }
-        body.is-modal .auth_actions { margin-top: 12px !important; }
-        body.is-modal .regno-note { display: none !important; }
-        body.is-modal .auth_wrapper { min-height: auto !important; padding: 0 !important; }
+        
+        body.is-modal .auth_content { 
+            padding: 40px 30px 60px 30px !important; /* Added more top and bottom padding */
+            width: 100% !important;
+            display: block !important;
+        }
+        body.is-modal .auth_header { margin-bottom: 20px !important; }
+        body.is-modal .header_icon_circle { width: 45px !important; height: 45px !important; margin-bottom: 15px !important; }
+        
+        body.is-modal .input_container { margin-bottom: 12px !important; }
+        body.is-modal .input-group-modern { margin-bottom: 12px !important; }
+        body.is-modal .auth_actions { margin-top: 20px !important; padding-bottom: 20px !important; }
+        body.is-modal .auth_footer { margin-top: 15px !important; margin-bottom: 40px !important; }
+        
+        @media (max-width: 576px) {
+            body.is-modal .auth_content { padding: 30px 15px 80px 15px !important; }
+        }
+        /* Fix for bottom visibility on small phones */
+        @media (max-width: 480px) {
+            body.is-modal .auth_content { padding-bottom: 80px !important; }
+            body.is-modal .auth_footer { margin-bottom: 20px !important; }
+        }
     </style>
 </head>
 <body>
@@ -436,7 +459,7 @@ if(isset($_POST['submit'])) {
         confirmButtonColor: '#4361ee',
         confirmButtonText: 'Enter Terminal'
     }).then((result) => {
-        window.location.href = 'index.php';
+        window.top.location.href = 'index.php';
     });
     <?php endif; ?>
 

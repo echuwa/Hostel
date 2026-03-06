@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <div class="bg-blob blob-1"></div>
     <div class="bg-blob blob-2"></div>
 
-    <div class="auth_wrapper" style="max-width: 1000px;">
+    <div class="auth_wrapper" style="max-width: 850px;">
         <div class="auth_card" data-aos="zoom-in" data-aos-duration="1000">
             <!-- Left Panel - Hero Section -->
             <div class="auth_hero">
@@ -243,12 +243,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             client_id: "1017558814874-u6ve0qj0qjhoskriggokakum2l3g9hap.apps.googleusercontent.com",
             callback: handleCredentialResponse
         });
+        const gBtnWidth = window.innerWidth < 400 ? window.innerWidth - 60 : 350;
         google.accounts.id.renderButton(
             document.getElementById("google_btn"),
             { 
                 theme: "outline", 
                 size: "large", 
-                width: 350, // Fixed numeric width to avoid GSI warnings
+                width: gBtnWidth, 
                 shape: "pill",
                 text: "signin_with",
                 logo_alignment: "left"
@@ -323,16 +324,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     }
 
     function openRegistrationModal() {
+        // Detect mobile for responsive width
+        const modalWidth = window.innerWidth > 1000 ? '1000px' : '95%';
+        // Use a more robust height calculation
+        const modalHeight = Math.min(window.innerHeight * 0.9, 850) + 'px';
+
         Swal.fire({
-            html: '<iframe src="registration.php" style="width:100%; height:88vh; border:none; border-radius:15px;" scrolling="yes"></iframe>',
-            width: '1000px',
+            html: `<iframe src="registration.php" style="width:100%; height:${modalHeight}; border:none; border-radius:15px;" scrolling="yes"></iframe>`,
+            width: modalWidth,
             padding: '0',
             showConfirmButton: false,
-            showCloseButton: false,
-            background: '#ffffff', // Solid white to hide login page
-            backdrop: `rgba(15, 23, 42, 0.75)`, // Darker overlay
+            showCloseButton: true, // Allow closing easily on mobile
+            background: '#ffffff',
+            backdrop: `rgba(15, 23, 42, 0.75)`,
             customClass: {
-                popup: 'rounded-4 shadow-2xl border-0 overflow-hidden'
+                popup: 'rounded-4 shadow-2xl border-0'
             },
             showClass: {
                 popup: 'animate__animated animate__fadeInUp animate__fast'

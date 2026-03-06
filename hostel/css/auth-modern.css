@@ -84,6 +84,17 @@ body {
     animation: authFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@media (max-width: 768px) {
+    .auth_wrapper {
+        margin: 10px;
+    }
+
+    .auth_card {
+        min-height: auto;
+        border-radius: 20px;
+    }
+}
+
 @keyframes authFadeIn {
     from {
         opacity: 0;
@@ -165,7 +176,7 @@ body {
 
 @media (max-width: 576px) {
     .auth_content {
-        padding: 40px 24px;
+        padding: 30px 20px;
     }
 }
 
@@ -175,9 +186,9 @@ body {
 
 .auth_title {
     font-weight: 800;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     color: var(--dark);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     letter-spacing: -0.5px;
 }
 
@@ -206,11 +217,11 @@ body {
 .input-group-modern input,
 .input-group-modern select {
     width: 100%;
-    padding: 12px 18px 12px 48px;
+    padding: 10px 16px 10px 46px;
     background: var(--gray-light);
     border: 1px solid transparent;
-    border-radius: 16px;
-    font-size: 0.9rem;
+    border-radius: 14px;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--dark);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -218,11 +229,11 @@ body {
 
 .input-group-modern i {
     position: absolute;
-    left: 18px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--gray);
-    font-size: 1.1rem;
+    font-size: 1rem;
     transition: all 0.3s;
 }
 
@@ -308,10 +319,10 @@ body {
     background: var(--gradient-primary);
     color: white;
     border: none;
-    padding: 16px 30px;
-    border-radius: 16px;
-    font-weight: 800;
-    font-size: 1rem;
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
     width: 100%;
     cursor: pointer;
     box-shadow: 0 10px 20px rgba(67, 97, 238, 0.2);
