@@ -67,7 +67,9 @@ body {
 .auth_wrapper {
     width: 100%;
     max-width: 1150px;
-    margin: 20px;
+    margin: auto;
+    padding: 20px;
+    box-sizing: border-box;
     z-index: 10;
 }
 
@@ -85,8 +87,15 @@ body {
 }
 
 @media (max-width: 768px) {
+    body {
+        align-items: flex-start; /* Fix vertical cut-off on mobile */
+        padding-top: 30px;
+        padding-bottom: 50px;
+    }
+
     .auth_wrapper {
-        margin: 10px;
+        margin: 0 auto;
+        padding: 0 15px;
     }
 
     .auth_card {
