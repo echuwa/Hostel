@@ -110,6 +110,8 @@ $stmt->close();
             border: 1px solid rgba(0,0,0,0.03);
             box-shadow: var(--shadow-sm);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
         }
         .stat-card-modern:hover {
             transform: translateY(-5px);
@@ -119,6 +121,37 @@ $stmt->close();
             width: 50px; height: 50px; border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
             font-size: 1.3rem; margin-bottom: 15px;
+        }
+
+        /* Mobile Responsiveness Improvements */
+        @media (max-width: 576px) {
+            .dashboard-header-modern {
+                padding: 25px 20px;
+                border-radius: 20px;
+            }
+            .dashboard-header-modern h1 {
+                font-size: 1.5rem !important;
+            }
+            .dashboard-header-modern p {
+                font-size: 0.85rem;
+            }
+            .stat-card-modern {
+                align-items: center;
+                text-align: center;
+                padding: 20px;
+            }
+            .stat-card-modern h3 {
+                font-size: 1.4rem !important;
+            }
+            .stat-icon-box {
+                margin-bottom: 10px;
+            }
+            .card-header-modern {
+                padding: 15px 20px;
+            }
+            .card-header-modern h5 {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>

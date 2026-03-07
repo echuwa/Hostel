@@ -198,6 +198,19 @@ $adm_initial = strtoupper(substr($dn, 0, 1));
                 <?php endif; ?>
             </a>
         </li>
+        <li class="menu-header" style="font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1.5px; padding: 20px 16px 10px;">Financial Control</li>
+        <li>
+            <a href="wallet-management.php" class="<?php echo $current_page == 'wallet-management.php' ? 'active' : ''; ?>">
+                <i class="fas fa-wallet" style="color: #4ade80;"></i>
+                <span>Wallet & Payouts</span>
+                <?php 
+                $pending_payouts_query = $mysqli->query("SELECT COUNT(*) FROM wallet_transactions WHERE transaction_type='Withdrawal' AND status='Pending'");
+                $pending_payouts = $pending_payouts_query ? $pending_payouts_query->fetch_row()[0] : 0;
+                if($pending_payouts > 0): ?>
+                    <span class="badge rounded-pill bg-success ms-auto" style="font-size: 0.65rem; padding: 4px 8px;"><?php echo $pending_payouts; ?></span>
+                <?php endif; ?>
+            </a>
+        </li>
         <?php else: ?>
         <li>
             <a href="prepare-report.php" class="<?php echo $current_page == 'prepare-report.php' ? 'active' : ''; ?>">

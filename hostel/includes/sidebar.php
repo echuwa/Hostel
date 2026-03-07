@@ -7,13 +7,14 @@ $dn = $_SESSION['name'] ?? ($_SESSION['username'] ?? 'Student');
 $sb_profile_pic = '';
 if (isset($mysqli) && isset($_SESSION['user_id'])) {
     $sb_uid = $_SESSION['user_id'];
-    $sb_stmt = $mysqli->prepare("SELECT profile_pic FROM userregistration WHERE id = ? LIMIT 1");
+    $sb_stmt = $mysqli->prepare("SELECT profile_pic, wallet_balance FROM userregistration WHERE id = ? LIMIT 1");
     if ($sb_stmt) {
         $sb_stmt->bind_param('i', $sb_uid);
         $sb_stmt->execute();
         $sb_res = $sb_stmt->get_result();
         if ($sb_row = $sb_res->fetch_object()) {
             $sb_profile_pic = $sb_row->profile_pic ?? '';
+            $sb_wallet_balance = $sb_row->wallet_balance ?? 0;
         }
         $sb_stmt->close();
     }
@@ -46,9 +47,34 @@ $sb_initial = strtoupper(substr($dn, 0, 1));
         </div>
     </div>
 
-    <!-- Student Profile Mini -->
-    <div class="sidebar-profile" style="padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+     <div class="sidebar-profile" style="padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
         <div style="display: flex; align-items: center; gap: 12px; transition: 0.3s; overflow: hidden;">
+            <?php 
+            // Better ID resolution
+            $sb_uid = $_SESSION['user_id'] ?? ($_SESSION['id'] ?? null);
+            $sb_wallet_balance = 0;
+            if (isset($mysqli) && $sb_uid) {
+                $sb_stmt = $mysqli->prepare("SELECT profile_pic, wallet_balance FROM userregistration WHERE id = ? LIMIT 1");
+                if ($sb_stmt) {
+                    $sb_stmt->bind_param('i', $sb_uid);
+                    $sb_stmt->execute();
+                    $sb_res = $sb_stmt->get_result();
+                    if ($sb_row = $sb_res->fetch_object()) {
+                        $sb_profile_pic = $sb_row->profile_pic ?? '';
+                        $sb_wallet_balance = $sb_row->wallet_balance ?? 0;
+                    }
+                    $sb_stmt->close();
+                }
+            }
+            
+            // Resolve pic
+            $sb_pic_src = '';
+            if (!empty($sb_profile_pic)) {
+                if (substr($sb_profile_pic, 0, 4) === 'http') $sb_pic_src = $sb_profile_pic;
+                else $sb_pic_src = '/' . ltrim($sb_profile_pic, '/');
+            }
+            ?>
+            
             <?php if (!empty($sb_pic_src)): ?>
             <div style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 2px solid rgba(255,255,255,0.2);">
                 <img src="<?php echo htmlspecialchars($sb_pic_src); ?>" 
@@ -63,7 +89,11 @@ $sb_initial = strtoupper(substr($dn, 0, 1));
             <?php endif; ?>
             <div class="profile-text" style="overflow: hidden;">
                 <div style="font-weight: 700; font-size: 0.95rem; color: #fff; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"><?php echo htmlspecialchars($dn); ?></div>
-                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; margin-top: 4px; white-space: nowrap;">Resident Student</div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                    <div style="font-size: 0.7rem; color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.1); padding: 2px 10px; border-radius: 6px; white-space: nowrap; border: 1px solid rgba(74, 222, 128, 0.2);">
+                        <i class="fas fa-wallet" style="font-size: 0.6rem;"></i> TSH <?php echo number_format($sb_wallet_balance); ?>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -77,24 +107,19 @@ $sb_initial = strtoupper(substr($dn, 0, 1));
             </a>
         </li>
         
-        <li class="menu-header" style="font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1.5px; padding: 20px 16px 10px;">Accommodation</li>
-        <li>
-            <a href="book-hostel.php" class="<?php echo $current_page == 'book-hostel.php' ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-check"></i>
-                <span>Book a Room</span>
+        <li class="menu-header" style="font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1.5px; padding: 20px 16px 10px;">Services</li>
+        
+        <li class="has-submenu <?php echo in_array($current_page, ['book-hostel.php', 'room-details.php', 'pay-fees.php']) ? 'active' : ''; ?>">
+            <a href="javascript:void(0)">
+                <i class="fas fa-bed"></i>
+                <span>Accommodation</span>
+                <i class="fas fa-chevron-down ms-auto" style="font-size: 0.7rem; transition: 0.3s; <?php echo in_array($current_page, ['book-hostel.php', 'room-details.php', 'pay-fees.php']) ? 'transform: rotate(180deg);' : ''; ?>"></i>
             </a>
-        </li>
-        <li>
-            <a href="room-details.php" class="<?php echo $current_page == 'room-details.php' ? 'active' : ''; ?>">
-                <i class="fas fa-door-closed"></i>
-                <span>Room View</span>
-            </a>
-        </li>
-        <li>
-            <a href="pay-fees.php" class="<?php echo $current_page == 'pay-fees.php' ? 'active' : ''; ?>">
-                <i class="fas fa-wallet"></i>
-                <span>Settlements</span>
-            </a>
+            <ul class="submenu" style="display: <?php echo in_array($current_page, ['book-hostel.php', 'room-details.php', 'pay-fees.php']) ? 'block' : 'none'; ?>;">
+                <li><a href="book-hostel.php" class="<?php echo $current_page == 'book-hostel.php' ? 'active-link' : ''; ?>">Book a Room</a></li>
+                <li><a href="room-details.php" class="<?php echo $current_page == 'room-details.php' ? 'active-link' : ''; ?>">Room View</a></li>
+                <li><a href="pay-fees.php" class="<?php echo $current_page == 'pay-fees.php' ? 'active-link' : ''; ?>">Settlements</a></li>
+            </ul>
         </li>
         
         <li class="menu-header" style="font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1.5px; padding: 20px 16px 10px;">Support Center</li>

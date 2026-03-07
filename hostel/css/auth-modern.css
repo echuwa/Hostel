@@ -176,7 +176,14 @@ body {
 
 @media (max-width: 576px) {
     .auth_content {
-        padding: 30px 20px;
+        padding: 25px 15px;
+        align-items: center;
+        text-align: center;
+    }
+
+    .auth_content form {
+        width: 100%;
+        text-align: left;
     }
 }
 
@@ -190,6 +197,16 @@ body {
     color: var(--dark);
     margin-bottom: 6px;
     letter-spacing: -0.5px;
+}
+
+@media (max-width: 576px) {
+    .auth_title {
+        font-size: 1.35rem;
+    }
+
+    .auth_subtitle {
+        font-size: 0.85rem;
+    }
 }
 
 .auth_subtitle {
@@ -340,6 +357,13 @@ body {
 
 .btn-primary-modern:active {
     transform: translateY(0);
+}
+
+@media (max-width: 576px) {
+    .btn-primary-modern {
+        padding: 10px 20px;
+        font-size: 0.85rem;
+    }
 }
 
 .btn-secondary-modern {

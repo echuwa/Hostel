@@ -113,6 +113,15 @@ check_login();
                 border-bottom: 2px solid #000;
                 padding-bottom: 15px;
             }
+
+            /* Fix extra page issue */
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .ts-main-content {
+                display: block !important;
+            }
             
             /* Signature block */
             .print-signatures {
@@ -191,7 +200,7 @@ check_login();
                                             </div>
                                         </div>
                                         <div class="small fw-700 opacity-75 text-white">
-                                            <i class="fas fa-calendar-check me-1"></i> Allocation Confirmed on <?php echo date('d M Y', strtotime($row->postingDate)); ?>
+                                            <i class="fas fa-calendar-check me-1"></i> Allocation Confirmed on <?php echo ($row->postingDate && $row->postingDate != '0000-00-00 00:00:00') ? date('d M Y', strtotime($row->postingDate)) : 'Awaiting Confirmation'; ?>
                                         </div>
                                     </div>
                                     <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
@@ -215,7 +224,7 @@ check_login();
                                     </div>
                                     <div class="col-md-4">
                                         <div class="detail-label">Full Name</div>
-                                        <div class="detail-value"><?php echo strtoupper($row->firstName . ' ' . $row->middleName . ' ' . $row->lastName); ?></div>
+                                        <div class="detail-value"><?php echo strtoupper($row->firstName . ' ' . $row->lastName); ?></div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="detail-label">Course Applied</div>
@@ -287,7 +296,15 @@ check_login();
                                     <div class="row g-4">
                                         <div class="col-md-6">
                                             <div class="detail-label">Permanent Address</div>
-                                            <div class="fw-700 text-dark"><?php echo $row->pmntAddress ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; ?></div>
+                                            <div class="fw-700 text-dark">
+                                                <?php 
+                                                if (isset($row->corresAddress) && strpos($row->corresAddress, 'GPS') !== false) {
+                                                    echo htmlspecialchars($row->corresAddress);
+                                                } else {
+                                                    echo $row->pmntAddress ?: '<span class="text-muted fst-italic fs-6">Not Provided</span>'; 
+                                                }
+                                                ?>
+                                            </div>
                                             <?php if($row->pmntState || $row->pmntCountry): ?>
                                             <div class="small text-muted mt-1"><?php echo htmlspecialchars($row->pmntState); ?> <?php echo $row->pmntCountry ? '('.$row->pmntCountry.')' : ''; ?></div>
                                             <?php endif; ?>

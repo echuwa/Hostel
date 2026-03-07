@@ -279,7 +279,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             margin-top: 4px;
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 991px) {
             .sidebar-mobile-toggle {
                 display: flex;
             }
@@ -290,6 +290,14 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
             .ts-account > a .username {
                 display: none;
+            }
+
+            .header-page-info .page-title-text {
+                font-size: 1rem;
+                max-width: 150px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
         }
     </style>
@@ -449,16 +457,36 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     document.addEventListener('DOMContentLoaded', function() {
         // Mobile sidebar toggle for admin
         const mobileToggle = document.getElementById('adminMobileSidebarToggle');
-        const sidebar = document.querySelector('.ts-sidebar');
+        const sidebar = document.getElementById('sidebar'); // Corrected to match sidebar_modern.php
 
         if (mobileToggle && sidebar) {
-            mobileToggle.addEventListener('click', function() {
+            mobileToggle.addEventListener('click', function(e) {
+                e.preventDefault();
                 sidebar.classList.toggle('mobile-open');
+                
+                // Add backdrop overlay if it doesn't exist
+                let backdrop = document.querySelector('.sidebar-backdrop');
+                if (!backdrop) {
+                    backdrop = document.createElement('div');
+                    backdrop.className = 'sidebar-backdrop';
+                    backdrop.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998; display:none; backdrop-filter:blur(2px); transition: 0.3s;';
+                    document.body.appendChild(backdrop);
+                    
+                    backdrop.addEventListener('click', () => {
+                        sidebar.classList.remove('mobile-open');
+                        backdrop.style.display = 'none';
+                        const icon = mobileToggle.querySelector('i');
+                        if(icon) icon.className = 'fas fa-bars';
+                    });
+                }
+
                 const icon = this.querySelector('i');
                 if (sidebar.classList.contains('mobile-open')) {
                     icon.className = 'fas fa-times';
+                    backdrop.classList.add('active');
                 } else {
                     icon.className = 'fas fa-bars';
+                    backdrop.classList.remove('active');
                 }
             });
         }

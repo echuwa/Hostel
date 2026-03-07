@@ -162,12 +162,35 @@ body {
     margin-left: var(--sidebar-collapsed-width);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 991px) {
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px !important;
+        box-shadow: 15px 0 30px rgba(0, 0, 0, 0.15);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
     .content-wrapper {
         margin-left: 0 !important;
-        padding: 20px;
-        padding-top: calc(var(--header-height) + 20px);
+        padding: 15px !important;
+        width: 100% !important;
+        padding-top: calc(var(--header-height) + 15px) !important;
     }
+}
+
+.sidebar-backdrop {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-backdrop.active {
+    display: block !important;
+    opacity: 1;
 }
 
 /* Common UI Components */

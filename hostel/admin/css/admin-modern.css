@@ -378,6 +378,10 @@ body {
 @media (max-width: 991px) {
     .sidebar {
         transform: translateX(-100%);
+        width: 280px !important;
+        box-shadow: 15px 0 30px rgba(0, 0, 0, 0.1);
+        border-left: none !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .sidebar.mobile-open {
@@ -386,6 +390,26 @@ body {
 
     .main-content {
         margin-left: 0 !important;
-        padding: 20px;
+        padding: 15px !important;
+        width: 100% !important;
+    }
+
+    /* Ensure cards and charts fit on small screens */
+    .analytics-card {
+        padding: 15px !important;
+    }
+
+    .greeting-card {
+        padding: 20px 15px !important;
+    }
+}
+
+.sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    .sidebar-backdrop.active {
+        display: block !important;
     }
 }

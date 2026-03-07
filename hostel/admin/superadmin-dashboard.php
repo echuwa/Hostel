@@ -258,6 +258,34 @@ $total_complaints = $mysqli->query("SELECT COUNT(*) as c FROM complaints")->fetc
                     </div>
                 </div>
 
+                <!-- FINANCIAL OVERVIEW NODE -->
+                <div class="row g-4 mb-5" data-aos="fade-up">
+                    <div class="col-12">
+                        <div class="super-card shadow-sm" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                            <div class="row align-items-center">
+                                <div class="col-md-9">
+                                    <div class="d-flex align-items-center gap-4">
+                                        <div class="bg-success bg-opacity-10 text-success p-4 rounded-4">
+                                            <i class="fas fa-wallet fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="fw-800 text-dark mb-1">Smart Wallet Ecosystem</h5>
+                                            <p class="text-muted small fw-600 mb-0">Total system liability from resident student balances.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <?php 
+                                    $wallet_liability = $mysqli->query("SELECT SUM(wallet_balance) FROM userregistration")->fetch_row()[0] ?? 0;
+                                    ?>
+                                    <div class="h3 fw-800 text-success mb-1">TSH <?php echo number_format($wallet_liability); ?></div>
+                                    <a href="wallet-management.php" class="btn btn-link text-decoration-none fw-800 small p-0">MANAGE FINANCE <i class="fas fa-arrow-right ms-1"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row g-4">
                     <!-- ADMIN LIST -->
                     <div class="col-lg-8" data-aos="fade-right" id="debtor-section">

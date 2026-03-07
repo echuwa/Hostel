@@ -225,6 +225,13 @@ if(isset($_POST['submit'])) {
         
         @media (max-width: 576px) {
             body.is-modal .auth_content { padding: 30px 15px 80px 15px !important; }
+            .btn-gps-trigger { padding: 12px 15px !important; }
+            .gps-icon-box { width: 40px !important; height: 40px !important; margin-right: 12px !important; font-size: 1rem !important; }
+            .gps-label { font-size: 0.6rem !important; }
+            .gps-sub { font-size: 0.75rem !important; }
+            #address-preview { font-size: 0.7rem !important; }
+            .auth_title { font-size: 1.4rem !important; }
+            .auth_subtitle { font-size: 0.85rem !important; }
         }
         /* Fix for bottom visibility on small phones */
         @media (max-width: 480px) {
