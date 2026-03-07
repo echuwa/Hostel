@@ -202,12 +202,24 @@ $adm_initial = strtoupper(substr($dn, 0, 1));
         <li>
             <a href="wallet-management.php" class="<?php echo $current_page == 'wallet-management.php' ? 'active' : ''; ?>">
                 <i class="fas fa-wallet" style="color: #4ade80;"></i>
-                <span>Wallet & Payouts</span>
+                <span>Wallet &amp; Payouts</span>
                 <?php 
                 $pending_payouts_query = $mysqli->query("SELECT COUNT(*) FROM wallet_transactions WHERE transaction_type='Withdrawal' AND status='Pending'");
                 $pending_payouts = $pending_payouts_query ? $pending_payouts_query->fetch_row()[0] : 0;
                 if($pending_payouts > 0): ?>
                     <span class="badge rounded-pill bg-success ms-auto" style="font-size: 0.65rem; padding: 4px 8px;"><?php echo $pending_payouts; ?></span>
+                <?php endif; ?>
+            </a>
+        </li>
+        <li>
+            <a href="deposit-requests.php" class="<?php echo $current_page == 'deposit-requests.php' ? 'active' : ''; ?>">
+                <i class="fas fa-inbox" style="color: #f59e0b;"></i>
+                <span>Deposit Requests</span>
+                <?php 
+                $pending_dep_q = $mysqli->query("SELECT COUNT(*) FROM deposit_requests WHERE status='Pending'");
+                $pending_dep   = $pending_dep_q ? $pending_dep_q->fetch_row()[0] : 0;
+                if($pending_dep > 0): ?>
+                    <span class="badge rounded-pill bg-warning text-dark ms-auto" style="font-size: 0.65rem; padding: 4px 8px;"><?php echo $pending_dep; ?></span>
                 <?php endif; ?>
             </a>
         </li>

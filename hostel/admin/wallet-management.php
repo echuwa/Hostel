@@ -72,10 +72,41 @@ if(isset($_GET['reject'])) {
     exit();
 }
 
+// 3. Initiate Refund (Step 1 — Generate Token)
+if(isset($_POST['initiate_refund'])) {
+    $target_user_id = intval($_POST['target_user_id']);
+    $amount         = floatval($_POST['refund_amount']);
+    $reason         = trim($_POST['refund_reason']);
+    $pay_ref        = trim($_POST['payment_ref'] ?? '');
+    $fee_type       = trim($_POST['fee_type'] ?? '');
+    $reverse_fee    = isset($_POST['reverse_fee']) ? 1 : 0;
+
+    if($amount <= 0 || empty($reason) || !$target_user_id) {
+        $_SESSION['error_msg'] = "Fill all required fields.";
+        header("Location: wallet-management.php"); exit();
+    }
+
+    $token   = bin2hex(random_bytes(32));
+    $expires = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+    $stmt = $mysqli->prepare("INSERT INTO refund_requests (user_id, admin_id, amount, reason, payment_ref, fee_type, reverse_fee, confirm_token, token_expires) VALUES (?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param('iidsssisss', $target_user_id, $admin_id, $amount, $reason, $pay_ref, $fee_type, $reverse_fee, $token, $expires);
+    
+    if($stmt->execute()) {
+        $refund_id = $mysqli->insert_id;
+        header("Location: confirm-refund.php?id={$refund_id}&token={$token}");
+    } else {
+        $_SESSION['error_msg'] = "System error: " . $mysqli->error;
+        header("Location: wallet-management.php");
+    }
+    exit();
+}
+
 // Fetch Global Stats
-$total_balance = $mysqli->query("SELECT SUM(wallet_balance) FROM userregistration")->fetch_row()[0] ?? 0;
-$total_deposits = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHERE transaction_type='Deposit'")->fetch_row()[0] ?? 0;
-$total_payouts = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHERE transaction_type='Withdrawal' AND status='Completed'")->fetch_row()[0] ?? 0;
+$total_balance   = $mysqli->query("SELECT SUM(wallet_balance) FROM userregistration")->fetch_row()[0] ?? 0;
+$total_deposits  = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHERE transaction_type='Deposit'")->fetch_row()[0] ?? 0;
+$total_payouts   = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHERE transaction_type='Withdrawal' AND status='Completed'")->fetch_row()[0] ?? 0;
+$pending_deposits_count = $mysqli->query("SELECT COUNT(*) FROM deposit_requests WHERE status='Pending'")->fetch_row()[0] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -115,9 +146,23 @@ $total_payouts = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHE
                 
                 <div class="d-flex justify-content-between align-items-center mb-5">
                     <div>
-                        <h2 class="fw-800 mb-1">Financial Operations</h2>
-                        <p class="text-muted fw-600 mb-0">Oversee wallet ecosystems, monitor flow, and authorize payouts.</p>
-                    </div>
+                    <h2 class="fw-800 mb-1">Financial Operations</h2>
+                    <p class="text-muted fw-600 mb-0">Oversee wallet ecosystems, monitor flow, and authorize payouts.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="deposit-requests.php" class="btn rounded-pill fw-800 px-4 position-relative"
+                       style="background:#fef3c7; color:#92400e; border: 1px solid #fde68a;">
+                        <i class="fas fa-inbox me-2"></i> Deposit Requests
+                        <?php if($pending_deposits_count > 0): ?>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.65rem;">
+                            <?= $pending_deposits_count ?>
+                        </span>
+                        <?php endif; ?>
+                    </a>
+                    <button class="btn btn-primary rounded-pill fw-800 px-4" data-bs-toggle="modal" data-bs-target="#refundModal">
+                        <i class="fas fa-undo me-2"></i>Initiate Refund
+                    </button>
+                </div>
                 </div>
 
                 <!-- Stats Grid -->
@@ -266,6 +311,72 @@ $total_payouts = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHE
                 </div>
 
             </div>
+
+            <!-- ═══ INITIATE REFUND MODAL ═══ -->
+            <div class="modal fade" id="refundModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                        <div class="modal-header border-0 p-4" style="background:linear-gradient(135deg,#4361ee,#7b2ff7); color:white;">
+                            <h5 class="modal-title fw-800"><i class="fas fa-undo me-2"></i>Initiate Refund</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="alert alert-info rounded-3 small fw-600 mb-4">
+                                <i class="fas fa-info-circle me-2"></i>
+                                A <strong>30-minute authorization token</strong> will be generated. You must confirm it on the next screen to complete the refund.
+                            </div>
+                            <form method="post">
+                                <div class="mb-3">
+                                    <label class="form-label fw-800 small text-muted">STUDENT (Reg No or Name)</label>
+                                    <?php
+                                    $students_q = $mysqli->query("SELECT id, firstName, lastName, regNo FROM userregistration ORDER BY firstName");
+                                    ?>
+                                    <select name="target_user_id" class="form-select rounded-3 fw-700" required>
+                                        <option value="">-- Select Student --</option>
+                                        <?php while($s = $students_q->fetch_object()): ?>
+                                        <option value="<?= $s->id ?>">
+                                            <?= htmlspecialchars($s->firstName . ' ' . $s->lastName . ' (' . $s->regNo . ')') ?>
+                                        </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-800 small text-muted">REFUND AMOUNT (TSH)</label>
+                                    <input type="number" name="refund_amount" class="form-control rounded-3 fw-800" min="1" required placeholder="e.g. 50000">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-800 small text-muted">REASON FOR REFUND</label>
+                                    <textarea name="refund_reason" class="form-control rounded-3" rows="2" required
+                                              placeholder="e.g. Duplicate payment, overpayment, wrong fee type..."></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-800 small text-muted">ORIGINAL PAYMENT REFERENCE (Optional)</label>
+                                    <input type="text" name="payment_ref" class="form-control rounded-3" placeholder="Transaction ID or Reference">
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="reverseFeeCheck" name="reverse_fee">
+                                        <label class="form-check-label fw-700" for="reverseFeeCheck">
+                                            Also reverse the fee payment record?
+                                        </label>
+                                    </div>
+                                    <div id="feeTypeSelect" style="display:none;" class="mt-2">
+                                        <select name="fee_type" class="form-select rounded-3 fw-700">
+                                            <option value="Fees">School Fees</option>
+                                            <option value="Accommodation">Accommodation</option>
+                                            <option value="Registration">Registration</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" name="initiate_refund"
+                                        class="btn btn-primary w-100 rounded-pill fw-800 py-3">
+                                    <i class="fas fa-arrow-right me-2"></i>Generate Token & Continue
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -302,6 +413,16 @@ $total_payouts = $mysqli->query("SELECT SUM(amount) FROM wallet_transactions WHE
             }
         });
     }
+
+    // Toggle fee type select based on reverse_fee checkbox
+    document.addEventListener('DOMContentLoaded', function() {
+        const cb = document.getElementById('reverseFeeCheck');
+        if(cb) {
+            cb.addEventListener('change', function() {
+                document.getElementById('feeTypeSelect').style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    });
     </script>
 
     <?php if(isset($_SESSION['success_msg'])): ?>

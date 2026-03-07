@@ -161,44 +161,66 @@ if(isset($_POST['request_withdrawal'])) {
     exit();
 }
 
-// 1. Wallet Logic: Top Up
-if(isset($_POST['topup_wallet'])) {
-    $amount = floatval($_POST['amount'] ?? 0);
-    $method = $_POST['method'] ?? 'Mobile Money';
-    $ref = "DEP-" . time() . "-" . strtoupper(substr(md5($user_id . time()), 0, 6));
+// 1. Wallet Logic: Real Deposit Request (Proof Upload)
+if(isset($_POST['request_deposit'])) {
+    $amount  = floatval($_POST['deposit_amount'] ?? 0);
+    $method  = trim($_POST['deposit_method'] ?? '');
+    $ref_no  = trim($_POST['deposit_ref'] ?? '');
+    $upload_dir = __DIR__ . '/uploads/deposit_proofs/';
 
-    if($amount >= 1000) {
-        $mysqli->begin_transaction();
-        try {
-            // Get current balance
-            $q = $mysqli->prepare("SELECT wallet_balance FROM userregistration WHERE id = ?");
-            $q->bind_param('i', $user_id);
-            $q->execute();
-            $prev_bal = $q->get_result()->fetch_object()->wallet_balance;
+    if(!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
-            // Update balance
-            $new_bal = $prev_bal + $amount;
-            $upd = $mysqli->prepare("UPDATE userregistration SET wallet_balance = ? WHERE id = ?");
-            $upd->bind_param('di', $new_bal, $user_id);
-            $upd->execute();
-
-            // Log wallet transaction
-            $desc = "Deposit via $method";
-            $log = $mysqli->prepare("INSERT INTO wallet_transactions (user_id, transaction_type, amount, prev_balance, new_balance, description, reference_no) VALUES (?, 'Deposit', ?, ?, ?, ?, ?)");
-            $log->bind_param('idddss', $user_id, $amount, $prev_bal, $new_bal, $desc, $ref);
-            $log->execute();
-
-            $mysqli->commit();
-            $_SESSION['success'] = "Wallet topped up successfully! TSH " . number_format($amount) . " added. Ref: $ref";
-        } catch (Exception $e) {
-            $mysqli->rollback();
-            $_SESSION['error'] = "Wallet error: " . $e->getMessage();
-        }
-    } else {
-        $_SESSION['error'] = "Minimum deposit is TSH 1,000.";
+    // Validate inputs
+    if($amount < 1000 || empty($ref_no) || empty($method)) {
+        $_SESSION['error'] = "Please fill all fields. Minimum deposit is TSH 1,000.";
+        header("Location: pay-fees.php"); exit();
     }
-    header("Location: pay-fees.php");
-    exit();
+
+    // Validate file
+    if(empty($_FILES['deposit_proof']['name'])) {
+        $_SESSION['error'] = "Please upload proof of payment (screenshot or receipt).";
+        header("Location: pay-fees.php"); exit();
+    }
+
+    $file = $_FILES['deposit_proof'];
+    $allowed_types = ['image/jpeg','image/jpg','image/png','application/pdf'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    if(!in_array($mime, $allowed_types)) {
+        $_SESSION['error'] = "File type not allowed. Use JPG, PNG, or PDF only.";
+        header("Location: pay-fees.php"); exit();
+    }
+    if($file['size'] > 5 * 1024 * 1024) {
+        $_SESSION['error'] = "File too large. Maximum size is 5MB.";
+        header("Location: pay-fees.php"); exit();
+    }
+
+    $ext      = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $filename = "DEP-{$user_id}-" . time() . "." . $ext;
+    $dest     = $upload_dir . $filename;
+
+    if(!move_uploaded_file($file['tmp_name'], $dest)) {
+        $_SESSION['error'] = "File upload failed. Please try again.";
+        header("Location: pay-fees.php"); exit();
+    }
+
+    // Write security .htaccess if missing
+    if(!file_exists($upload_dir . '.htaccess')) {
+        file_put_contents($upload_dir . '.htaccess', "php_flag engine off\nOptions -ExecCGI -Indexes\n");
+    }
+
+    // Save request to DB
+    $stmt = $mysqli->prepare("INSERT INTO deposit_requests (user_id, amount, payment_method, reference_no, proof_file) VALUES (?,?,?,?,?)");
+    $stmt->bind_param('idsss', $user_id, $amount, $method, $ref_no, $filename);
+    if($stmt->execute()) {
+        $_SESSION['success'] = "✅ Deposit request of TSH " . number_format($amount) . " submitted! Admin will verify and credit your wallet shortly. Keep your reference: <strong>{$ref_no}</strong>";
+    } else {
+        unlink($dest); // clean up on DB failure
+        $_SESSION['error'] = "System error saving request. Please try again.";
+    }
+    header("Location: pay-fees.php"); exit();
 }
 
 // 2. Wallet Logic: Pay from Wallet
@@ -754,35 +776,83 @@ if (empty($user->fee_control_no)) {
             </div>
         </div>
     </div>
+    <!-- ═══ REAL DEPOSIT REQUEST MODAL ═══ -->
     <div class="modal fade" id="topupModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-5 overflow-hidden">
-                <div class="modal-body p-5">
-                    <div class="text-center mb-4">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-block mb-3">
-                            <i class="fas fa-cloud-upload-alt fa-2x text-primary"></i>
+                <div class="modal-body p-0">
+                    <!-- Top banner -->
+                    <div class="p-4 text-white text-center" style="background: linear-gradient(135deg,#4361ee,#7b2ff7);">
+                        <div class="bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;">
+                            <i class="fas fa-cloud-upload-alt fa-xl"></i>
                         </div>
-                        <h4 class="fw-800">Top Up Wallet</h4>
-                        <p class="text-muted">Enter the amount to add to your balance.</p>
+                        <h4 class="fw-800 mb-1">Deposit to Wallet</h4>
+                        <p class="opacity-75 small mb-0">Pay first, upload proof — Admin verifies &amp; credits your wallet.</p>
                     </div>
-                    <form action="" method="post">
-                        <div class="mb-4">
-                            <label class="form-label-modern">Amount (TSH)</label>
-                            <input type="number" name="amount" class="form-control form-control-lg rounded-4 fw-800" placeholder="e.g. 50000" min="1000" required>
+
+                    <div class="p-4">
+                        <!-- Payment details box -->
+                        <div class="alert border-0 rounded-4 mb-4" style="background:#f0f7ff;">
+                            <div class="fw-800 text-primary mb-2"><i class="fas fa-info-circle me-2"></i>Pay to these accounts first:</div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="bg-white rounded-3 p-2 small fw-700">
+                                        <i class="fas fa-mobile-alt text-success me-1"></i> <strong>M-Pesa:</strong><br>
+                                        <span class="text-muted">0755-XXX-XXX (Hostel Fund)</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bg-white rounded-3 p-2 small fw-700">
+                                        <i class="fas fa-university text-primary me-1"></i> <strong>NMB Bank:</strong><br>
+                                        <span class="text-muted">Acct: XXXXXXXXX</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label-modern">Payment Method</label>
-                            <select name="method" class="form-select form-control-lg rounded-4 fw-600">
-                                <option value="M-Pesa">M-Pesa</option>
-                                <option value="Tigo Pesa">Tigo Pesa</option>
-                                <option value="Airtel Money">Airtel Money</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                            </select>
-                        </div>
-                        <button type="submit" name="topup_wallet" class="btn btn-primary btn-lg w-100 rounded-pill fw-800 py-3">
-                            CONFIRM DEPOSIT
-                        </button>
-                    </form>
+
+                        <form action="" method="post" enctype="multipart/form-data">
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label-modern">Amount (TSH)</label>
+                                    <input type="number" name="deposit_amount" class="form-control form-control-lg rounded-4 fw-800"
+                                           min="1000" placeholder="e.g. 50,000" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label-modern">Payment Method</label>
+                                    <select name="deposit_method" class="form-select form-select-lg rounded-4 fw-600" required>
+                                        <option value="M-Pesa">📱 M-Pesa</option>
+                                        <option value="Tigo Pesa">📱 Tigo Pesa</option>
+                                        <option value="Airtel Money">📱 Airtel Money</option>
+                                        <option value="Bank Transfer">🏦 Bank Transfer</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-modern">Transaction Reference Number</label>
+                                <input type="text" name="deposit_ref" class="form-control rounded-4 fw-700"
+                                       placeholder="e.g. SI7XXXXXX or MPESA20240307XXXXXXXX" required>
+                                <div class="form-text">Found in your M-Pesa/Bank confirmation SMS or receipt.</div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label-modern">Upload Payment Proof</label>
+                                <input type="file" name="deposit_proof" class="form-control rounded-4"
+                                       accept=".jpg,.jpeg,.png,.pdf" required
+                                       onchange="previewProof(this)">
+                                <div class="form-text">JPG, PNG or PDF • Max 5MB • Screenshot or scanned receipt</div>
+                                <div id="proofPreview" class="mt-2"></div>
+                            </div>
+                            <button type="submit" name="request_deposit"
+                                    class="btn btn-primary btn-lg w-100 rounded-pill fw-800 py-3">
+                                <i class="fas fa-paper-plane me-2"></i> SUBMIT DEPOSIT REQUEST
+                            </button>
+                            <p class="text-center text-muted small fw-600 mt-2 mb-0">
+                                <i class="fas fa-clock me-1"></i> Typically verified within a few hours during working hours.
+                            </p>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-link text-muted fw-700 text-decoration-none" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </div>
         </div>
@@ -909,6 +979,22 @@ if (empty($user->fee_control_no)) {
                 });
             });
         }
+        function previewProof(input) {
+            const preview = document.getElementById('proofPreview');
+            if(input.files && input.files[0]) {
+                const file = input.files[0];
+                if(file.type === 'application/pdf') {
+                    preview.innerHTML = `<div class="alert alert-secondary rounded-3 small fw-700 d-flex align-items-center gap-2"><i class="fas fa-file-pdf text-danger"></i> PDF selected: ${file.name}</div>`;
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        preview.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded-3 border" style="max-height:120px;" alt="Proof preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
     </script>
+
 </body>
 </html>

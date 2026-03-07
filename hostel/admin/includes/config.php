@@ -1,31 +1,9 @@
 <?php
-// Initialize Security
-require_once(__DIR__ . '/../../includes/security.php');
-set_security_headers();
+// Include the master configuration file
+require_once(__DIR__ . '/../../includes/config.php');
 
-// Session security
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.use_strict_mode', 1);
-    // ini_set('session.cookie_secure', 1); // Enable if HTTPS
-    session_start();
+// Enable/disable admin registration (specific to admin module)
+if(!defined('ALLOW_ADMIN_REGISTRATION')) {
+    define('ALLOW_ADMIN_REGISTRATION', true);
 }
-secure_session();
-
-// Database configuration
-$dbhost = "localhost";  // Host/IP
-$dbuser = "official_chuwa";      // Username
-$dbpass = "chuwa123";   // Password
-$dbname = "Hostel";     // Database name
-
-// Create connection with correct parameter order
-$mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-
-// Check connection
-if ($mysqli->connect_error) {
-    die("Connection failed: " . $mysqli->connect_error);
-}
-
-// Enable/disable admin registration
-define('ALLOW_ADMIN_REGISTRATION', true);
 ?>

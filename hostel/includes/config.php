@@ -12,24 +12,31 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 secure_session();
 
-// Database configuration
-$dbhost = "localhost";  // or "127.0.0.1" if having connection issues
-$dbuser = "official_chuwa";      // Your actual database username
-$dbpass = "chuwa123";   // Your actual database password
-$dbname = "Hostel";     // Your database name
+// Environment Detection logic (Local vs Online)
+$is_local = in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']);
+
+if ($is_local) {
+    // Local Machine Database configuration
+    $dbhost = "localhost";
+    $dbuser = "official_chuwa";
+    $dbpass = "chuwa123";
+    $dbname = "Hostel";
+} else {
+    // Live cPanel Database configuration (WEKA CREDENTIALS ZA ONLINE HAPA)
+    $dbhost = "localhost"; // Kwenye cPanel mara nyingi inabaki 'localhost'
+    $dbuser = "online_db_user"; // Badili iwe user wa cpanel
+    $dbpass = "online_db_password"; // Badili iwe password ya cpanel
+    $dbname = "online_db_name"; // Badili iwe jina la DB ya cpanel
+}
 
 // Create connection
 $mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
 
 // Check connection
 if ($mysqli->connect_error) {
-    die("Connection failed: " . $mysqli->connect_error . 
-        " (Error code: " . $mysqli->connect_errno . ")");
+    die("Connection failed: " . $mysqli->connect_error);
 }
 
 // Set charset to UTF-8
 $mysqli->set_charset("utf8mb4");
-
-// Optional: Verify connection works
-// echo "Successfully connected to database: " . $dbname;
 ?>
