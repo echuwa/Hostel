@@ -68,7 +68,7 @@ if(isset($_GET['reject'])) {
 
 // ─── FETCH DATA ────────────────────────────────────────────────────
 $pending_q = $mysqli->query("
-    SELECT dr.*, ur.firstName, ur.lastName, ur.regNo, ur.phone
+    SELECT dr.*, ur.firstName, ur.lastName, ur.regNo, ur.contactNo
     FROM deposit_requests dr
     JOIN userregistration ur ON dr.user_id = ur.id
     WHERE dr.status = 'Pending'
